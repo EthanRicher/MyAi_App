@@ -8,15 +8,18 @@ import { BackButton } from "../../../components/BackButton";
 import { BackendRequiredModal } from "../../../components/BackendRequiredModal";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
+import { useMedications } from "../hooks/useMedication";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedViewAdd">;
 
 export function MedViewAdd() {
   const navigation = useNavigation<Nav>();
+  const { addMed } = useMedications();
+
   const [showBackend, setShowBackend] = useState(false);
   const [name, setName] = useState("");
   const [dose, setDose] = useState("");
-  const [time, setTime] = useState("Morning");
+  const [time, setTime] = useState<"Morning" | "Afternoon" | "Evening">("Morning");
 
   return (
     <View style={styles.container}>
@@ -53,6 +56,7 @@ export function MedViewAdd() {
               accessibilityLabel="Medication name"
             />
           </View>
+
           <View>
             <Text style={styles.label}>Dose</Text>
             <TextInput
@@ -64,6 +68,7 @@ export function MedViewAdd() {
               accessibilityLabel="Dose"
             />
           </View>
+
           <View>
             <Text style={styles.label}>Time of Day</Text>
             <View style={styles.pickerWrap}>
@@ -81,7 +86,17 @@ export function MedViewAdd() {
           </View>
 
           <TouchableOpacity
-            onPress={() => { Alert.alert("Medication saved"); navigation.navigate("MedView"); }}
+            onPress={() => {
+              if (!name || !dose) {
+                Alert.alert("Error", "Fill all fields");
+                return;
+              }
+
+              addMed({ name, dose, time });
+
+              Alert.alert("Medication saved");
+              navigation.navigate("MedView");
+            }}
             style={styles.saveBtn}
             accessibilityLabel="Save medication"
           >
@@ -102,6 +117,7 @@ export function MedViewAdd() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 20 },
+
   cameraBox: {
     width: "100%",
     aspectRatio: 4 / 3,
@@ -114,7 +130,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 16,
   },
+
   cameraText: { color: colors.textMuted, fontSize: 18 },
+
   photoBtn: {
     width: "100%",
     paddingVertical: 14,
@@ -122,12 +140,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.green,
     alignItems: "center",
   },
+
   photoBtnText: { color: colors.text, fontSize: 18, fontWeight: "700" },
+
   divider: { flexDirection: "row", alignItems: "center", gap: 12 },
+
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+
   dividerText: { color: colors.textCaption, fontSize: 16 },
+
   form: { gap: 16 },
+
   label: { color: colors.textMuted, fontSize: 19, marginBottom: 6 },
+
   input: {
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -138,6 +163,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 18,
   },
+
   pickerWrap: {
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -145,7 +171,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
   },
+
   picker: { color: colors.text, height: 50 },
+
   saveBtn: {
     width: "100%",
     paddingVertical: 14,
@@ -154,5 +182,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 8,
   },
+
   saveBtnText: { color: colors.text, fontSize: 20, fontWeight: "700" },
 });

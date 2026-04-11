@@ -48,7 +48,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export function AppNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Splash"
+      initialRouteName="Main"//change to "Splash"
       screenOptions={{ headerShown: false, animation: "none" }}
     >
       <Stack.Screen name="Splash" component={SplashScreen} />

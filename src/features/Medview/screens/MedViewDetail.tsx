@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Pill, Sun, Moon, Edit, Trash2 } from "lucide-react-native";
+import { Pill, Edit, Trash2 } from "lucide-react-native";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
@@ -17,12 +17,10 @@ export function MedViewDetail() {
   const { id } = route.params;
 
   const { getMed, deleteMed } = useMedications();
-
   const [showConfirm, setShowConfirm] = useState(false);
 
   const med = getMed(id);
 
-  // fallback (prevents crash if no data yet)
   if (!med) {
     return (
       <View style={styles.container}>
@@ -47,15 +45,16 @@ export function MedViewDetail() {
               <Text style={styles.medSub}>Tablet · {med.dose}</Text>
             </View>
           </View>
+
           <Text style={styles.schedule}>
-            Once daily — {med.time}
+            {med.dosesPerDay} times daily
           </Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardHeading}>What Does It Do?</Text>
+          <Text style={styles.cardHeading}>Description</Text>
           <Text style={styles.cardBody}>
-            This medication helps manage your condition. Always follow your doctor’s instructions and ask a pharmacist if unsure.
+            {med.description || "No description provided."}
           </Text>
         </View>
 
@@ -63,24 +62,19 @@ export function MedViewDetail() {
           <Text style={styles.cardHeading}>Schedule</Text>
 
           <View style={styles.scheduleRow}>
-            <View style={[styles.timeChip, med.time === "Morning" && styles.timeChipActive]}>
-              <Sun size={20} color={med.time === "Morning" ? colors.orange : colors.border} />
-              <Text style={[styles.timeLabel, { color: med.time === "Morning" ? colors.text : colors.border }]}>
-                Morning
-              </Text>
-            </View>
-
-            <View style={[styles.timeChip, med.time === "Evening" && styles.timeChipActive]}>
-              <Moon size={20} color={med.time === "Evening" ? colors.purple : colors.border} />
-              <Text style={[styles.timeLabel, { color: med.time === "Evening" ? colors.text : colors.border }]}>
-                Evening
-              </Text>
-            </View>
+            {(med.times || []).map((t, i) => (
+              <View key={i} style={[styles.timeChip, styles.timeChipActive]}>
+                <Text style={styles.timeLabel}>{t}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.editBtn}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("MedViewAdd", { med })}
+            style={styles.editBtn}
+          >
             <Edit size={20} color={colors.green} />
             <Text style={styles.editBtnText}>Edit</Text>
           </TouchableOpacity>
@@ -92,13 +86,10 @@ export function MedViewDetail() {
         </View>
       </ScrollView>
 
-      <Modal visible={showConfirm} transparent animationType="fade" onRequestClose={() => setShowConfirm(false)}>
+      <Modal visible={showConfirm} transparent animationType="fade">
         <View style={styles.overlay}>
           <View style={styles.confirmCard}>
             <Text style={styles.confirmTitle}>Remove {med.name}?</Text>
-            <Text style={styles.confirmDesc}>
-              This will remove this medication from your list.
-            </Text>
 
             <View style={styles.confirmBtns}>
               <TouchableOpacity onPress={() => setShowConfirm(false)} style={styles.cancelBtn}>
@@ -108,7 +99,6 @@ export function MedViewDetail() {
               <TouchableOpacity
                 onPress={() => {
                   deleteMed(id);
-                  setShowConfirm(false);
                   navigation.navigate("MedView");
                 }}
                 style={styles.deleteBtn}
@@ -125,6 +115,7 @@ export function MedViewDetail() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 20 },
 
   headerCard: {
@@ -153,6 +144,7 @@ const styles = StyleSheet.create({
 
   medName: { color: colors.text, fontSize: 24, fontWeight: "700" },
   medSub: { color: colors.textMuted, fontSize: 17 },
+
   schedule: { color: colors.textMuted, fontSize: 17 },
 
   card: {
@@ -174,21 +166,28 @@ const styles = StyleSheet.create({
     lineHeight: 27,
   },
 
-  scheduleRow: { flexDirection: "row", gap: 16 },
+  scheduleRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
 
   timeChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 12,
     backgroundColor: colors.background,
   },
 
-  timeChipActive: { backgroundColor: colors.green + "33" },
+  timeChipActive: {
+    backgroundColor: colors.green + "33",
+  },
 
-  timeLabel: { fontSize: 17, fontWeight: "600" },
+  timeLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.text,
+  },
 
   actions: { flexDirection: "row", gap: 12 },
 

@@ -1,11 +1,12 @@
 export type Medication = {
   id: string;
+
   name: string;
   dose: string;
-  time: "Morning" | "Afternoon" | "Evening";
-  taken: boolean;
+  description: string;
 
-  type?: string;
-  notes?: string;
-  schedule?: string;
+  dosesPerDay: number;
+  times: string[];
+
+  taken: boolean[];
 };

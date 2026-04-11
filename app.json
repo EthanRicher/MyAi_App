@@ -19,6 +19,8 @@
       },
       "package": "com.myai.app"
     },
-    "plugins": []
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
   }
 }

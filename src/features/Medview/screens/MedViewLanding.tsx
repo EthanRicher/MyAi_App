@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { HelpCircle, Plus, Clock, Check } from "lucide-react-native";
+import { HelpCircle, Plus } from "lucide-react-native";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
@@ -15,8 +15,10 @@ export function MedViewLanding() {
   const { medications } = useMedications();
 
   const meds: Medication[] = medications;
-  const taken = meds.filter((m) => m.taken).length;
-  const pct = meds.length ? (taken / meds.length) * 100 : 0;
+
+  const total = meds.reduce((sum, m) => sum + (m.times?.length || 0), 0);
+  const taken = meds.reduce((sum, m) => sum + (m.taken?.filter(t => t).length || 0), 0);
+  const pct = total ? (taken / total) * 100 : 0;
 
   return (
     <View style={styles.container}>
@@ -34,7 +36,7 @@ export function MedViewLanding() {
           </View>
 
           <Text style={styles.scheduleCount}>
-            {taken} of {meds.length} medications taken
+            {taken} of {total} doses taken
           </Text>
 
           <View style={styles.progressBg}>
@@ -49,27 +51,46 @@ export function MedViewLanding() {
               onPress={() => navigation.navigate("MedViewDetail", { id: m.id })}
               style={styles.medRow}
             >
-              <View style={[styles.dot, { backgroundColor: m.taken ? colors.green : colors.orange }]} />
+              <View
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor:
+                      m.taken?.some(t => t) ? colors.green : colors.orange,
+                  },
+                ]}
+              />
+
               <View style={styles.medInfo}>
                 <Text style={styles.medName}>{m.name}</Text>
-                <Text style={styles.medSub}>{m.dose} · {m.time}</Text>
+
+                <Text style={styles.medSub}>
+                  {m.dose} · {m.dosesPerDay} times daily
+                </Text>
               </View>
-              {m.taken ? <Check size={22} color={colors.green} /> : <Clock size={22} color={colors.orange} />}
             </TouchableOpacity>
           ))}
         </View>
 
-        <TouchableOpacity onPress={() => navigation.navigate("MedViewAdd")} style={styles.addBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("MedViewAdd")}
+          style={styles.addBtn}
+        >
           <Plus size={22} color={colors.green} />
           <Text style={styles.addBtnText}>Add Medication</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate("MedViewChat")} style={styles.explainBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("MedViewChat")}
+          style={styles.explainBtn}
+        >
           <HelpCircle size={26} color={colors.green} />
           <Text style={styles.explainText}>Explain</Text>
         </TouchableOpacity>
 
-        <Text style={styles.disclaimer}>AI helps you understand. Always confirm with your doctor.</Text>
+        <Text style={styles.disclaimer}>
+          AI helps you understand. Always confirm with your doctor.
+        </Text>
       </ScrollView>
     </View>
   );

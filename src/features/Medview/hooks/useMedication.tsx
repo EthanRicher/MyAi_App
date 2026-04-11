@@ -5,14 +5,16 @@ import { Medication } from "../models/Medication";
 type MedicationContextType = {
   medications: Medication[];
   addMed: (med: Omit<Medication, "id" | "taken">) => void;
+  updateMed: (med: Medication) => void;
   deleteMed: (id: string) => void;
-  toggleTaken: (id: string) => void;
+  toggleTaken: (id: string, index: number) => void;
   getMed: (id: string) => Medication | undefined;
 };
 
 const MedicationContext = createContext<MedicationContextType>({
   medications: [],
   addMed: () => {},
+  updateMed: () => {},
   deleteMed: () => {},
   toggleTaken: () => {},
   getMed: () => undefined,
@@ -20,11 +22,7 @@ const MedicationContext = createContext<MedicationContextType>({
 
 const STORAGE_KEY = "MEDICATIONS";
 
-type Props = {
-  children: ReactNode;
-};
-
-export function MedicationProvider({ children }: Props) {
+export function MedicationProvider({ children }: { children: ReactNode }) {
   const [medications, setMedications] = useState<Medication[]>([]);
 
   useEffect(() => {
@@ -32,7 +30,15 @@ export function MedicationProvider({ children }: Props) {
       try {
         const data = await AsyncStorage.getItem(STORAGE_KEY);
         if (data) {
-          setMedications(JSON.parse(data));
+          const parsed = JSON.parse(data);
+
+          const fixed = parsed.map((m: any) => ({
+            ...m,
+            times: m.times || [],
+            taken: m.taken || Array((m.times || []).length).fill(false),
+          }));
+
+          setMedications(fixed);
         }
       } catch {}
     };
@@ -40,31 +46,39 @@ export function MedicationProvider({ children }: Props) {
   }, []);
 
   useEffect(() => {
-    const save = async () => {
-      try {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(medications));
-      } catch {}
-    };
-    save();
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(medications));
   }, [medications]);
 
   const addMed = (med: Omit<Medication, "id" | "taken">) => {
     const newMed: Medication = {
       id: Date.now().toString(),
-      taken: false,
+      taken: Array(med.times.length).fill(false),
       ...med,
     };
     setMedications((prev) => [...prev, newMed]);
+  };
+
+  const updateMed = (updatedMed: Medication) => {
+    setMedications((prev) =>
+      prev.map((m) => (m.id === updatedMed.id ? updatedMed : m))
+    );
   };
 
   const deleteMed = (id: string) => {
     setMedications((prev) => prev.filter((m) => m.id !== id));
   };
 
-  const toggleTaken = (id: string) => {
+  const toggleTaken = (id: string, index: number) => {
     setMedications((prev) =>
       prev.map((m) =>
-        m.id === id ? { ...m, taken: !m.taken } : m
+        m.id === id
+          ? {
+              ...m,
+              taken: m.taken.map((t, i) =>
+                i === index ? !t : t
+              ),
+            }
+          : m
       )
     );
   };
@@ -75,7 +89,7 @@ export function MedicationProvider({ children }: Props) {
 
   return (
     <MedicationContext.Provider
-      value={{ medications, addMed, deleteMed, toggleTaken, getMed }}
+      value={{ medications, addMed, updateMed, deleteMed, toggleTaken, getMed }}
     >
       {children}
     </MedicationContext.Provider>

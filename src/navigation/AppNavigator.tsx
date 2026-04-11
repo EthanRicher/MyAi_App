@@ -19,7 +19,7 @@ import { Companion } from "../features/Companion/screens/Companion";
 import { CompanionChat } from "../features/Companion/screens/CompanionChat";
 import { SafeHarbour } from "../screens/SafeHarbour";
 import { SettingsScreen } from "../screens/SettingsScreen";
-
+import { Medication } from "../features/Medview/models/Medication";
 export type RootStackParamList = {
   Splash: undefined;
   Landing: undefined;
@@ -34,7 +34,9 @@ export type RootStackParamList = {
   MedView: undefined;
   MedViewSchedule: undefined;
   MedViewDetail: { id: string };
-  MedViewAdd: undefined;
+
+  MedViewAdd: { med?: Medication } | undefined;
+
   MedViewChat: undefined;
   SenseGuard: undefined;
   Companion: undefined;

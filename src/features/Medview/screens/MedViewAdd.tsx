@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Camera } from "lucide-react-native";
-import { Picker } from "@react-native-picker/picker";
 import { BackButton } from "../../../components/BackButton";
 import { BackendRequiredModal } from "../../../components/BackendRequiredModal";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
@@ -11,30 +11,47 @@ import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedViewAdd">;
+type Route = RouteProp<RootStackParamList, "MedViewAdd">;
 
 export function MedViewAdd() {
   const navigation = useNavigation<Nav>();
-  const { addMed } = useMedications();
+  const route = useRoute<Route>();
+
+  const [initialMed] = useState(route.params?.med);
+
+  const { addMed, updateMed } = useMedications();
 
   const [showBackend, setShowBackend] = useState(false);
-  const [name, setName] = useState("");
-  const [dose, setDose] = useState("");
-  const [time, setTime] = useState<"Morning" | "Afternoon" | "Evening">("Morning");
+
+  const [name, setName] = useState(initialMed?.name || "");
+  const [dose, setDose] = useState(initialMed?.dose || "");
+  const [description, setDescription] = useState(initialMed?.description || "");
+
+  const [amount, setAmount] = useState(
+    initialMed ? initialMed.dosesPerDay.toString() : ""
+  );
+
+  // 🔥 FULL MEMORY OF TIMES
+  const [allTimes, setAllTimes] = useState<string[]>(
+    initialMed?.times || []
+  );
+
+  const visibleCount = Number(amount) || 0;
+  const times = allTimes.slice(0, visibleCount);
+
+  const [showPickerIndex, setShowPickerIndex] = useState<number | null>(null);
 
   return (
     <View style={styles.container}>
       <BackButton label="MedView" to="MedView" />
+
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.cameraBox}>
           <Camera size={48} color={colors.green} />
           <Text style={styles.cameraText}>Take a photo of your medication</Text>
         </View>
 
-        <TouchableOpacity
-          onPress={() => setShowBackend(true)}
-          style={styles.photoBtn}
-          accessibilityLabel="Take photo"
-        >
+        <TouchableOpacity onPress={() => setShowBackend(true)} style={styles.photoBtn}>
           <Text style={styles.photoBtnText}>Take Photo</Text>
         </TouchableOpacity>
 
@@ -53,54 +70,133 @@ export function MedViewAdd() {
               placeholder="e.g. Metformin"
               placeholderTextColor={colors.textCaption}
               style={styles.input}
-              accessibilityLabel="Medication name"
             />
           </View>
 
           <View>
-            <Text style={styles.label}>Dose</Text>
+            <Text style={styles.label}>Description</Text>
             <TextInput
-              value={dose}
-              onChangeText={setDose}
-              placeholder="e.g. 500mg"
+              value={description}
+              onChangeText={setDescription}
+              placeholder="What is this for?"
               placeholderTextColor={colors.textCaption}
-              style={styles.input}
-              accessibilityLabel="Dose"
+              style={[styles.input, styles.textArea]}
+              multiline
             />
           </View>
 
-          <View>
-            <Text style={styles.label}>Time of Day</Text>
-            <View style={styles.pickerWrap}>
-              <Picker
-                selectedValue={time}
-                onValueChange={(val) => setTime(val)}
-                style={styles.picker}
-                dropdownIconColor={colors.textMuted}
-              >
-                <Picker.Item label="Morning" value="Morning" color={colors.text} />
-                <Picker.Item label="Afternoon" value="Afternoon" color={colors.text} />
-                <Picker.Item label="Evening" value="Evening" color={colors.text} />
-              </Picker>
+          <View style={styles.row}>
+            <View style={styles.rowItem}>
+              <Text style={styles.label}>Dose</Text>
+              <TextInput
+                value={dose}
+                onChangeText={setDose}
+                placeholder="500mg"
+                placeholderTextColor={colors.textCaption}
+                style={styles.input}
+              />
             </View>
+
+            <View style={styles.rowItem}>
+              <Text style={styles.label}>Times</Text>
+              <TextInput
+                value={amount}
+                onChangeText={(t) => {
+                  setAmount(t);
+
+                  const num = Math.max(0, Math.min(10, Number(t) || 0));
+
+                  setAllTimes((prev) => {
+                    const updated = [...prev];
+
+                    while (updated.length < num) {
+                      updated.push("");
+                    }
+
+                    return updated;
+                  });
+                }}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor={colors.textCaption}
+                style={styles.input}
+              />
+            </View>
+          </View>
+
+          <View style={{ gap: 10 }}>
+            <Text style={styles.label}>Select Times</Text>
+
+            {times.map((t, i) => (
+              <View key={i}>
+                <TouchableOpacity
+                  onPress={() => setShowPickerIndex(i)}
+                  style={styles.input}
+                >
+                  <Text style={{ color: t ? colors.text : colors.textMuted }}>
+                    {t || `Select time ${i + 1}`}
+                  </Text>
+                </TouchableOpacity>
+
+                {showPickerIndex === i && (
+                  <DateTimePicker
+                    mode="time"
+                    value={new Date()}
+                    onChange={(event, selectedDate) => {
+                      setShowPickerIndex(null);
+
+                      if (selectedDate) {
+                        const updated = [...allTimes];
+
+                        updated[i] = selectedDate.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+
+                        setAllTimes(updated);
+                      }
+                    }}
+                  />
+                )}
+              </View>
+            ))}
           </View>
 
           <TouchableOpacity
             onPress={() => {
-              if (!name || !dose) {
+              if (!name || !dose || times.length === 0 || times.some((t) => !t)) {
                 Alert.alert("Error", "Fill all fields");
                 return;
               }
 
-              addMed({ name, dose, time });
+              const finalTimes = allTimes.slice(0, visibleCount);
 
-              Alert.alert("Medication saved");
+              if (initialMed) {
+                updateMed({
+                  ...initialMed,
+                  name,
+                  dose,
+                  description,
+                  dosesPerDay: Number(amount) || 0,
+                  times: finalTimes,
+                });
+              } else {
+                addMed({
+                  name,
+                  dose,
+                  description,
+                  dosesPerDay: Number(amount) || 0,
+                  times: finalTimes,
+                });
+              }
+
               navigation.navigate("MedView");
             }}
             style={styles.saveBtn}
-            accessibilityLabel="Save medication"
           >
-            <Text style={styles.saveBtnText}>Save Medication</Text>
+            <Text style={styles.saveBtnText}>
+              {initialMed ? "Update Medication" : "Save Medication"}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -116,7 +212,13 @@ export function MedViewAdd() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 20 },
+
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 32,
+    gap: 20,
+  },
 
   cameraBox: {
     width: "100%",
@@ -151,28 +253,34 @@ const styles = StyleSheet.create({
 
   form: { gap: 16 },
 
-  label: { color: colors.textMuted, fontSize: 19, marginBottom: 6 },
+  label: { color: colors.textMuted, fontSize: 16, marginBottom: 4 },
 
   input: {
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     color: colors.text,
-    fontSize: 18,
+    fontSize: 16,
+    justifyContent: "center",
   },
 
-  pickerWrap: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    overflow: "hidden",
+  textArea: {
+    height: 100,
+    textAlignVertical: "top",
+    paddingTop: 12,
   },
 
-  picker: { color: colors.text, height: 50 },
+  row: {
+    flexDirection: "row",
+    gap: 10,
+  },
+
+  rowItem: {
+    flex: 1,
+  },
 
   saveBtn: {
     width: "100%",
@@ -183,5 +291,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  saveBtnText: { color: colors.text, fontSize: 20, fontWeight: "700" },
+  saveBtnText: { color: colors.text, fontSize: 18, fontWeight: "700" },
 });

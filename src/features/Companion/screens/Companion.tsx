@@ -3,9 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-nati
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { MessageCircle, Brain, Calendar, Heart, HelpCircle, BookOpen, Users, Mail, Bookmark, Palette, ChevronRight } from "lucide-react-native";
-import { BackButton } from "../components/BackButton";
-import { RootStackParamList } from "../navigation/AppNavigator";
-import { colors } from "../theme";
+import { BackButton } from "../../../components/BackButton";
+import { RootStackParamList } from "../../../navigation/AppNavigator";
+import { colors } from "../../../theme";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Companion">;
 

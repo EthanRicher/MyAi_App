@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Mic } from "lucide-react-native";
-import { BackButton } from "../components/BackButton";
-import { BackendRequiredModal } from "../components/BackendRequiredModal";
-import { colors } from "../theme";
+import { BackButton } from "../../../components/BackButton";
+import { BackendRequiredModal } from "../../../components/BackendRequiredModal";
+import { colors } from "../../../theme";
 
 export function ClarityRecord() {
   const [showBackend, setShowBackend] = useState(true);

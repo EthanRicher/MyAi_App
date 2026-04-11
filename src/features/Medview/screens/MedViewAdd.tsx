@@ -4,10 +4,10 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Camera } from "lucide-react-native";
 import { Picker } from "@react-native-picker/picker";
-import { BackButton } from "../components/BackButton";
-import { BackendRequiredModal } from "../components/BackendRequiredModal";
-import { RootStackParamList } from "../navigation/AppNavigator";
-import { colors } from "../theme";
+import { BackButton } from "../../../components/BackButton";
+import { BackendRequiredModal } from "../../../components/BackendRequiredModal";
+import { RootStackParamList } from "../../../navigation/AppNavigator";
+import { colors } from "../../../theme";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedViewAdd">;
 

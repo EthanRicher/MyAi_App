@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from "react-native";
 import { Volume2, Copy, Save, RefreshCw } from "lucide-react-native";
-import { BackButton } from "../components/BackButton";
-import { colors } from "../theme";
+import { BackButton } from "../../../components/BackButton";
+import { colors } from "../../../theme";
 
 const followUps = [
   "What are the side effects of this medication?",

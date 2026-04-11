@@ -2,9 +2,9 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-nati
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Mic, FileText, Pill, Calendar, Globe, ChevronRight } from "lucide-react-native";
-import { BackButton } from "../components/BackButton";
-import { RootStackParamList } from "../navigation/AppNavigator";
-import { colors } from "../theme";
+import { BackButton } from "../../../components/BackButton";
+import { RootStackParamList } from "../../../navigation/AppNavigator";
+import { colors } from "../../../theme";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Clarity">;
 

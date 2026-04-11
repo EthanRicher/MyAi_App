@@ -1,6 +1,6 @@
 import { useRoute, RouteProp } from "@react-navigation/native";
-import { ChatScreen } from "../components/ChatScreen";
-import { RootStackParamList } from "../navigation/AppNavigator";
+import { ChatScreen } from "../../../components/ChatScreen";
+import { RootStackParamList } from "../../../navigation/AppNavigator";
 
 type Route = RouteProp<RootStackParamList, "CompanionChat">;
 

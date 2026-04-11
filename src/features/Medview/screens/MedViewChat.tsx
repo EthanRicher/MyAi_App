@@ -1,4 +1,4 @@
-import { ChatScreen } from "../components/ChatScreen";
+import { ChatScreen } from "../../../components/ChatScreen";
 
 export function MedViewChat() {
   return (

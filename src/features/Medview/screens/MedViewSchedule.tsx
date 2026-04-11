@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Check, Clock, Sun, Sunset, Moon } from "lucide-react-native";
-import { BackButton } from "../components/BackButton";
-import { colors } from "../theme";
+import { BackButton } from "../../../components/BackButton";
+import { colors } from "../../../theme";
 
 interface Med { id: string; name: string; dose: string; taken: boolean; }
 interface TimeGroup { label: string; icon: typeof Sun; meds: Med[]; }

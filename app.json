@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "MyAI",
+    "slug": "myai-expo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#04041c"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.myai.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#04041c"
+      },
+      "package": "com.myai.app"
+    },
+    "plugins": []
+  }
+}

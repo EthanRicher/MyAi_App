@@ -1,14 +1,23 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Image
+} from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Camera } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
 import { BackButton } from "../../../components/BackButton";
-import { BackendRequiredModal } from "../../../components/BackendRequiredModal";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
+import { scanMedicationFromPhoto } from "../services/medviewAI";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedViewAdd">;
 type Route = RouteProp<RootStackParamList, "MedViewAdd">;
@@ -21,8 +30,6 @@ export function MedViewAdd() {
 
   const { addMed, updateMed } = useMedications();
 
-  const [showBackend, setShowBackend] = useState(false);
-
   const [name, setName] = useState(initialMed?.name || "");
   const [dose, setDose] = useState(initialMed?.dose || "");
   const [description, setDescription] = useState(initialMed?.description || "");
@@ -31,15 +38,91 @@ export function MedViewAdd() {
     initialMed ? initialMed.dosesPerDay.toString() : ""
   );
 
-  // 🔥 FULL MEMORY OF TIMES
   const [allTimes, setAllTimes] = useState<string[]>(
     initialMed?.times || []
   );
+
+  const [image, setImage] = useState<string | null>(
+    initialMed?.image || null
+  );
+
+  const [error, setError] = useState("");
+  const [invalidFields, setInvalidFields] = useState<string[]>([]);
 
   const visibleCount = Number(amount) || 0;
   const times = allTimes.slice(0, visibleCount);
 
   const [showPickerIndex, setShowPickerIndex] = useState<number | null>(null);
+
+  const handleScan = async () => {
+    setError("");
+
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.7,
+    });
+
+    if (result.canceled) return;
+
+    const uri = result.assets[0].uri;
+
+    setImage(uri);
+
+    const aiResult = await scanMedicationFromPhoto(uri);
+
+    if (aiResult.error) {
+      setError(aiResult.error);
+      return;
+    }
+
+    setName(aiResult.name);
+    setDose(aiResult.dose);
+    setDescription(aiResult.description);
+
+    setAmount("1");
+    setAllTimes(["08:00"]);
+  };
+
+  const handleSave = () => {
+    const errors: string[] = [];
+
+    if (!name) errors.push("name");
+    if (!dose) errors.push("dose");
+    if (times.length === 0 || times.some((t) => !t)) errors.push("times");
+
+    setInvalidFields(errors);
+
+    if (errors.length > 0) {
+      setError("Please fill all required fields");
+      return;
+    }
+
+    setError("");
+
+    const finalTimes = allTimes.slice(0, visibleCount);
+
+    if (initialMed) {
+      updateMed({
+        ...initialMed,
+        name,
+        dose,
+        description,
+        dosesPerDay: Number(amount) || 0,
+        times: finalTimes,
+        image,
+      });
+    } else {
+      addMed({
+        name,
+        dose,
+        description,
+        dosesPerDay: Number(amount) || 0,
+        times: finalTimes,
+        image,
+      });
+    }
+
+    navigation.navigate("MedView");
+  };
 
   return (
     <View style={styles.container}>
@@ -47,13 +130,27 @@ export function MedViewAdd() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.cameraBox}>
-          <Camera size={48} color={colors.green} />
-          <Text style={styles.cameraText}>Take a photo of your medication</Text>
+          {image ? (
+            <Image
+              source={{ uri: image }}
+              style={{ width: "100%", height: "100%", borderRadius: 16 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <>
+              <Camera size={48} color={colors.green} />
+              <Text style={styles.cameraText}>Scan your medication</Text>
+            </>
+          )}
         </View>
 
-        <TouchableOpacity onPress={() => setShowBackend(true)} style={styles.photoBtn}>
-          <Text style={styles.photoBtnText}>Take Photo</Text>
+        <TouchableOpacity onPress={handleScan} style={styles.photoBtn}>
+          <Text style={styles.photoBtnText}>Scan Image</Text>
         </TouchableOpacity>
+
+        {error ? (
+          <Text style={{ color: "red", marginTop: 8 }}>{error}</Text>
+        ) : null}
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
@@ -66,10 +163,16 @@ export function MedViewAdd() {
             <Text style={styles.label}>Medication Name</Text>
             <TextInput
               value={name}
-              onChangeText={setName}
+              onChangeText={(t) => {
+                setName(t);
+                setInvalidFields(prev => prev.filter(f => f !== "name"));
+              }}
               placeholder="e.g. Metformin"
               placeholderTextColor={colors.textCaption}
-              style={styles.input}
+              style={[
+                styles.input,
+                invalidFields.includes("name") && styles.errorInput
+              ]}
             />
           </View>
 
@@ -90,10 +193,16 @@ export function MedViewAdd() {
               <Text style={styles.label}>Dose</Text>
               <TextInput
                 value={dose}
-                onChangeText={setDose}
+                onChangeText={(t) => {
+                  setDose(t);
+                  setInvalidFields(prev => prev.filter(f => f !== "dose"));
+                }}
                 placeholder="500mg"
                 placeholderTextColor={colors.textCaption}
-                style={styles.input}
+                style={[
+                  styles.input,
+                  invalidFields.includes("dose") && styles.errorInput
+                ]}
               />
             </View>
 
@@ -108,18 +217,17 @@ export function MedViewAdd() {
 
                   setAllTimes((prev) => {
                     const updated = [...prev];
-
-                    while (updated.length < num) {
-                      updated.push("");
-                    }
-
+                    while (updated.length < num) updated.push("");
                     return updated;
                   });
                 }}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor={colors.textCaption}
-                style={styles.input}
+                style={[
+                  styles.input,
+                  invalidFields.includes("times") && styles.errorInput
+                ]}
               />
             </View>
           </View>
@@ -131,7 +239,10 @@ export function MedViewAdd() {
               <View key={i}>
                 <TouchableOpacity
                   onPress={() => setShowPickerIndex(i)}
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    invalidFields.includes("times") && styles.errorInput
+                  ]}
                 >
                   <Text style={{ color: t ? colors.text : colors.textMuted }}>
                     {t || `Select time ${i + 1}`}
@@ -147,12 +258,10 @@ export function MedViewAdd() {
 
                       if (selectedDate) {
                         const updated = [...allTimes];
-
                         updated[i] = selectedDate.toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
                         });
-
                         setAllTimes(updated);
                       }
                     }}
@@ -162,50 +271,13 @@ export function MedViewAdd() {
             ))}
           </View>
 
-          <TouchableOpacity
-            onPress={() => {
-              if (!name || !dose || times.length === 0 || times.some((t) => !t)) {
-                Alert.alert("Error", "Fill all fields");
-                return;
-              }
-
-              const finalTimes = allTimes.slice(0, visibleCount);
-
-              if (initialMed) {
-                updateMed({
-                  ...initialMed,
-                  name,
-                  dose,
-                  description,
-                  dosesPerDay: Number(amount) || 0,
-                  times: finalTimes,
-                });
-              } else {
-                addMed({
-                  name,
-                  dose,
-                  description,
-                  dosesPerDay: Number(amount) || 0,
-                  times: finalTimes,
-                });
-              }
-
-              navigation.navigate("MedView");
-            }}
-            style={styles.saveBtn}
-          >
+          <TouchableOpacity onPress={handleSave} style={styles.saveBtn}>
             <Text style={styles.saveBtnText}>
               {initialMed ? "Update Medication" : "Save Medication"}
             </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      <BackendRequiredModal
-        open={showBackend}
-        onClose={() => setShowBackend(false)}
-        description="Taking a photo requires camera access, OCR processing, and GPT to recognise medication details from the image."
-      />
     </View>
   );
 }
@@ -292,4 +364,9 @@ const styles = StyleSheet.create({
   },
 
   saveBtnText: { color: colors.text, fontSize: 18, fontWeight: "700" },
+
+  errorInput: {
+    borderColor: "red",
+    borderWidth: 2,
+  },
 });

@@ -9,4 +9,6 @@ export type Medication = {
   times: string[];
 
   taken: boolean[];
+
+  image?: string | null;
 };

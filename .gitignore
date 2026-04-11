@@ -11,3 +11,4 @@ build/
 web-build/
 .DS_Store
 Thumbs.db
+.env

@@ -1,17 +1,44 @@
 import { ChatScreen } from "../../../components/ChatScreen";
+import { colors } from "../../../theme";
+import { useRoute } from "@react-navigation/native";
+import { processWithAI } from "../../../services/aiService";
 
 export function MedViewChat() {
+  const route = useRoute<any>();
+  const med = route.params?.med;
+
+  const handleAI = async (message: string) => {
+    const context = med
+      ? `Medication: ${med.name}
+Dose: ${med.dose}
+Description: ${med.description}
+
+User: ${message}`
+      : message;
+
+    const reply = await processWithAI(context, "Doctor_To_Client");
+    return reply;
+  };
+
   return (
     <ChatScreen
-      title="MedView Chat"
-      accentColor="#4CAF50"
-      aiLabel="AI"
-      initialAiMessage="Hello! I'm here to help you understand your medications. You can ask me about side effects, interactions, dosages, or anything else about your prescriptions. What would you like to know?"
-      cannedReply="That's an important question about your medication. Generally speaking, it's best to follow the instructions on your prescription label and discuss any concerns with your pharmacist or doctor. Would you like me to explain anything else?"
-      chips={["Side effects?", "With food?", "Missed dose?"]}
-      disclaimer="AI helps you understand. Always confirm with your doctor."
+      title="Medication Chat"
+      accentColor={colors.green}
+      aiLabel="Med AI"
+      initialAiMessage={
+        med
+          ? `Ask me anything about ${med.name}`
+          : "Ask me about your medication"
+      }
+      cannedReply="..."
+      onSendToAI={handleAI}
+      chips={[
+        "What is this?",
+        "Side effects?",
+        "When do I take it?",
+      ]}
+      disclaimer="This is not medical advice."
       backTo="MedView"
-      backLabel="MedView"
     />
   );
 }

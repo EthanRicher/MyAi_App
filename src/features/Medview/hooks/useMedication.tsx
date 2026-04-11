@@ -34,6 +34,7 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
 
           const fixed = parsed.map((m: any) => ({
             ...m,
+            image: m.image ?? null,
             times: m.times || [],
             taken: m.taken || Array((m.times || []).length).fill(false),
           }));
@@ -53,6 +54,7 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
     const newMed: Medication = {
       id: Date.now().toString(),
       taken: Array(med.times.length).fill(false),
+      image: med.image ?? null,
       ...med,
     };
     setMedications((prev) => [...prev, newMed]);
@@ -74,9 +76,7 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
         m.id === id
           ? {
               ...m,
-              taken: m.taken.map((t, i) =>
-                i === index ? !t : t
-              ),
+              taken: m.taken.map((t, i) => (i === index ? !t : t)),
             }
           : m
       )

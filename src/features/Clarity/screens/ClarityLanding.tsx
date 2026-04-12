@@ -5,15 +5,51 @@ import { Mic, FileText, Pill, Calendar, Globe, ChevronRight } from "lucide-react
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
+import { ScopeId } from "../../../ai/scopes";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Clarity">;
 
-const cards = [
-  { title: "Doctor Explained", desc: "Record medical conversations", icon: Mic, path: "ClarityRecord" as const, chat: "", chips: [] },
-  { title: "Summarise Document", desc: "Simplify medical documents", icon: FileText, path: null, chat: "I can help you understand medical documents. You can describe the document or type out the key parts, and I'll explain them in simple terms.", chips: ["Summarise this letter", "What does this result mean?", "Explain in simpler words"] },
-  { title: "Explain Medication", desc: "Understand prescriptions", icon: Pill, path: null, chat: "I'd be happy to help you understand your medication. What medication would you like to know about?", chips: ["What are the side effects?", "Can I take it with food?", "What if I miss a dose?"] },
-  { title: "Appointment Prep", desc: "Get ready for your visit", icon: Calendar, path: null, chat: "Let's prepare some questions for your next appointment. What type of appointment do you have coming up?", chips: ["GP visit next week", "Specialist follow-up", "What should I ask about my results?"] },
-  { title: "Explain Everyday", desc: "Tech, news & bills made simple", icon: Globe, path: null, chat: "I can help explain technology, news, or bills in simple language. What would you like to understand better?", chips: ["Explain this bill", "What does this tech term mean?", "Summarise this news article"] },
+const cards: {
+  title: string;
+  desc: string;
+  icon: any;
+  path: "ClarityRecord" | null;
+  scopeId?: ScopeId;
+}[] = [
+  {
+    title: "Doctor Explained",
+    desc: "Record medical conversations",
+    icon: Mic,
+    path: "ClarityRecord",
+  },
+  {
+    title: "Summarise Document",
+    desc: "Simplify medical documents",
+    icon: FileText,
+    path: null,
+    scopeId: "claritySummariseDocument",
+  },
+  {
+    title: "Explain Medication",
+    desc: "Understand prescriptions",
+    icon: Pill,
+    path: null,
+    scopeId: "clarityExplainMedication",
+  },
+  {
+    title: "Appointment Prep",
+    desc: "Get ready for your visit",
+    icon: Calendar,
+    path: null,
+    scopeId: "clarityAppointmentPrep",
+  },
+  {
+    title: "Explain Everyday",
+    desc: "Tech, news & bills made simple",
+    icon: Globe,
+    path: null,
+    scopeId: "clarityExplainEveryday",
+  },
 ];
 
 export function ClarityLanding() {
@@ -33,8 +69,8 @@ export function ClarityLanding() {
               onPress={() => {
                 if (c.path) {
                   navigation.navigate(c.path);
-                } else {
-                  navigation.navigate("ClarityChat", { title: c.title, initialMessage: c.chat, chips: c.chips });
+                } else if (c.scopeId) {
+                  navigation.navigate("ClarityChat", { scopeId: c.scopeId } as any);
                 }
               }}
               style={[styles.card, { borderLeftColor: i === 0 ? "#E53935" : colors.primary }]}
@@ -53,18 +89,20 @@ export function ClarityLanding() {
         </View>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate("ClarityChat", {
-            title: "Clarity Chat",
-            initialMessage: "Hello! I'm your Clarity assistant. I can help you understand medical information, documents, and more. What would you like help with today?",
-            chips: ["Explain something medical", "Help me understand a letter", "Prepare for my appointment"],
-          })}
+          onPress={() =>
+            navigation.navigate("ClarityChat", {
+              scopeId: "clarityGeneralChat",
+            } as any)
+          }
           style={styles.ctaBtn}
           accessibilityLabel="Start a conversation"
         >
           <Text style={styles.ctaText}>Start a Conversation</Text>
         </TouchableOpacity>
 
-        <Text style={styles.disclaimer}>AI helps you understand. Always confirm with your doctor.</Text>
+        <Text style={styles.disclaimer}>
+          AI helps you understand. Always confirm with your doctor.
+        </Text>
       </ScrollView>
     </View>
   );
@@ -105,5 +143,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   ctaText: { color: colors.background, fontSize: 18, fontWeight: "700" },
-  disclaimer: { color: colors.textCaption, textAlign: "center", fontSize: 13, marginTop: 8, lineHeight: 20 },
+  disclaimer: {
+    color: colors.textCaption,
+    textAlign: "center",
+    fontSize: 13,
+    marginTop: 8,
+    lineHeight: 20,
+  },
 });

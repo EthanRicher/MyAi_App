@@ -6,18 +6,23 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image
+  Image,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Camera } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
-import { scanMedicationFromPhoto } from "../services/medviewAI";
+import { runOCR } from "../../../ai/camera/ocrService";
+import { runAI } from "../../../ai/core/runAI";
+import { medviewMedicationScan } from "../../../ai/scopes/medviewMedicationScan";
+import { addDebugEntry } from "../../../ai/core/debug";
+import { AIDebugPanel } from "../../../components/AIDebugPanel";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedViewAdd">;
 type Route = RouteProp<RootStackParamList, "MedViewAdd">;
@@ -33,61 +38,135 @@ export function MedViewAdd() {
   const [name, setName] = useState(initialMed?.name || "");
   const [dose, setDose] = useState(initialMed?.dose || "");
   const [description, setDescription] = useState(initialMed?.description || "");
-
   const [amount, setAmount] = useState(
-    initialMed ? initialMed.dosesPerDay.toString() : ""
+    initialMed ? String(initialMed.dosesPerDay) : ""
   );
-
-  const [allTimes, setAllTimes] = useState<string[]>(
-    initialMed?.times || []
-  );
-
-  const [image, setImage] = useState<string | null>(
-    initialMed?.image || null
-  );
-
+  const [allTimes, setAllTimes] = useState<string[]>(initialMed?.times || []);
+  const [image, setImage] = useState<string | null>(initialMed?.image || null);
   const [error, setError] = useState("");
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
-
-  const visibleCount = Number(amount) || 0;
-  const times = allTimes.slice(0, visibleCount);
-
   const [showPickerIndex, setShowPickerIndex] = useState<number | null>(null);
+
+  const visibleCount = Math.max(0, Math.min(10, Number(amount) || 0));
+  const times = Array.from({ length: visibleCount }, (_, i) => allTimes[i] || "");
+
+  const normaliseTime = (value: string) => {
+    const trimmed = value.trim();
+
+    if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
+      const [h, m] = trimmed.split(":").map(Number);
+      const hour = Math.max(0, Math.min(23, h));
+      const minute = Math.max(0, Math.min(59, m));
+      return `${hour.toString().padStart(2, "0")}:${minute
+        .toString()
+        .padStart(2, "0")}`;
+    }
+
+    return trimmed;
+  };
 
   const handleScan = async () => {
     setError("");
 
     const result = await ImagePicker.launchCameraAsync({
-      quality: 0.7,
+      quality: 1,
     });
 
-    if (result.canceled) return;
+    if (result.canceled) {
+      return;
+    }
 
-    const uri = result.assets[0].uri;
+    const rawUri = result.assets[0].uri;
+
+    addDebugEntry("MedViewAdd", "raw_image_uri", rawUri);
+
+    const manipulated = await ImageManipulator.manipulateAsync(
+      rawUri,
+      [{ resize: { width: 1000 } }],
+      {
+        compress: 0.5,
+        format: ImageManipulator.SaveFormat.JPEG,
+      }
+    );
+
+    const uri = manipulated.uri;
+
+    addDebugEntry("MedViewAdd", "compressed_image", manipulated);
 
     setImage(uri);
 
-    const aiResult = await scanMedicationFromPhoto(uri);
+    const text = await runOCR(uri);
+
+    if (!text) {
+      setError("OCR failed or no text detected");
+      return;
+    }
+
+    const aiResult = await runAI({
+      text,
+      scope: medviewMedicationScan,
+    });
 
     if (aiResult.error) {
       setError(aiResult.error);
       return;
     }
 
-    setName(aiResult.name);
-    setDose(aiResult.dose);
-    setDescription(aiResult.description);
+    addDebugEntry("MedViewAdd", "scan_result", aiResult);
 
-    setAmount("1");
-    setAllTimes(["08:00"]);
+    const output = aiResult.output || {};
+    const isInvalid =
+      output.status === "Invalid" &&
+      !output.name &&
+      !output.dose &&
+      !output.description;
+
+    if (isInvalid) {
+      setError(output.explanation || "No medication detected");
+      return;
+    }
+
+    setName((prev) => output.name || prev);
+    setDose((prev) => output.dose || prev);
+    setDescription((prev) => output.description || prev);
+
+    const nextTimes =
+      Array.isArray(output?.times) && output.times.length > 0
+        ? output.times.map((t: string) => normaliseTime(t))
+        : allTimes.length > 0
+        ? allTimes
+        : ["08:00"];
+
+    const nextTimesPerDay =
+      typeof output?.timesPerDay === "number" && output.timesPerDay > 0
+        ? output.timesPerDay
+        : nextTimes.length > 0
+        ? nextTimes.length
+        : 1;
+
+    setAmount(String(nextTimesPerDay));
+    setAllTimes((prev) => {
+      const updated = [...prev];
+      const targetLength = Math.max(updated.length, nextTimesPerDay);
+
+      while (updated.length < targetLength) {
+        updated.push("");
+      }
+
+      nextTimes.forEach((time: string, index: number) => {
+        updated[index] = normaliseTime(time);
+      });
+
+      return updated;
+    });
   };
 
   const handleSave = () => {
     const errors: string[] = [];
 
-    if (!name) errors.push("name");
-    if (!dose) errors.push("dose");
-    if (times.length === 0 || times.some((t) => !t)) errors.push("times");
+    if (!name.trim()) errors.push("name");
+    if (!dose.trim()) errors.push("dose");
+    if (visibleCount <= 0 || times.some((t) => !t.trim())) errors.push("times");
 
     setInvalidFields(errors);
 
@@ -98,27 +177,31 @@ export function MedViewAdd() {
 
     setError("");
 
-    const finalTimes = allTimes.slice(0, visibleCount);
+    const finalTimes = Array.from({ length: visibleCount }, (_, i) =>
+      normaliseTime(allTimes[i] || "")
+    );
+
+    const payload = {
+      name: name.trim(),
+      dose: dose.trim(),
+      description: description.trim(),
+      dosesPerDay: visibleCount,
+      times: finalTimes,
+      image,
+    };
+
+    addDebugEntry("MedViewAdd", "save_payload", payload);
 
     if (initialMed) {
+      const nextTaken = finalTimes.map((_, index) => Boolean(initialMed.taken?.[index]));
+
       updateMed({
         ...initialMed,
-        name,
-        dose,
-        description,
-        dosesPerDay: Number(amount) || 0,
-        times: finalTimes,
-        image,
+        ...payload,
+        taken: nextTaken,
       });
     } else {
-      addMed({
-        name,
-        dose,
-        description,
-        dosesPerDay: Number(amount) || 0,
-        times: finalTimes,
-        image,
-      });
+      addMed(payload);
     }
 
     navigation.navigate("MedView");
@@ -133,7 +216,7 @@ export function MedViewAdd() {
           {image ? (
             <Image
               source={{ uri: image }}
-              style={{ width: "100%", height: "100%", borderRadius: 16 }}
+              style={styles.previewImage}
               resizeMode="cover"
             />
           ) : (
@@ -148,9 +231,9 @@ export function MedViewAdd() {
           <Text style={styles.photoBtnText}>Scan Image</Text>
         </TouchableOpacity>
 
-        {error ? (
-          <Text style={{ color: "red", marginTop: 8 }}>{error}</Text>
-        ) : null}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        <AIDebugPanel title="Scan Debug" />
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
@@ -165,13 +248,13 @@ export function MedViewAdd() {
               value={name}
               onChangeText={(t) => {
                 setName(t);
-                setInvalidFields(prev => prev.filter(f => f !== "name"));
+                setInvalidFields((prev) => prev.filter((f) => f !== "name"));
               }}
               placeholder="e.g. Metformin"
               placeholderTextColor={colors.textCaption}
               style={[
                 styles.input,
-                invalidFields.includes("name") && styles.errorInput
+                invalidFields.includes("name") && styles.errorInput,
               ]}
             />
           </View>
@@ -181,7 +264,7 @@ export function MedViewAdd() {
             <TextInput
               value={description}
               onChangeText={setDescription}
-              placeholder="What is this for?"
+              placeholder="Instructions"
               placeholderTextColor={colors.textCaption}
               style={[styles.input, styles.textArea]}
               multiline
@@ -195,13 +278,13 @@ export function MedViewAdd() {
                 value={dose}
                 onChangeText={(t) => {
                   setDose(t);
-                  setInvalidFields(prev => prev.filter(f => f !== "dose"));
+                  setInvalidFields((prev) => prev.filter((f) => f !== "dose"));
                 }}
                 placeholder="500mg"
                 placeholderTextColor={colors.textCaption}
                 style={[
                   styles.input,
-                  invalidFields.includes("dose") && styles.errorInput
+                  invalidFields.includes("dose") && styles.errorInput,
                 ]}
               />
             </View>
@@ -211,28 +294,35 @@ export function MedViewAdd() {
               <TextInput
                 value={amount}
                 onChangeText={(t) => {
-                  setAmount(t);
+                  const clean = t.replace(/[^0-9]/g, "").slice(0, 2);
+                  const num = Math.max(0, Math.min(10, Number(clean) || 0));
 
-                  const num = Math.max(0, Math.min(10, Number(t) || 0));
+                  setAmount(clean);
 
                   setAllTimes((prev) => {
                     const updated = [...prev];
-                    while (updated.length < num) updated.push("");
+
+                    while (updated.length < num) {
+                      updated.push("");
+                    }
+
                     return updated;
                   });
+
+                  setInvalidFields((prev) => prev.filter((f) => f !== "times"));
                 }}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor={colors.textCaption}
                 style={[
                   styles.input,
-                  invalidFields.includes("times") && styles.errorInput
+                  invalidFields.includes("times") && styles.errorInput,
                 ]}
               />
             </View>
           </View>
 
-          <View style={{ gap: 10 }}>
+          <View style={styles.timesWrap}>
             <Text style={styles.label}>Select Times</Text>
 
             {times.map((t, i) => (
@@ -241,7 +331,7 @@ export function MedViewAdd() {
                   onPress={() => setShowPickerIndex(i)}
                   style={[
                     styles.input,
-                    invalidFields.includes("times") && styles.errorInput
+                    invalidFields.includes("times") && styles.errorInput,
                   ]}
                 >
                   <Text style={{ color: t ? colors.text : colors.textMuted }}>
@@ -257,12 +347,24 @@ export function MedViewAdd() {
                       setShowPickerIndex(null);
 
                       if (selectedDate) {
-                        const updated = [...allTimes];
-                        updated[i] = selectedDate.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
+                        const hours = selectedDate
+                          .getHours()
+                          .toString()
+                          .padStart(2, "0");
+                        const minutes = selectedDate
+                          .getMinutes()
+                          .toString()
+                          .padStart(2, "0");
+
+                        setAllTimes((prev) => {
+                          const updated = [...prev];
+                          updated[i] = `${hours}:${minutes}`;
+                          return updated;
                         });
-                        setAllTimes(updated);
+
+                        setInvalidFields((prev) =>
+                          prev.filter((f) => f !== "times")
+                        );
                       }
                     }}
                   />
@@ -305,7 +407,16 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
-  cameraText: { color: colors.textMuted, fontSize: 18 },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 16,
+  },
+
+  cameraText: {
+    color: colors.textMuted,
+    fontSize: 18,
+  },
 
   photoBtn: {
     width: "100%",
@@ -315,17 +426,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  photoBtnText: { color: colors.text, fontSize: 18, fontWeight: "700" },
+  photoBtnText: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "700",
+  },
 
-  divider: { flexDirection: "row", alignItems: "center", gap: 12 },
+  errorText: {
+    color: "red",
+    marginTop: 8,
+  },
 
-  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
 
-  dividerText: { color: colors.textCaption, fontSize: 16 },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
 
-  form: { gap: 16 },
+  dividerText: {
+    color: colors.textCaption,
+    fontSize: 16,
+  },
 
-  label: { color: colors.textMuted, fontSize: 16, marginBottom: 4 },
+  form: {
+    gap: 16,
+  },
+
+  label: {
+    color: colors.textMuted,
+    fontSize: 16,
+    marginBottom: 4,
+  },
 
   input: {
     backgroundColor: colors.card,
@@ -354,6 +491,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  timesWrap: {
+    gap: 10,
+  },
+
   saveBtn: {
     width: "100%",
     paddingVertical: 14,
@@ -363,7 +504,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  saveBtnText: { color: colors.text, fontSize: 18, fontWeight: "700" },
+  saveBtnText: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "700",
+  },
 
   errorInput: {
     borderColor: "red",

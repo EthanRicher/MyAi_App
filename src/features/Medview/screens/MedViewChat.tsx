@@ -35,7 +35,7 @@ export function MedViewChat() {
     [med]
   );
 
-  const handleProcessMessage = async (payload: ChatSendPayload) => {
+  const handleProcessMessage = async (payload: ChatSendPayload, _history: unknown) => {
     const message = payload.text?.trim() || "";
 
     const context = med
@@ -111,8 +111,8 @@ User: ${message}`
       storageKey={storageKey}
       initialMessages={initialMessages}
       onProcessMessage={handleProcessMessage}
-      chips={["What is this?", "Side effects?", "When do I take it?"]}
-      disclaimer="This is not medical advice."
+      disclaimer={med ? `Ask me anything about ${med.name}` : "Ask me questions about your medications"}
+      disclaimerSub="This is not medical advice. Always confirm with your doctor."
       backTo="MedView"
       speechEnabled
       onTranscribeAudio={whisperTranscribe}

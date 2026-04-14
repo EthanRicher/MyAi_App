@@ -14,6 +14,7 @@ import { runAI } from "../../../ai/core/runAI";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
 import { runOCR } from "../../../ai/camera/ocrService";
 import { addDebugEntry } from "../../../ai/core/debug";
+import { buildConversationContext } from "../../../ai/scopes/_shared";
 
 type Route = RouteProp<RootStackParamList, "ClarityChat">;
 
@@ -41,14 +42,18 @@ const scopeInitialMessages: Record<ScopeId, string> = {
   medviewScheduleSupport: "Ask me about your medication schedule.",
 };
 
-const scopeChips: Partial<Record<ScopeId, string[]>> = {
-  clarityAppointmentPrep: ["GP visit", "Specialist visit", "What should I ask?"],
-  clarityDoctorExplained: ["Explain what my doctor said", "Summarise this visit", "What should I do next?"],
-  clarityExplainEveryday: ["Explain this bill", "Explain this term", "Summarise this"],
-  clarityExplainMedication: ["What is this for?", "Side effects?", "When do I take it?"],
-  clarityGeneralChat: ["Explain something medical", "Help with a document", "Prepare for appointment"],
-  claritySummariseDocument: ["Summarise this letter", "Explain this report", "What does this mean?"],
+const scopeDescriptions: Record<ScopeId, string> = {
+  clarityAppointmentPrep: "I’ll help you prepare questions and organise your thoughts before your appointment.",
+  clarityDoctorExplained: "Tell me what your doctor said and I’ll break it down into plain, simple language.",
+  clarityExplainEveryday: "I can explain confusing bills, letters, tech terms, or any everyday text.",
+  clarityExplainMedication: "Tell me a medication name and I’ll explain what it does, how to take it, and its side effects.",
+  clarityGeneralChat: "Ask me anything about your health, documents, or medical topics.",
+  claritySummariseDocument: "Paste any medical document and I’ll summarise the key points in plain English.",
+  medviewMedicationChat: "Ask me questions about your medications — what they do, side effects, and how to take them.",
+  medviewMedicationScan: "Send a photo or text of a medication label and I’ll help you understand it.",
+  medviewScheduleSupport: "I’ll help you understand your medication schedule and what to do if you miss a dose.",
 };
+
 
 export function ClarityChat() {
   const route = useRoute<Route>();
@@ -61,11 +66,12 @@ export function ClarityChat() {
     [scopeId]
   );
 
-  const handleProcessMessage = async (payload: ChatSendPayload) => {
-    const result = await runAI({
-      text: payload.text?.trim() || "",
-      scope,
-    });
+  const handleProcessMessage = async (payload: ChatSendPayload, history: ChatMessage[]) => {
+    const rawText = payload.text?.trim() || "";
+    const text = scope.conversational
+      ? buildConversationContext(history, rawText)
+      : rawText;
+    const result = await runAI({ text, scope });
 
     const aiText =
       result.error
@@ -127,14 +133,8 @@ export function ClarityChat() {
       storageKey={storageKey}
       initialMessages={initialMessages}
       onProcessMessage={handleProcessMessage}
-      chips={
-        scopeChips[scopeId] || [
-          "Explain something medical",
-          "Help with a document",
-          "Prepare for appointment",
-        ]
-      }
-      disclaimer="AI helps you understand. Always confirm with your doctor."
+      disclaimer={scopeDescriptions[scopeId] || "AI is here to help you understand"}
+      disclaimerSub="Always confirm with your doctor before acting on anything here."
       backTo="Clarity"
       backLabel="Clarity"
       speechEnabled

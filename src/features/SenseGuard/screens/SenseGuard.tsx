@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from "react-native";
 import { Phone } from "lucide-react-native";
-import { BackButton } from "../components/BackButton";
-import { BackendRequiredModal } from "../components/BackendRequiredModal";
-import { colors } from "../theme";
+import { BackButton } from "../../../components/BackButton";
+import { BackendRequiredModal } from "../../../components/BackendRequiredModal";
+import { colors } from "../../../theme";
 
 const moods = [
   { label: "Great", color: "#4CAF50", emoji: "😄" },

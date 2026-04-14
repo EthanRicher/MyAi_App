@@ -18,6 +18,20 @@ export function MedViewSchedule() {
     }))
   );
 
+  // Sort by time ascending
+  const sorted = [...schedule].sort((a, b) => a.time.localeCompare(b.time));
+
+  // Group by time
+  const groups: { time: string; items: typeof sorted }[] = [];
+  for (const item of sorted) {
+    const last = groups[groups.length - 1];
+    if (last && last.time === item.time) {
+      last.items.push(item);
+    } else {
+      groups.push({ time: item.time, items: [item] });
+    }
+  }
+
   const total = schedule.length;
   const taken = schedule.filter((s) => s.taken).length;
   const pct = total ? Math.round((taken / total) * 100) : 0;
@@ -33,48 +47,87 @@ export function MedViewSchedule() {
           <Text style={styles.progressLabel}>
             {taken} of {total} taken
           </Text>
-
           <View style={styles.progressBg}>
             <View style={[styles.progressFill, { width: `${pct}%` }]} />
           </View>
         </View>
 
         <View style={styles.medList}>
-          {schedule.map((item, i) => (
-            <TouchableOpacity
-              key={i}
-              onPress={() => toggleTaken(item.medId, item.index)}
-              style={styles.medRow}
-            >
-              <View
-                style={[
-                  styles.checkCircle,
-                  {
-                    backgroundColor: item.taken ? colors.green : "transparent",
-                    borderColor: item.taken ? colors.green : colors.border,
-                  },
-                ]}
-              >
-                {item.taken ? (
-                  <Check size={20} color={colors.text} />
-                ) : (
-                  <Clock size={20} color={colors.orange} />
-                )}
+          {groups.map((group) =>
+            group.items.length === 1 ? (
+              <MedRow
+                key={`${group.items[0].medId}-${group.items[0].index}`}
+                item={group.items[0]}
+                onToggle={toggleTaken}
+              />
+            ) : (
+              <View key={group.time} style={styles.timeGroup}>
+                <Text style={styles.timeGroupLabel}>{group.time}</Text>
+                {group.items.map((item) => (
+                  <MedRow
+                    key={`${item.medId}-${item.index}`}
+                    item={item}
+                    onToggle={toggleTaken}
+                    hideTime
+                  />
+                ))}
               </View>
-
-              <View style={styles.medInfo}>
-                <Text style={[styles.medName, item.taken && styles.medNameTaken]}>
-                  {item.name}
-                </Text>
-                <Text style={styles.medDose}>
-                  {item.dose} · {item.time}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+            )
+          )}
         </View>
       </ScrollView>
     </View>
+  );
+}
+
+type ScheduleItem = {
+  medId: string;
+  name: string;
+  dose: string;
+  time: string;
+  taken: boolean;
+  index: number;
+};
+
+function MedRow({
+  item,
+  onToggle,
+  hideTime,
+}: {
+  item: ScheduleItem;
+  onToggle: (medId: string, index: number) => void;
+  hideTime?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={() => onToggle(item.medId, item.index)}
+      style={styles.medRow}
+    >
+      <View
+        style={[
+          styles.checkCircle,
+          {
+            backgroundColor: item.taken ? colors.green : "transparent",
+            borderColor: item.taken ? colors.green : colors.border,
+          },
+        ]}
+      >
+        {item.taken ? (
+          <Check size={20} color={colors.text} />
+        ) : (
+          <Clock size={20} color={colors.orange} />
+        )}
+      </View>
+
+      <View style={styles.medInfo}>
+        <Text style={[styles.medName, item.taken && styles.medNameTaken]}>
+          {item.name}
+        </Text>
+        <Text style={styles.medDose}>
+          {item.dose}{hideTime ? "" : ` · ${item.time}`}
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -105,6 +158,23 @@ const styles = StyleSheet.create({
   },
 
   medList: { gap: 10 },
+
+  timeGroup: {
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 14,
+    padding: 10,
+    gap: 8,
+  },
+
+  timeGroupLabel: {
+    color: colors.green,
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    paddingHorizontal: 4,
+  },
 
   medRow: {
     backgroundColor: colors.card,

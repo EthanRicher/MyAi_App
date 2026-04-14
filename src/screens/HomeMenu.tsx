@@ -1,7 +1,8 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Search, Pill, Heart, Brain, Shield, ChevronRight } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../components/BackButton";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { colors } from "../theme";
@@ -18,32 +19,30 @@ const modules = [
 
 export function HomeMenu() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom + 12 }]}>
       <BackButton label="Back to Home" to="Main" />
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.heading}>What would you like to explore?</Text>
-        <View style={styles.list}>
-          {modules.map((m) => (
-            <TouchableOpacity
-              key={m.name}
-              onPress={() => navigation.navigate(m.screen as any)}
-              style={[styles.card, { borderColor: m.color }]}
-              accessibilityLabel={`Go to ${m.name}`}
-            >
-              <View style={[styles.iconWrap, { backgroundColor: m.color + "20" }]}>
-                <m.icon size={30} color={m.color} />
-              </View>
-              <View style={styles.cardText}>
-                <Text style={styles.cardName}>{m.name}</Text>
-                <Text style={styles.cardDesc}>{m.desc}</Text>
-              </View>
-              <ChevronRight size={26} color={colors.border} />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+      <View style={styles.list}>
+        {modules.map((m) => (
+          <TouchableOpacity
+            key={m.name}
+            onPress={() => navigation.navigate(m.screen as any)}
+            style={[styles.card, { borderColor: m.color }]}
+            accessibilityLabel={`Go to ${m.name}`}
+          >
+            <View style={[styles.iconWrap, { backgroundColor: m.color + "20" }]}>
+              <m.icon size={30} color={m.color} />
+            </View>
+            <View style={styles.cardText}>
+              <Text style={styles.cardName}>{m.name}</Text>
+              <Text style={styles.cardDesc}>{m.desc}</Text>
+            </View>
+            <ChevronRight size={26} color={colors.border} />
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 }
@@ -53,32 +52,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  heading: {
-    color: colors.text,
-    fontSize: 26,
-    fontWeight: "700",
-    marginBottom: 16,
-  },
   list: {
-    gap: 12,
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 10,
   },
   card: {
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: 16,
-    padding: 16,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     borderWidth: 2,
   },
   iconWrap: {
-    width: 56,
-    height: 56,
+    width: 52,
+    height: 52,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",

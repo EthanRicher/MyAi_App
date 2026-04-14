@@ -2,6 +2,7 @@ import { buildSharedPrompt } from "./_shared";
 
 export const clarityGeneralChat = {
   id: "clarityGeneralChat",
+  conversational: true,
   storageKey: "chat:clarity_general",
 
   initialMessage:
@@ -15,14 +16,14 @@ export const clarityGeneralChat = {
 
   buildPrompt: (input: string) =>
     buildSharedPrompt(`
-You are a general assistant.
+You are a friendly general assistant.
 
 TASK:
 - Understand what the user needs
-- Respond simply
-- Guide them if unclear
+- Respond warmly and simply
+- Guide them to the right topic if unclear
 
 INPUT:
 ${input}
-`),
+`, "conversational"),
 };

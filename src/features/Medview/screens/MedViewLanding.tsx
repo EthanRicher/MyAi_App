@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-nati
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { HelpCircle, Plus } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
@@ -12,6 +13,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "MedView">;
 
 export function MedViewLanding() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { medications } = useMedications();
 
   const meds: Medication[] = medications;
@@ -24,7 +26,7 @@ export function MedViewLanding() {
     <View style={styles.container}>
       <BackButton label="Home" to="Home" />
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.top}>
         <Text style={styles.heading}>MedView</Text>
 
         <View style={styles.scheduleCard}>
@@ -43,35 +45,34 @@ export function MedViewLanding() {
             <View style={[styles.progressFill, { width: `${pct}%` }]} />
           </View>
         </View>
+      </View>
 
-        <View style={styles.medList}>
-          {meds.map((m) => (
-            <TouchableOpacity
-              key={m.id}
-              onPress={() => navigation.navigate("MedViewDetail", { id: m.id })}
-              style={styles.medRow}
-            >
-              <View
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor:
-                      m.taken?.some(t => t) ? colors.green : colors.orange,
-                  },
-                ]}
-              />
+      <ScrollView
+        style={styles.medList}
+        contentContainerStyle={styles.medListContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {meds.map((m) => (
+          <TouchableOpacity
+            key={m.id}
+            onPress={() => navigation.navigate("MedViewDetail", { id: m.id })}
+            style={styles.medRow}
+          >
+            <View
+              style={[
+                styles.dot,
+                { backgroundColor: m.taken?.some(t => t) ? colors.green : colors.orange },
+              ]}
+            />
+            <View style={styles.medInfo}>
+              <Text style={styles.medName}>{m.name}</Text>
+              <Text style={styles.medSub}>{m.dose} · {m.dosesPerDay} times daily</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-              <View style={styles.medInfo}>
-                <Text style={styles.medName}>{m.name}</Text>
-
-                <Text style={styles.medSub}>
-                  {m.dose} · {m.dosesPerDay} times daily
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity
           onPress={() => navigation.navigate("MedViewAdd")}
           style={styles.addBtn}
@@ -84,14 +85,10 @@ export function MedViewLanding() {
           onPress={() => navigation.navigate("MedViewChat")}
           style={styles.explainBtn}
         >
-          <HelpCircle size={26} color={colors.green} />
+          <HelpCircle size={22} color={colors.green} />
           <Text style={styles.explainText}>Explain</Text>
         </TouchableOpacity>
-
-        <Text style={styles.disclaimer}>
-          AI helps you understand. Always confirm with your doctor.
-        </Text>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -99,10 +96,10 @@ export function MedViewLanding() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
 
-  content: {
+  top: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 16,
+    paddingBottom: 12,
     gap: 10,
   },
 
@@ -123,14 +120,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  scheduleTitle: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: "700",
-  },
-
+  scheduleTitle: { color: colors.text, fontSize: 20, fontWeight: "700" },
   viewAll: { color: colors.green, fontSize: 16, fontWeight: "600" },
-
   scheduleCount: { color: colors.textMuted, fontSize: 17 },
 
   progressBg: {
@@ -147,7 +138,15 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
-  medList: { gap: 8 },
+  medList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+
+  medListContent: {
+    gap: 8,
+    paddingBottom: 8,
+  },
 
   medRow: {
     backgroundColor: colors.card,
@@ -163,13 +162,17 @@ const styles = StyleSheet.create({
 
   medInfo: { flex: 1 },
 
-  medName: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: "600",
-  },
-
+  medName: { color: colors.text, fontSize: 18, fontWeight: "600" },
   medSub: { color: colors.textMuted, fontSize: 15 },
+
+  bottomBar: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
+    gap: 10,
+  },
 
   addBtn: {
     width: "100%",
@@ -184,11 +187,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  addBtnText: {
-    color: colors.green,
-    fontSize: 18,
-    fontWeight: "600",
-  },
+  addBtnText: { color: colors.green, fontSize: 18, fontWeight: "600" },
 
   explainBtn: {
     width: "100%",
@@ -204,11 +203,4 @@ const styles = StyleSheet.create({
   },
 
   explainText: { color: colors.textMuted, fontSize: 17 },
-
-  disclaimer: {
-    color: colors.textCaption,
-    textAlign: "center",
-    fontSize: 14,
-    lineHeight: 21,
-  },
 });

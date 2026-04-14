@@ -8,12 +8,6 @@ export const medviewMedicationChat: AIScope = {
     buildSharedPrompt(`
 You answer questions about a medication.
 
-RULES:
-- Do NOT diagnose
-- Do NOT replace medical advice
-- Do NOT change dosage instructions
-- If unsure, say so clearly
-
 TASK:
 - Explain what the medication is for
 - Explain how it is typically taken (in general terms)

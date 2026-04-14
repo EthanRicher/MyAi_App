@@ -7,6 +7,7 @@ import { claritySummariseDocument } from "./claritySummariseDocument";
 import { medviewMedicationChat } from "./medviewMedicationChat";
 import { medviewMedicationScan } from "./medviewMedicationScan";
 import { medviewScheduleSupport } from "./medviewScheduleSupport";
+import { companionChat } from "./companionChat";
 
 export const scopeRegistry = {
   clarityAppointmentPrep,
@@ -18,6 +19,7 @@ export const scopeRegistry = {
   medviewMedicationChat,
   medviewMedicationScan,
   medviewScheduleSupport,
+  companionChat,
 } as const;
 
 export type ScopeId = keyof typeof scopeRegistry;

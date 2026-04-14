@@ -2,6 +2,7 @@ export type AIResponseFormat = "text" | "json";
 
 export type AIScope = {
   id: string;
+  conversational?: boolean;
   buildPrompt: (text: string) => string;
   mapOutput?: (parsed: any) => any;
   responseFormat?: AIResponseFormat;

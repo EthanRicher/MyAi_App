@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
 import { AlertTriangle, ChevronDown, ChevronUp, Phone, Shield, Link, DollarSign, Eye } from "lucide-react-native";
-import { BackButton } from "../components/BackButton";
-import { colors } from "../theme";
+import { BackButton } from "../../../components/BackButton";
+import { colors } from "../../../theme";
 
 const educationCards = [
   { title: "Scam Warning Signs", icon: AlertTriangle, content: "Watch for: urgent language, requests for personal info, threats, unexpected prizes, and pressure to keep secrets." },

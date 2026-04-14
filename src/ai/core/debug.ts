@@ -6,7 +6,7 @@ export type AIDebugEntry = {
   payload: any;
 };
 
-export const AI_DEBUG = true;
+export const AI_DEBUG = false;
 
 let entries: AIDebugEntry[] = [];
 const listeners = new Set<(entries: AIDebugEntry[]) => void>();

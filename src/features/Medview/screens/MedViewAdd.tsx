@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   View,
   Text,
@@ -6,7 +7,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
@@ -30,6 +30,7 @@ type Route = RouteProp<RootStackParamList, "MedViewAdd">;
 export function MedViewAdd() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
 
   const [initialMed] = useState(route.params?.med);
 
@@ -46,6 +47,7 @@ export function MedViewAdd() {
   const [error, setError] = useState("");
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [showPickerIndex, setShowPickerIndex] = useState<number | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   const visibleCount = Math.max(0, Math.min(10, Number(amount) || 0));
   const times = Array.from({ length: visibleCount }, (_, i) => allTimes[i] || "");
@@ -67,98 +69,91 @@ export function MedViewAdd() {
 
   const handleScan = async () => {
     setError("");
+    setIsScanning(true);
 
     const result = await ImagePicker.launchCameraAsync({
       quality: 1,
     });
 
     if (result.canceled) {
+      setIsScanning(false);
       return;
     }
 
     const rawUri = result.assets[0].uri;
 
-    addDebugEntry("MedViewAdd", "raw_image_uri", rawUri);
+    try {
+      addDebugEntry("MedViewAdd", "raw_image_uri", rawUri);
 
-    const manipulated = await ImageManipulator.manipulateAsync(
-      rawUri,
-      [{ resize: { width: 1000 } }],
-      {
-        compress: 0.5,
-        format: ImageManipulator.SaveFormat.JPEG,
-      }
-    );
+      const manipulated = await ImageManipulator.manipulateAsync(
+        rawUri,
+        [{ resize: { width: 1000 } }],
+        { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+      );
 
-    const uri = manipulated.uri;
+      const uri = manipulated.uri;
+      addDebugEntry("MedViewAdd", "compressed_image", manipulated);
+      setImage(uri);
 
-    addDebugEntry("MedViewAdd", "compressed_image", manipulated);
+      const text = await runOCR(uri);
 
-    setImage(uri);
-
-    const text = await runOCR(uri);
-
-    if (!text) {
-      setError("OCR failed or no text detected");
-      return;
-    }
-
-    const aiResult = await runAI({
-      text,
-      scope: medviewMedicationScan,
-    });
-
-    if (aiResult.error) {
-      setError(aiResult.error);
-      return;
-    }
-
-    addDebugEntry("MedViewAdd", "scan_result", aiResult);
-
-    const output = aiResult.output || {};
-    const isInvalid =
-      output.status === "Invalid" &&
-      !output.name &&
-      !output.dose &&
-      !output.description;
-
-    if (isInvalid) {
-      setError(output.explanation || "No medication detected");
-      return;
-    }
-
-    setName((prev) => output.name || prev);
-    setDose((prev) => output.dose || prev);
-    setDescription((prev) => output.description || prev);
-
-    const nextTimes =
-      Array.isArray(output?.times) && output.times.length > 0
-        ? output.times.map((t: string) => normaliseTime(t))
-        : allTimes.length > 0
-        ? allTimes
-        : ["08:00"];
-
-    const nextTimesPerDay =
-      typeof output?.timesPerDay === "number" && output.timesPerDay > 0
-        ? output.timesPerDay
-        : nextTimes.length > 0
-        ? nextTimes.length
-        : 1;
-
-    setAmount(String(nextTimesPerDay));
-    setAllTimes((prev) => {
-      const updated = [...prev];
-      const targetLength = Math.max(updated.length, nextTimesPerDay);
-
-      while (updated.length < targetLength) {
-        updated.push("");
+      if (!text) {
+        setError("OCR failed or no text detected");
+        return;
       }
 
-      nextTimes.forEach((time: string, index: number) => {
-        updated[index] = normaliseTime(time);
+      const aiResult = await runAI({ text, scope: medviewMedicationScan });
+
+      if (aiResult.error) {
+        setError(aiResult.error);
+        return;
+      }
+
+      addDebugEntry("MedViewAdd", "scan_result", aiResult);
+
+      const output = aiResult.output || {};
+      const isInvalid =
+        output.status === "Invalid" &&
+        !output.name &&
+        !output.dose &&
+        !output.description;
+
+      if (isInvalid) {
+        setError(output.explanation || "No medication detected");
+        return;
+      }
+
+      setName((prev) => output.name || prev);
+      setDose((prev) => output.dose || prev);
+      setDescription((prev) => output.description || prev);
+
+      const nextTimes =
+        Array.isArray(output?.times) && output.times.length > 0
+          ? output.times.map((t: string) => normaliseTime(t))
+          : allTimes.length > 0
+          ? allTimes
+          : ["08:00"];
+
+      const nextTimesPerDay =
+        typeof output?.timesPerDay === "number" && output.timesPerDay > 0
+          ? output.timesPerDay
+          : nextTimes.length > 0
+          ? nextTimes.length
+          : 1;
+
+      setAmount(String(nextTimesPerDay));
+      setAllTimes((prev) => {
+        const updated = [...prev];
+        const targetLength = Math.max(updated.length, nextTimesPerDay);
+        while (updated.length < targetLength) updated.push("");
+        nextTimes.forEach((time: string, index: number) => {
+          updated[index] = normaliseTime(time);
+        });
+        return updated;
       });
-
-      return updated;
-    });
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   const handleSave = () => {
@@ -211,24 +206,16 @@ export function MedViewAdd() {
     <View style={styles.container}>
       <BackButton label="MedView" to="MedView" />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.cameraBox}>
-          {image ? (
-            <Image
-              source={{ uri: image }}
-              style={styles.previewImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <>
-              <Camera size={48} color={colors.green} />
-              <Text style={styles.cameraText}>Scan your medication</Text>
-            </>
-          )}
-        </View>
-
-        <TouchableOpacity onPress={handleScan} style={styles.photoBtn}>
-          <Text style={styles.photoBtnText}>Scan Image</Text>
+      <View style={styles.content}>
+        <TouchableOpacity
+          onPress={handleScan}
+          disabled={isScanning}
+          style={[styles.photoBtn, isScanning && styles.photoBtnScanning]}
+        >
+          <Camera size={20} color={colors.text} />
+          <Text style={styles.photoBtnText}>
+            {isScanning ? "Scanning..." : "Scan Image"}
+          </Text>
         </TouchableOpacity>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -325,61 +312,69 @@ export function MedViewAdd() {
           <View style={styles.timesWrap}>
             <Text style={styles.label}>Select Times</Text>
 
-            {times.map((t, i) => (
-              <View key={i}>
-                <TouchableOpacity
-                  onPress={() => setShowPickerIndex(i)}
-                  style={[
-                    styles.input,
-                    invalidFields.includes("times") && styles.errorInput,
-                  ]}
-                >
-                  <Text style={{ color: t ? colors.text : colors.textMuted }}>
-                    {t || `Select time ${i + 1}`}
-                  </Text>
-                </TouchableOpacity>
+            <ScrollView
+              nestedScrollEnabled
+              style={styles.timesScroll}
+              showsVerticalScrollIndicator={times.length > 3}
+            >
+              {times.map((t, i) => (
+                <View key={i} style={styles.timeItem}>
+                  <TouchableOpacity
+                    onPress={() => setShowPickerIndex(i)}
+                    style={[
+                      styles.input,
+                      invalidFields.includes("times") && styles.errorInput,
+                    ]}
+                  >
+                    <Text style={{ color: t ? colors.text : colors.textMuted }}>
+                      {t || `Select time ${i + 1}`}
+                    </Text>
+                  </TouchableOpacity>
 
-                {showPickerIndex === i && (
-                  <DateTimePicker
-                    mode="time"
-                    value={new Date()}
-                    onChange={(event, selectedDate) => {
-                      setShowPickerIndex(null);
+                  {showPickerIndex === i && (
+                    <DateTimePicker
+                      mode="time"
+                      value={new Date()}
+                      onChange={(event, selectedDate) => {
+                        setShowPickerIndex(null);
 
-                      if (selectedDate) {
-                        const hours = selectedDate
-                          .getHours()
-                          .toString()
-                          .padStart(2, "0");
-                        const minutes = selectedDate
-                          .getMinutes()
-                          .toString()
-                          .padStart(2, "0");
+                        if (selectedDate) {
+                          const hours = selectedDate
+                            .getHours()
+                            .toString()
+                            .padStart(2, "0");
+                          const minutes = selectedDate
+                            .getMinutes()
+                            .toString()
+                            .padStart(2, "0");
 
-                        setAllTimes((prev) => {
-                          const updated = [...prev];
-                          updated[i] = `${hours}:${minutes}`;
-                          return updated;
-                        });
+                          setAllTimes((prev) => {
+                            const updated = [...prev];
+                            updated[i] = `${hours}:${minutes}`;
+                            return updated;
+                          });
 
-                        setInvalidFields((prev) =>
-                          prev.filter((f) => f !== "times")
-                        );
-                      }
-                    }}
-                  />
-                )}
-              </View>
-            ))}
+                          setInvalidFields((prev) =>
+                            prev.filter((f) => f !== "times")
+                          );
+                        }
+                      }}
+                    />
+                  )}
+                </View>
+              ))}
+            </ScrollView>
           </View>
-
-          <TouchableOpacity onPress={handleSave} style={styles.saveBtn}>
-            <Text style={styles.saveBtnText}>
-              {initialMed ? "Update Medication" : "Save Medication"}
-            </Text>
-          </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
+
+      <View style={[styles.saveWrap, { paddingBottom: insets.bottom + 12 }]}>
+        <TouchableOpacity onPress={handleSave} style={styles.saveBtn}>
+          <Text style={styles.saveBtnText}>
+            {initialMed ? "Update Medication" : "Save Medication"}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -388,42 +383,25 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
 
   content: {
+    flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 32,
-    gap: 20,
-  },
-
-  cameraBox: {
-    width: "100%",
-    aspectRatio: 4 / 3,
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderColor: colors.green,
-    borderRadius: 16,
-    backgroundColor: "rgba(76,175,80,0.05)",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-  },
-
-  previewImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 16,
-  },
-
-  cameraText: {
-    color: colors.textMuted,
-    fontSize: 18,
+    paddingTop: 10,
+    gap: 10,
   },
 
   photoBtn: {
     width: "100%",
-    paddingVertical: 14,
+    paddingVertical: 10,
     borderRadius: 12,
     backgroundColor: colors.green,
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+  },
+
+  photoBtnScanning: {
+    backgroundColor: colors.border,
   },
 
   photoBtnText: {
@@ -434,7 +412,7 @@ const styles = StyleSheet.create({
 
   errorText: {
     color: "red",
-    marginTop: 8,
+    textAlign: "center",
   },
 
   divider: {
@@ -455,13 +433,14 @@ const styles = StyleSheet.create({
   },
 
   form: {
-    gap: 16,
+    flex: 1,
+    gap: 10,
   },
 
   label: {
     color: colors.textMuted,
-    fontSize: 16,
-    marginBottom: 4,
+    fontSize: 14,
+    marginBottom: 2,
   },
 
   input: {
@@ -470,16 +449,16 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 9,
     color: colors.text,
     fontSize: 16,
     justifyContent: "center",
   },
 
   textArea: {
-    height: 100,
+    height: 70,
     textAlignVertical: "top",
-    paddingTop: 12,
+    paddingTop: 9,
   },
 
   row: {
@@ -492,7 +471,24 @@ const styles = StyleSheet.create({
   },
 
   timesWrap: {
-    gap: 10,
+    flex: 1,
+    gap: 8,
+  },
+
+  timesScroll: {
+    flex: 1,
+  },
+
+  timeItem: {
+    marginBottom: 10,
+  },
+
+  saveWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
   },
 
   saveBtn: {
@@ -501,7 +497,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.green,
     alignItems: "center",
-    marginTop: 8,
   },
 
   saveBtnText: {

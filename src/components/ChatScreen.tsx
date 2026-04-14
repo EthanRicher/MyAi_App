@@ -41,15 +41,56 @@ interface ProcessResult {
   aiText: string;
 }
 
+function renderMessageContent(text: string, accentColor: string, baseStyle: object) {
+  let mainTitleSeen = false;
+  return text.split("\n").map((line, i) => {
+    const trimmed = line.trim();
+    if (!trimmed) return null;
+
+    // Title: **Title** — first one is main, rest are subtitles
+    const titleMatch = trimmed.match(/^\*\*([^*]+)\*\*:?$/);
+    if (titleMatch) {
+      const rawTitle = titleMatch[1].replace(/^:+|:+$/g, "").trim();
+      const titleText = rawTitle.length > 30 ? rawTitle.slice(0, 30).trimEnd() + "…" : rawTitle;
+      if (!mainTitleSeen) {
+        mainTitleSeen = true;
+        return (
+          <View key={i} style={[styles.mainTitleChip, { backgroundColor: accentColor + "33", borderColor: accentColor + "88" }]}>
+            <Text style={[styles.mainTitleText, { color: accentColor }]}>{titleText}</Text>
+          </View>
+        );
+      }
+      return (
+        <View key={i} style={[styles.subTitleChip, { borderColor: accentColor + "55" }]}>
+          <Text style={[styles.subTitleText, { color: accentColor }]}>{titleText}</Text>
+        </View>
+      );
+    }
+
+    // Bullet point: - item or • item
+    const bulletMatch = trimmed.match(/^[-•*]\s+(.+)$/);
+    if (bulletMatch) {
+      return (
+        <View key={i} style={styles.bulletRow}>
+          <Text style={[baseStyle, { color: accentColor }]}>{"•"}</Text>
+          <Text style={[baseStyle, styles.bulletText]}>{bulletMatch[1]}</Text>
+        </View>
+      );
+    }
+
+    return <Text key={i} style={baseStyle}>{trimmed}</Text>;
+  }).filter(Boolean);
+}
+
 interface Props {
   title: string;
   accentColor: string;
   aiLabel?: string;
   storageKey: string;
   initialMessages: ChatMessage[];
-  onProcessMessage: (message: ChatSendPayload) => Promise<ProcessResult>;
-  chips?: string[];
+  onProcessMessage: (message: ChatSendPayload, history: ChatMessage[]) => Promise<ProcessResult>;
   disclaimer?: string;
+  disclaimerSub?: string;
   backTo?: string;
   backLabel?: string;
   backendRequired?: boolean;
@@ -67,8 +108,8 @@ export function ChatScreen({
   storageKey,
   initialMessages,
   onProcessMessage,
-  chips = [],
   disclaimer,
+  disclaimerSub,
   backTo,
   backLabel,
   backendRequired = false,
@@ -147,7 +188,7 @@ export function ChatScreen({
     const result = await onProcessMessage({
       ...payload,
       text: cleanText,
-    });
+    }, messages);
 
     const aiMessage: ChatMessage = {
       role: "ai",
@@ -238,10 +279,19 @@ export function ChatScreen({
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.container}>
         <BackButton label={backLabel || "Back"} to={backTo} />
+
+        {!!disclaimer && (
+          <View style={[styles.disclaimerBanner, { backgroundColor: accentColor + "22", borderColor: accentColor + "55" }]}>
+            <Text style={[styles.disclaimerBannerTitle, { color: accentColor }]}>{disclaimer}</Text>
+            {!!disclaimerSub && (
+              <Text style={[styles.disclaimerBannerSub, { color: accentColor + "bb" }]}>{disclaimerSub}</Text>
+            )}
+          </View>
+        )}
 
         <ScrollView
           ref={scrollRef}
@@ -261,7 +311,7 @@ export function ChatScreen({
                   {!!m.imageUri && (
                     <Image source={{ uri: m.imageUri }} style={styles.messageImage} />
                   )}
-                  {!!m.text && <Text style={styles.messageText}>{m.text}</Text>}
+                  {!!m.text && renderMessageContent(m.text, accentColor, styles.messageText)}
                 </View>
               </View>
             ) : (
@@ -297,21 +347,6 @@ export function ChatScreen({
           <AIDebugPanel />
         </ScrollView>
 
-        {chips.length > 0 && (
-          <View style={styles.chipsWrap}>
-            {chips.map((c, i) => (
-              <TouchableOpacity
-                key={`${c}-${i}`}
-                onPress={() => sendPayload({ text: c })}
-                style={[styles.chip, { borderColor: accentColor }]}
-              >
-                <Text style={styles.chipText}>{c}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {!!disclaimer && <Text style={styles.disclaimer}>{disclaimer}</Text>}
         {isRecording && <Text style={styles.recordingText}>Recording...</Text>}
         {!!speechError && <Text style={styles.errorText}>{speechError}</Text>}
 
@@ -400,7 +435,7 @@ export function ChatScreen({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  flex: { flex: 1, backgroundColor: colors.background },
 
   container: {
     flex: 1,
@@ -424,14 +459,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     padding: 16,
     borderRadius: 16,
-    maxWidth: "90%",
+    width: "95%",
     gap: 10,
   },
 
   userBubble: {
     padding: 16,
     borderRadius: 16,
-    maxWidth: "90%",
+    width: "95%",
     gap: 10,
   },
 
@@ -444,38 +479,67 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
 
+  mainTitleChip: {
+    alignSelf: "stretch",
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  mainTitleText: {
+    fontSize: 17,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  subTitleChip: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  subTitleText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  bulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  bulletText: {
+    flex: 1,
+  },
+
   messageImage: {
     width: 180,
     height: 180,
     borderRadius: 14,
   },
 
-  chipsWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingTop: 10,
-  },
-
-  chip: {
+  disclaimerBanner: {
+    alignSelf: "center",
     borderWidth: 1,
     borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    maxWidth: "48%",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    maxWidth: "92%",
+    gap: 4,
   },
-
-  chipText: {
-    color: colors.text,
-    flexWrap: "wrap",
-  },
-
-  disclaimer: {
+  disclaimerBannerTitle: {
+    fontSize: 16,
     textAlign: "center",
-    color: colors.textCaption,
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    fontWeight: "700",
+  },
+  disclaimerBannerSub: {
+    fontSize: 13,
+    textAlign: "center",
+    fontWeight: "400",
+    lineHeight: 18,
   },
 
   recordingText: {

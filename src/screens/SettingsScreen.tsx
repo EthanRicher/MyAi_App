@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
 import { ChevronDown, ChevronUp, User, Lock, Shield, Eye, Bell, Clock, Phone, HelpCircle, Trash2 } from "lucide-react-native";
 import Slider from "@react-native-community/slider";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BackButton } from "../components/BackButton";
 import { colors } from "../theme";
 
@@ -26,9 +27,26 @@ export function SettingsScreen() {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [familyAccess, setFamilyAccess] = useState(true);
   const [familyEmail, setFamilyEmail] = useState("daughter@email.com");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteMode, setDeleteMode] = useState<"all" | "chats" | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const toggle = (title: string) => setExpanded((p) => ({ ...p, [title]: !p[title] }));
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      if (deleteMode === "all") {
+        await AsyncStorage.clear();
+      } else if (deleteMode === "chats") {
+        const allKeys = await AsyncStorage.getAllKeys();
+        const chatKeys = allKeys.filter((k) => k.startsWith("chat:"));
+        if (chatKeys.length > 0) await AsyncStorage.multiRemove(chatKeys);
+      }
+    } finally {
+      setIsDeleting(false);
+      setDeleteMode(null);
+    }
+  };
 
   const sections = [
     {
@@ -58,7 +76,11 @@ export function SettingsScreen() {
         <View style={styles.sectionContent}>
           <Text style={styles.privacyNote}>All data is stored locally on your device.</Text>
           <Text style={styles.privacyNote}>No data has been shared.</Text>
-          <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} style={styles.deleteDataBtn}>
+          <TouchableOpacity onPress={() => setDeleteMode("chats")} style={styles.clearChatsBtn}>
+            <Trash2 size={16} color={colors.textMuted} />
+            <Text style={styles.clearChatsBtnText}>Clear Chat History</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setDeleteMode("all")} style={styles.deleteDataBtn}>
             <Trash2 size={16} color={colors.text} />
             <Text style={styles.deleteDataText}>Delete All My Data</Text>
           </TouchableOpacity>
@@ -181,18 +203,24 @@ export function SettingsScreen() {
         </View>
       </ScrollView>
 
-      <Modal visible={showDeleteConfirm} transparent animationType="fade" onRequestClose={() => setShowDeleteConfirm(false)}>
+      <Modal visible={deleteMode !== null} transparent animationType="fade" onRequestClose={() => setDeleteMode(null)}>
         <View style={styles.overlay}>
           <View style={styles.confirmCard}>
             <Trash2 size={36} color={colors.destructive} style={styles.confirmIcon} />
-            <Text style={styles.confirmTitle}>Delete All Data?</Text>
-            <Text style={styles.confirmDesc}>This will permanently remove all your data from this device. This action cannot be undone.</Text>
+            <Text style={styles.confirmTitle}>
+              {deleteMode === "chats" ? "Clear Chat History?" : "Delete All Data?"}
+            </Text>
+            <Text style={styles.confirmDesc}>
+              {deleteMode === "chats"
+                ? "This will permanently remove all saved chat conversations. Your medications will not be affected."
+                : "This will permanently remove all your data from this device, including medications and chats. This cannot be undone."}
+            </Text>
             <View style={styles.confirmBtns}>
-              <TouchableOpacity onPress={() => setShowDeleteConfirm(false)} style={styles.cancelBtn}>
+              <TouchableOpacity onPress={() => setDeleteMode(null)} style={styles.cancelBtn}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowDeleteConfirm(false)} style={styles.deleteBtn}>
-                <Text style={styles.deleteBtnText}>Delete</Text>
+              <TouchableOpacity onPress={handleDelete} disabled={isDeleting} style={styles.deleteBtn}>
+                <Text style={styles.deleteBtnText}>{isDeleting ? "Deleting..." : "Delete"}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -220,6 +248,8 @@ const styles = StyleSheet.create({
   secBtnText: { color: colors.textMuted, fontSize: 15 },
   noteText: { color: colors.textCaption, fontSize: 13 },
   privacyNote: { color: colors.textMuted, fontSize: 14 },
+  clearChatsBtn: { width: "100%", paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  clearChatsBtnText: { color: colors.textMuted, fontSize: 15, fontWeight: "600" },
   deleteDataBtn: { width: "100%", paddingVertical: 10, borderRadius: 12, backgroundColor: colors.destructive, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   deleteDataText: { color: colors.text, fontSize: 15, fontWeight: "600" },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },

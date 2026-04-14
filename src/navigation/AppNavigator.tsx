@@ -14,10 +14,10 @@ import { MedViewSchedule } from "../features/Medview/screens/MedViewSchedule";
 import { MedViewDetail } from "../features/Medview/screens/MedViewDetail";
 import { MedViewAdd } from "../features/Medview/screens/MedViewAdd";
 import { MedViewChat } from "../features/Medview/screens/MedViewChat";
-import { SenseGuard } from "../screens/SenseGuard";
+import { SenseGuard } from "../features/SenseGuard/screens/SenseGuard";
 import { Companion } from "../features/Companion/screens/Companion";
 import { CompanionChat } from "../features/Companion/screens/CompanionChat";
-import { SafeHarbour } from "../screens/SafeHarbour";
+import { SafeHarbour } from "../features/SafeHarbour/screens/SafeHarbour";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { Medication } from "../features/Medview/models/Medication";
 export type RootStackParamList = {

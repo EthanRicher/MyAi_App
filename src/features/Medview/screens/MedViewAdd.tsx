@@ -12,13 +12,11 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Camera } from "lucide-react-native";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
-import { runOCR } from "../../../ai/camera/ocrService";
+import { openCameraAndScan } from "../../../ai/camera/cameraService";
 import { runAI } from "../../../ai/core/runAI";
 import { medviewMedicationScan } from "../../../ai/scopes/medviewMedicationScan";
 import { addDebugEntry } from "../../../ai/core/debug";
@@ -71,31 +69,19 @@ export function MedViewAdd() {
     setError("");
     setIsScanning(true);
 
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 1,
-    });
-
-    if (result.canceled) {
-      setIsScanning(false);
-      return;
-    }
-
-    const rawUri = result.assets[0].uri;
-
     try {
-      addDebugEntry("MedViewAdd", "raw_image_uri", rawUri);
+      const cameraResult = await openCameraAndScan();
 
-      const manipulated = await ImageManipulator.manipulateAsync(
-        rawUri,
-        [{ resize: { width: 1000 } }],
-        { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
-      );
+      if (!cameraResult) {
+        setIsScanning(false);
+        return;
+      }
 
-      const uri = manipulated.uri;
-      addDebugEntry("MedViewAdd", "compressed_image", manipulated);
+      const uri = cameraResult.imageUri;
+      const text = cameraResult.text;
+
+      addDebugEntry("MedViewAdd", "scan_uri", uri);
       setImage(uri);
-
-      const text = await runOCR(uri);
 
       if (!text) {
         setError("OCR failed or no text detected");

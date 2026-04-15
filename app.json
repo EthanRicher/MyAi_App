@@ -20,7 +20,14 @@
       "package": "com.myai.app"
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "MyAI needs camera access to scan documents and medications.",
+          "photosPermission": "MyAI needs photo library access to select images."
+        }
+      ]
     ]
   }
 }

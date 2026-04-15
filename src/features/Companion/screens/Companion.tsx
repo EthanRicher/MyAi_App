@@ -32,8 +32,7 @@ export function Companion() {
 
   return (
     <View style={styles.container}>
-      <BackButton label="Home" to="Home" />
-      <Text style={styles.heading}>Companion</Text>
+      <BackButton label="Companion" to="Home" />
 
       <View style={styles.tabs}>
         {(["conversation", "stories"] as const).map((t) => (

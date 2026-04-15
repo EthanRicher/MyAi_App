@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Camera, Send, Mic, X, Keyboard } from "lucide-react-native";
@@ -261,19 +262,23 @@ export function ChatScreen({
       return;
     }
 
-    const result = await onCameraPress();
+    try {
+      const result = await onCameraPress();
 
-    if (!result) {
-      return;
+      if (!result) {
+        return;
+      }
+
+      setShowTextInput(false);
+
+      await sendPayload({
+        text: result.text,
+        imageUri: result.imageUri,
+        hiddenText: true,
+      });
+    } catch (err: any) {
+      addDebugEntry("ChatScreen", "photo_press_error", err?.message || "Photo failed");
     }
-
-    setShowTextInput(false);
-
-    await sendPayload({
-      text: result.text,
-      imageUri: result.imageUri,
-      hiddenText: true,
-    });
   };
 
   return (
@@ -284,12 +289,16 @@ export function ChatScreen({
       <View style={styles.container}>
         <BackButton label={backLabel || "Back"} to={backTo} />
 
+        <View style={styles.aiWarningBanner}>
+          <Text style={styles.aiWarningIcon}>⚠️</Text>
+          <Text style={styles.aiWarningText}>
+            AI can make mistakes — always consult your doctor before acting on any advice here.
+          </Text>
+        </View>
+
         {!!disclaimer && (
           <View style={[styles.disclaimerBanner, { backgroundColor: accentColor + "22", borderColor: accentColor + "55" }]}>
             <Text style={[styles.disclaimerBannerTitle, { color: accentColor }]}>{disclaimer}</Text>
-            {!!disclaimerSub && (
-              <Text style={[styles.disclaimerBannerSub, { color: accentColor + "bb" }]}>{disclaimerSub}</Text>
-            )}
           </View>
         )}
 
@@ -535,11 +544,30 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "700",
   },
-  disclaimerBannerSub: {
+  aiWarningBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: "#2A2000",
+    borderWidth: 1.5,
+    borderColor: "#F9A825",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 8,
+    marginBottom: 4,
+    maxWidth: "92%",
+    gap: 10,
+  },
+  aiWarningIcon: {
+    fontSize: 16,
+  },
+  aiWarningText: {
+    flex: 1,
     fontSize: 13,
-    textAlign: "center",
-    fontWeight: "400",
+    color: "#FFD54F",
     lineHeight: 18,
+    fontWeight: "500",
   },
 
   recordingText: {

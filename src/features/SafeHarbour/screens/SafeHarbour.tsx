@@ -28,9 +28,8 @@ export function SafeHarbour() {
 
   return (
     <View style={styles.container}>
-      <BackButton label="Home" to="Home" />
+      <BackButton label="Safe Harbour" to="Home" />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.heading}>SafeHarbour</Text>
 
         <View style={styles.card}>
           <Text style={styles.cardHeading}>Check This Message</Text>

@@ -24,11 +24,9 @@ export function MedViewLanding() {
 
   return (
     <View style={styles.container}>
-      <BackButton label="Home" to="Home" />
+      <BackButton label="MedView" to="Home" />
 
       <View style={styles.top}>
-        <Text style={styles.heading}>MedView</Text>
-
         <View style={styles.scheduleCard}>
           <View style={styles.scheduleHeader}>
             <Text style={styles.scheduleTitle}>Today's Schedule</Text>

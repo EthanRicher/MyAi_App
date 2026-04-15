@@ -184,9 +184,8 @@ export function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <BackButton label="Dashboard" to="Main" />
+      <BackButton label="Settings" to="Main" />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.heading}>Settings</Text>
         <View style={styles.sectionList}>
           {sections.map((s) => (
             <View key={s.title} style={styles.section}>

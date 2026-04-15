@@ -23,7 +23,7 @@ export function HomeMenu() {
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 12 }]}>
-      <BackButton label="Back to Home" to="Main" />
+      <BackButton label="Home" to="Main" />
       <View style={styles.list}>
         {modules.map((m) => (
           <TouchableOpacity

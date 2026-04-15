@@ -1,4 +1,4 @@
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, Text, View, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
@@ -22,28 +22,47 @@ export function BackButton({ label = "Back", to }: Props) {
   };
 
   return (
-    <TouchableOpacity
-      style={[styles.container, { paddingTop: insets.top + 8 }]}
-      onPress={handlePress}
-      accessibilityLabel={`Go back to ${label}`}
-    >
-      <ChevronLeft size={36} color={colors.text} strokeWidth={2} />
-      <Text style={styles.label}>{label}</Text>
-    </TouchableOpacity>
+    <View style={[styles.bar, { paddingTop: insets.top + 8 }]}>
+      <TouchableOpacity
+        style={styles.exitBtn}
+        onPress={handlePress}
+        accessibilityLabel={`Go back to ${label}`}
+      >
+        <ChevronLeft size={22} color="#fff" strokeWidth={2.5} />
+      </TouchableOpacity>
+
+      <Text style={styles.title}>{label}</Text>
+
+      {/* Spacer to balance the exit button */}
+      <View style={styles.spacer} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  bar: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 12,
     backgroundColor: colors.card,
   },
-  label: {
+  exitBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E53935",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  title: {
+    flex: 1,
+    textAlign: "center",
     color: colors.text,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
+  },
+  spacer: {
+    width: 36,
   },
 });

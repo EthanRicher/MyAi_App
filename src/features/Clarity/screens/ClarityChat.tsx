@@ -1,19 +1,15 @@
 import { useMemo } from "react";
 import { useRoute, RouteProp } from "@react-navigation/native";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
 import {
   ChatScreen,
   ChatMessage,
   ChatSendPayload,
-  CameraInputResult,
 } from "../../../components/ChatScreen";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { getScope, ScopeId } from "../../../ai/scopes";
 import { runAI } from "../../../ai/core/runAI";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
-import { runOCR } from "../../../ai/camera/ocrService";
-import { addDebugEntry } from "../../../ai/core/debug";
+import { openCameraAndScan } from "../../../ai/camera/cameraService";
 import { buildConversationContext } from "../../../ai/scopes/_shared";
 
 type Route = RouteProp<RootStackParamList, "ClarityChat">;
@@ -43,15 +39,15 @@ const scopeInitialMessages: Record<ScopeId, string> = {
 };
 
 const scopeDescriptions: Record<ScopeId, string> = {
-  clarityAppointmentPrep: "I’ll help you prepare questions and organise your thoughts before your appointment.",
-  clarityDoctorExplained: "Tell me what your doctor said and I’ll break it down into plain, simple language.",
-  clarityExplainEveryday: "I can explain confusing bills, letters, tech terms, or any everyday text.",
-  clarityExplainMedication: "Tell me a medication name and I’ll explain what it does, how to take it, and its side effects.",
-  clarityGeneralChat: "Ask me anything about your health, documents, or medical topics.",
-  claritySummariseDocument: "Paste any medical document and I’ll summarise the key points in plain English.",
-  medviewMedicationChat: "Ask me questions about your medications — what they do, side effects, and how to take them.",
-  medviewMedicationScan: "Send a photo or text of a medication label and I’ll help you understand it.",
-  medviewScheduleSupport: "I’ll help you understand your medication schedule and what to do if you miss a dose.",
+  clarityAppointmentPrep: "I’ll help you prepare for your appointment.",
+  clarityDoctorExplained: "I’ll explain what your doctor said in plain language.",
+  clarityExplainEveryday: "I’ll simplify bills, letters, and everyday text.",
+  clarityExplainMedication: "I’ll explain what your medication does and how to take it.",
+  clarityGeneralChat: "I’ll help you understand health or medical topics.",
+  claritySummariseDocument: "I’ll summarise your medical document in plain English.",
+  medviewMedicationChat: "Ask me anything about your medications.",
+  medviewMedicationScan: "Send a photo or text of a label and I’ll explain it.",
+  medviewScheduleSupport: "I’ll help you understand your medication schedule.",
 };
 
 
@@ -87,43 +83,7 @@ export function ClarityChat() {
     };
   };
 
-  const handleCameraPress = async (): Promise<CameraInputResult | null> => {
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 1,
-    });
-
-    if (result.canceled) {
-      return null;
-    }
-
-    const rawUri = result.assets[0].uri;
-
-    addDebugEntry("ClarityChat", "raw_image_uri", rawUri);
-
-    const manipulated = await ImageManipulator.manipulateAsync(
-      rawUri,
-      [{ resize: { width: 1200 } }],
-      {
-        compress: 0.6,
-        format: ImageManipulator.SaveFormat.JPEG,
-      }
-    );
-
-    const imageUri = manipulated.uri;
-
-    addDebugEntry("ClarityChat", "compressed_image", manipulated);
-
-    const ocrText = await runOCR(imageUri);
-
-    addDebugEntry("ClarityChat", "ocr_text", ocrText);
-
-    return {
-      imageUri,
-      text: ocrText?.trim()
-        ? ocrText.trim()
-        : "The photo was hard to read. Ask the user to retake it more clearly.",
-    };
-  };
+  const handleCameraPress = openCameraAndScan;
 
   return (
     <ChatScreen

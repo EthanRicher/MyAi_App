@@ -35,9 +35,8 @@ export function SenseGuard() {
 
   return (
     <View style={styles.container}>
-      <BackButton label="Home" to="Home" />
+      <BackButton label="SenseGuard" to="Home" />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.heading}>SenseGuard</Text>
 
         <View style={styles.emergency}>
           <Phone size={20} color={colors.text} />

@@ -47,14 +47,14 @@ export function CompanionChat() {
     const text = buildConversationContext(history, payload.text?.trim() || "");
     const result = await runAI({ text, scope });
 
+    if (result.error) {
+      return { aiText: "I'm sorry, I didn't quite catch that. Could you try again?", isError: true };
+    }
+
     const aiText =
-      result.error
-        ? "I'm sorry, I couldn't respond just now. Please try again."
-        : typeof result.output === "string"
-        ? result.output
-        : typeof result.raw === "string"
-        ? result.raw
-        : "I'm here — please tell me more.";
+      typeof result.output === "string" ? result.output
+      : typeof result.raw === "string" ? result.raw
+      : "I'm here — please tell me more.";
 
     return { aiText };
   };

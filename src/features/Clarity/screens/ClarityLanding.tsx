@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Mic, FileText, Pill, Calendar, Globe, ChevronRight } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
@@ -49,9 +50,10 @@ const cards: {
 
 export function ClarityLanding() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom + 12 }]}>
       <BackButton label="Clarity Layer" to="Home" />
 
       <View style={styles.list}>
@@ -73,13 +75,6 @@ export function ClarityLanding() {
           </TouchableOpacity>
         ))}
 
-        <TouchableOpacity
-          onPress={() => navigation.navigate("ClarityChat", { scopeId: "clarityGeneralChat" } as any)}
-          style={styles.ctaBtn}
-          accessibilityLabel="Start a conversation"
-        >
-          <Text style={styles.ctaText}>Start a Conversation</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -92,14 +87,15 @@ const styles = StyleSheet.create({
   },
   list: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    justifyContent: "space-evenly",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 10,
   },
   card: {
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: 16,
-    padding: 16,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -107,21 +103,14 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.primary,
   },
   iconWrap: {
-    width: 56,
-    height: 56,
+    width: 52,
+    height: 52,
     borderRadius: 12,
     backgroundColor: "rgba(13,217,247,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
   cardText: { flex: 1 },
-  cardTitle: { color: colors.text, fontSize: 21, fontWeight: "700" },
+  cardTitle: { color: colors.text, fontSize: 20, fontWeight: "600" },
   cardDesc: { color: colors.textMuted, fontSize: 16 },
-  ctaBtn: {
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-  },
-  ctaText: { color: colors.background, fontSize: 18, fontWeight: "700" },
 });

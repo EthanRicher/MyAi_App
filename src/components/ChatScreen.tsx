@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Camera, Send, Mic, X, Keyboard } from "lucide-react-native";
@@ -20,11 +19,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSpeechInput } from "../ai/speech/useSpeechInput";
 import { addDebugEntry } from "../ai/core/debug";
 import { AIDebugPanel } from "./AIDebugPanel";
+import { useAISettings } from "../hooks/useAISettings";
 
 export interface ChatMessage {
   role: "ai" | "user";
   text?: string;
   imageUri?: string;
+  isError?: boolean;
+  showWarning?: boolean;
 }
 
 export interface ChatSendPayload {
@@ -40,6 +42,7 @@ export interface CameraInputResult {
 
 interface ProcessResult {
   aiText: string;
+  isError?: boolean;
 }
 
 function renderMessageContent(text: string, accentColor: string, baseStyle: object) {
@@ -48,7 +51,6 @@ function renderMessageContent(text: string, accentColor: string, baseStyle: obje
     const trimmed = line.trim();
     if (!trimmed) return null;
 
-    // Title: **Title** — first one is main, rest are subtitles
     const titleMatch = trimmed.match(/^\*\*([^*]+)\*\*:?$/);
     if (titleMatch) {
       const rawTitle = titleMatch[1].replace(/^:+|:+$/g, "").trim();
@@ -68,7 +70,6 @@ function renderMessageContent(text: string, accentColor: string, baseStyle: obje
       );
     }
 
-    // Bullet point: - item or • item
     const bulletMatch = trimmed.match(/^[-•*]\s+(.+)$/);
     if (bulletMatch) {
       return (
@@ -100,6 +101,9 @@ interface Props {
   onTranscribeAudio?: (uri: string) => Promise<string>;
   onCameraPress?: () => Promise<CameraInputResult | null>;
   placeholder?: string;
+  autoPrompt?: string;
+  messageWarning?: string;
+  clearOnLoad?: boolean;
 }
 
 export function ChatScreen({
@@ -110,48 +114,96 @@ export function ChatScreen({
   initialMessages,
   onProcessMessage,
   disclaimer,
-  disclaimerSub,
+  disclaimerSub: _disclaimerSub,
   backTo,
   backLabel,
   backendRequired = false,
   backendDescription = "Backend required",
-  speechEnabled = false,
+  speechEnabled: _speechEnabled = false,
   onTranscribeAudio,
   onCameraPress,
   placeholder = "Type your message...",
+  autoPrompt,
+  messageWarning,
+  clearOnLoad = false,
 }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
   const [input, setInput] = useState("");
   const [showBackend, setShowBackend] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
+  const [pendingAutoSend, setPendingAutoSend] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+  const { settings } = useAISettings();
 
   useEffect(() => {
     const loadMessages = async () => {
       try {
+        if (clearOnLoad || settings.clearOnExit) {
+          await AsyncStorage.removeItem(storageKey);
+        }
+
+        if (!settings.saveChatHistory) {
+          setMessages(initialMessages);
+          if (autoPrompt) setPendingAutoSend(true);
+          return;
+        }
+
         const saved = await AsyncStorage.getItem(storageKey);
 
         if (saved) {
-          setMessages(JSON.parse(saved));
+          const parsed: ChatMessage[] = JSON.parse(saved);
+          setMessages(parsed);
+          if (autoPrompt && parsed.every((m) => m.role === "ai") && parsed.length <= 1) {
+            setPendingAutoSend(true);
+          }
           return;
         }
 
         setMessages(initialMessages);
         await AsyncStorage.setItem(storageKey, JSON.stringify(initialMessages));
+        if (autoPrompt) setPendingAutoSend(true);
       } catch {
         setMessages(initialMessages);
       }
     };
 
     loadMessages();
-  }, [storageKey, initialMessages]);
+  }, [storageKey, settings.saveChatHistory]);
+
+  useEffect(() => {
+    return () => {
+      if (settings.clearOnExit) {
+        AsyncStorage.removeItem(storageKey);
+      }
+    };
+  }, [storageKey, settings.clearOnExit]);
+
+
+  useEffect(() => {
+    if (!pendingAutoSend || !autoPrompt) return;
+    setPendingAutoSend(false);
+
+    setMessages([]);
+    setTyping(true);
+    onProcessMessage({ text: autoPrompt }, []).then((result) => {
+      const aiMessage: ChatMessage = { role: "ai", text: result.aiText, isError: result.isError, showWarning: !result.isError && !!messageWarning };
+      setMessages([aiMessage]);
+      if (settings.saveChatHistory) {
+        AsyncStorage.setItem(storageKey, JSON.stringify([aiMessage]));
+      }
+      setTyping(false);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    });
+  }, [pendingAutoSend]);
 
   const persistMessages = async (nextMessages: ChatMessage[]) => {
     setMessages(nextMessages);
-    await AsyncStorage.setItem(storageKey, JSON.stringify(nextMessages));
+    if (settings.saveChatHistory) {
+      await AsyncStorage.setItem(storageKey, JSON.stringify(nextMessages));
+    }
   };
 
   const sendPayload = async (payload: ChatSendPayload) => {
@@ -189,11 +241,13 @@ export function ChatScreen({
     const result = await onProcessMessage({
       ...payload,
       text: cleanText,
-    }, messages);
+    }, settings.useHistory ? messages : []);
 
     const aiMessage: ChatMessage = {
       role: "ai",
       text: result.aiText,
+      isError: result.isError,
+      showWarning: !result.isError && !!messageWarning,
     };
 
     const nextWithAi = [...nextWithUser, aiMessage];
@@ -222,6 +276,18 @@ export function ChatScreen({
       await sendPayload({ text });
     },
   });
+
+  useEffect(() => {
+    if (!speechError) return;
+    const errorMessage: ChatMessage = {
+      role: "ai",
+      text: "I couldn't hear you. Please try again.",
+      isError: true,
+    };
+    setMessages((prev) => [...prev, errorMessage]);
+    clearSpeechError();
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+  }, [speechError]);
 
   const handleMicPress = async () => {
     clearSpeechError();
@@ -289,15 +355,8 @@ export function ChatScreen({
       <View style={styles.container}>
         <BackButton label={backLabel || "Back"} to={backTo} />
 
-        <View style={styles.aiWarningBanner}>
-          <Text style={styles.aiWarningIcon}>⚠️</Text>
-          <Text style={styles.aiWarningText}>
-            AI can make mistakes — always consult your doctor before acting on any advice here.
-          </Text>
-        </View>
-
         {!!disclaimer && (
-          <View style={[styles.disclaimerBanner, { backgroundColor: accentColor + "22", borderColor: accentColor + "55" }]}>
+          <View style={[styles.disclaimerBanner, { backgroundColor: accentColor + "18", borderBottomColor: accentColor + "55" }]}>
             <Text style={[styles.disclaimerBannerTitle, { color: accentColor }]}>{disclaimer}</Text>
           </View>
         )}
@@ -313,7 +372,7 @@ export function ChatScreen({
           {messages.map((m, i) =>
             m.role === "ai" ? (
               <View key={i} style={styles.aiBubbleWrap}>
-                <View style={styles.aiBubble}>
+                <View style={[styles.aiBubble, m.isError && styles.aiBubbleError]}>
                   <Text style={[styles.aiLabel, { color: accentColor }]}>
                     {aiLabel}
                   </Text>
@@ -321,6 +380,12 @@ export function ChatScreen({
                     <Image source={{ uri: m.imageUri }} style={styles.messageImage} />
                   )}
                   {!!m.text && renderMessageContent(m.text, accentColor, styles.messageText)}
+                  {!!m.showWarning && !!messageWarning && (
+                    <View style={styles.messageWarningBanner}>
+                      <Text style={styles.messageWarningIcon}>⚠️</Text>
+                      <Text style={styles.messageWarningText}>{messageWarning}</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             ) : (
@@ -356,8 +421,6 @@ export function ChatScreen({
           <AIDebugPanel />
         </ScrollView>
 
-        {isRecording && <Text style={styles.recordingText}>Recording...</Text>}
-        {!!speechError && <Text style={styles.errorText}>{speechError}</Text>}
 
         <View
           style={[
@@ -388,47 +451,47 @@ export function ChatScreen({
                 <Send size={20} color="#fff" />
               </TouchableOpacity>
             </View>
-          ) : isRecording ? (
-            <TouchableOpacity
-              onPress={handleMicPress}
-              style={[styles.singleBtn, { borderColor: accentColor }]}
-            >
-              <X size={22} color={accentColor} />
-              <Text style={[styles.actionText, { color: accentColor }]}>
-                Stop Recording
-              </Text>
-            </TouchableOpacity>
           ) : (
-            <View style={styles.actionsRow}>
+            <View style={styles.actionsCol}>
               <TouchableOpacity
                 onPress={handleMicPress}
-                style={[styles.actionBtn, { borderColor: accentColor }]}
+                style={[styles.singleBtn, { borderColor: isRecording ? "#cc3333" : accentColor }]}
               >
-                <Mic size={22} color={accentColor} />
-                <Text style={[styles.actionText, { color: accentColor }]}>
-                  Record
+                <Mic size={22} color={isRecording ? "#cc3333" : accentColor} />
+                <Text style={[styles.actionText, { color: isRecording ? "#cc3333" : accentColor }]}>
+                  {isRecording ? "Stop" : "Record"}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={handleOpenText}
-                style={[styles.actionBtn, { borderColor: accentColor }]}
-              >
-                <Keyboard size={22} color={accentColor} />
-                <Text style={[styles.actionText, { color: accentColor }]}>
-                  Type
-                </Text>
-              </TouchableOpacity>
+              {isRecording ? (
+                <View style={styles.recordingLabelWrap}>
+                  <Text style={[styles.recordingLabel, { color: "#cc3333" }]}>
+                    Currently Recording...
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.actionsRow}>
+                  <TouchableOpacity
+                    onPress={handleOpenText}
+                    style={[styles.actionBtn, { borderColor: accentColor }]}
+                  >
+                    <Keyboard size={22} color={accentColor} />
+                    <Text style={[styles.actionText, { color: accentColor }]}>
+                      Type
+                    </Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={handlePhotoPress}
-                style={[styles.actionBtn, { borderColor: accentColor }]}
-              >
-                <Camera size={22} color={accentColor} />
-                <Text style={[styles.actionText, { color: accentColor }]}>
-                  Photo
-                </Text>
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handlePhotoPress}
+                    style={[styles.actionBtn, { borderColor: accentColor }]}
+                  >
+                    <Camera size={22} color={accentColor} />
+                    <Text style={[styles.actionText, { color: accentColor }]}>
+                      Photo
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -470,6 +533,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     width: "95%",
     gap: 10,
+  },
+
+  aiBubbleError: {
+    backgroundColor: "#2a0a0a",
+    borderWidth: 1,
+    borderColor: "#7f1f1f",
   },
 
   userBubble: {
@@ -529,51 +598,70 @@ const styles = StyleSheet.create({
   },
 
   disclaimerBanner: {
-    alignSelf: "center",
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginTop: 8,
-    marginBottom: 4,
-    maxWidth: "92%",
-    gap: 4,
+    width: "100%",
+    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
   },
   disclaimerBannerTitle: {
-    fontSize: 16,
-    textAlign: "center",
-    fontWeight: "700",
-  },
-  aiWarningBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "center",
-    backgroundColor: "#2A2000",
-    borderWidth: 1.5,
-    borderColor: "#F9A825",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginTop: 8,
-    marginBottom: 4,
-    maxWidth: "92%",
-    gap: 10,
-  },
-  aiWarningIcon: {
-    fontSize: 16,
-  },
-  aiWarningText: {
-    flex: 1,
     fontSize: 13,
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  messageWarningBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#2A2000",
+    borderWidth: 1,
+    borderColor: "#F9A825",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 8,
+    gap: 8,
+  },
+  messageWarningIcon: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  messageWarningText: {
+    flex: 1,
+    fontSize: 12,
     color: "#FFD54F",
     lineHeight: 18,
     fontWeight: "500",
+  },
+
+  recordingLabelWrap: {
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  recordingLabel: {
+    fontSize: 20,
+    fontWeight: "600",
+    textAlign: "center",
   },
 
   recordingText: {
     color: "red",
     textAlign: "center",
     paddingTop: 6,
+  },
+
+  speechErrorWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+
+  speechErrorBubble: {
+    width: "100%",
+  },
+
+  speechErrorText: {
+    color: colors.text,
+    fontSize: 15,
   },
 
   errorText: {
@@ -585,6 +673,11 @@ const styles = StyleSheet.create({
   bottomWrap: {
     paddingHorizontal: 10,
     paddingTop: 10,
+  },
+
+  actionsCol: {
+    flexDirection: "column",
+    gap: 10,
   },
 
   actionsRow: {
@@ -617,7 +710,7 @@ const styles = StyleSheet.create({
   },
 
   actionText: {
-    fontSize: 15,
+    fontSize: 24,
     fontWeight: "700",
   },
 

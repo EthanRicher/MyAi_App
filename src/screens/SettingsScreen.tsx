@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
-import { ChevronDown, ChevronUp, User, Lock, Shield, Eye, Bell, Clock, Phone, HelpCircle, Trash2 } from "lucide-react-native";
+import { ChevronDown, ChevronUp, User, Lock, Shield, Eye, Bell, Clock, Phone, HelpCircle, Trash2, Bot } from "lucide-react-native";
 import Slider from "@react-native-community/slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BackButton } from "../components/BackButton";
 import { colors } from "../theme";
+import { useAISettings } from "../hooks/useAISettings";
 
 function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
   return (
@@ -22,6 +23,7 @@ function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => vo
 
 export function SettingsScreen() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ Accessibility: true, "Emergency Access": true });
+  const { settings: aiSettings, update: updateAI } = useAISettings();
   const [fontSize, setFontSize] = useState(18);
   const [highContrast, setHighContrast] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -171,6 +173,46 @@ export function SettingsScreen() {
       ),
     },
     {
+      title: "AI & Chat", icon: Bot,
+      content: (
+        <View style={styles.sectionContent}>
+          <View style={styles.row}>
+            <View style={styles.settingLabelGroup}>
+              <Text style={styles.settingLabel}>Save Chat History</Text>
+              <Text style={styles.settingCaption}>Remember conversations between sessions</Text>
+            </View>
+            <ToggleSwitch
+              on={aiSettings.saveChatHistory}
+              onToggle={() => updateAI({ saveChatHistory: !aiSettings.saveChatHistory })}
+              label="Save chat history toggle"
+            />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.settingLabelGroup}>
+              <Text style={styles.settingLabel}>AI Uses Chat History</Text>
+              <Text style={styles.settingCaption}>AI reads prior messages for context</Text>
+            </View>
+            <ToggleSwitch
+              on={aiSettings.useHistory}
+              onToggle={() => updateAI({ useHistory: !aiSettings.useHistory })}
+              label="AI uses chat history toggle"
+            />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.settingLabelGroup}>
+              <Text style={styles.settingLabel}>Clear History on Exit</Text>
+              <Text style={styles.settingCaption}>Wipe chat when you leave a conversation</Text>
+            </View>
+            <ToggleSwitch
+              on={aiSettings.clearOnExit}
+              onToggle={() => updateAI({ clearOnExit: !aiSettings.clearOnExit })}
+              label="Clear history on exit toggle"
+            />
+          </View>
+        </View>
+      ),
+    },
+    {
       title: "Help & Support", icon: HelpCircle,
       content: (
         <View style={styles.sectionContent}>
@@ -253,6 +295,8 @@ const styles = StyleSheet.create({
   deleteDataText: { color: colors.text, fontSize: 15, fontWeight: "600" },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   settingLabel: { color: colors.textMuted, fontSize: 15 },
+  settingLabelGroup: { flex: 1, gap: 2, paddingRight: 12 },
+  settingCaption: { color: colors.textCaption, fontSize: 12 },
   settingValue: { color: colors.text, fontSize: 15, fontWeight: "600" },
   sliderMin: { color: colors.textCaption, fontSize: 12 },
   sliderMax: { color: colors.textCaption, fontSize: 12 },

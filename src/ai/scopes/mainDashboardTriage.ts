@@ -6,7 +6,6 @@ export type TriageOutput = {
   routeLabel: string;
 };
 
-// Each entry is grounded in the actual screen code so the AI picks the right one.
 const ROUTES = `
 route: "Home"
 label: "All Features"

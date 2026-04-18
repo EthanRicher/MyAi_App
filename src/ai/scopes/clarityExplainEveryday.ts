@@ -24,5 +24,5 @@ TASK:
 
 INPUT:
 ${input}
-`),
+`, "breakdown", "explain everyday things like bills, letters, and documents"),
 };

@@ -41,7 +41,7 @@ TASK:
 
 INPUT:
 ${input}
-`, "conversational");
+`, "conversational", "keep you company and have a friendly conversation");
 };
 
 export const companionChat: AIScope = {

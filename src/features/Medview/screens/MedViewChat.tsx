@@ -10,6 +10,7 @@ import { runAI } from "../../../ai/core/runAI";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
 import { openCameraAndScan } from "../../../ai/camera/cameraService";
 import { medviewMedicationChat } from "../../../ai/scopes/medviewMedicationChat";
+import { buildConversationContext, buildSharedPrompt } from "../../../ai/scopes/_shared";
 
 export function MedViewChat() {
   const route = useRoute<any>();
@@ -20,63 +21,69 @@ export function MedViewChat() {
     : "chat:medviewMedicationChat:general";
 
   const initialMessages = useMemo<ChatMessage[]>(
-    () => [
-      {
-        role: "ai",
-        text: med
-          ? `Ask me anything about ${med.name}.`
-          : "Ask me about your medication.",
-      },
-    ],
-    [med]
+    () =>
+      med
+        ? []
+        : [{ role: "ai", text: "Ask me about your medication." }],
+    [med?.id]
   );
 
-  const handleProcessMessage = async (payload: ChatSendPayload, _history: unknown) => {
+  const handleProcessMessage = async (payload: ChatSendPayload, history: ChatMessage[]) => {
     const message = payload.text?.trim() || "";
+    const isInitial = history.length === 0;
 
-    const context = med
-      ? `Medication: ${med.name}
+    let context: string;
+
+    if (isInitial && med) {
+      context = `Medication: ${med.name}
 Dose: ${med.dose}
 Description: ${med.description}
 
-User: ${message}`
-      : message;
+Explain this medication. Cover what it is for, how it is taken, and key things to know.`;
+    } else {
+      const medHeader = med
+        ? `Medication context: ${med.name}, ${med.dose}\n\n`
+        : "";
+      context = `${medHeader}${buildConversationContext(history, message)}`;
+    }
 
     const result = await runAI({
       text: context,
-      scope: medviewMedicationChat,
+      scope: isInitial && med
+        ? { ...medviewMedicationChat, buildPrompt: (t) => buildSharedPrompt(t, "breakdown", medviewMedicationChat.topic) }
+        : medviewMedicationChat,
     });
 
+    if (result.error) {
+      return { aiText: "Sorry, I couldn't get a response. Please try again.", isError: true };
+    }
+
     const aiText =
-      result.error
-        ? "Something went wrong."
-        : typeof result.output === "string"
-        ? result.output
-        : typeof result.raw === "string"
-        ? result.raw
-        : "No response";
+      typeof result.output === "string" ? result.output
+      : typeof result.raw === "string" ? result.raw
+      : "No response";
 
-    return {
-      aiText,
-    };
+    return { aiText };
   };
-
-  const handleCameraPress = openCameraAndScan;
 
   return (
     <ChatScreen
-      title="Medication Chat"
+      title="MedView Chat"
       accentColor={colors.green}
-      aiLabel="Med AI"
+      aiLabel="MedView AI"
       storageKey={storageKey}
       initialMessages={initialMessages}
       onProcessMessage={handleProcessMessage}
-      disclaimer={med ? `Ask me anything about ${med.name}` : "Ask me questions about your medications"}
+      disclaimer="I'm here to explain your medication"
       disclaimerSub="This is not medical advice. Always confirm with your doctor."
       backTo="MedView"
+      backLabel="MedView Chat"
       speechEnabled
       onTranscribeAudio={whisperTranscribe}
-      onCameraPress={handleCameraPress}
+      onCameraPress={openCameraAndScan}
+      autoPrompt={med ? "Explain this medication." : undefined}
+      clearOnLoad={!!med}
+      messageWarning={medviewMedicationChat.warning}
     />
   );
 }

@@ -37,7 +37,7 @@ export type RootStackParamList = {
 
   MedViewAdd: { med?: Medication } | undefined;
 
-  MedViewChat: undefined;
+  MedViewChat: { med?: Medication } | undefined;
   SenseGuard: undefined;
   Companion: undefined;
   CompanionChat: { title?: string; initialMessage?: string };
@@ -50,7 +50,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export function AppNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Main"//change to "Splash"
+      initialRouteName="Main"
       screenOptions={{ headerShown: false, animation: "none" }}
     >
       <Stack.Screen name="Splash" component={SplashScreen} />

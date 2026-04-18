@@ -3,7 +3,64 @@ import { buildSharedPrompt } from "./_shared";
 
 export const medviewMedicationScan: AIScope = {
   id: "medviewMedicationScan",
+  topic: "scan medication labels and prescriptions",
   responseFormat: "json",
+
+  buildPhotoPrompt: (analysis: string) =>
+    buildSharedPrompt(`
+You extract medication info from a photo of a prescription or medication label.
+The following is a visual analysis of the photo — use it as your source.
+
+${analysis}
+
+Extract the medication details below.
+
+RULES:
+- Do NOT guess
+- Only extract what is clearly stated in the analysis above
+- If missing, leave fields empty
+- If not medication, mark invalid
+
+DOSE:
+- If tablets and strength are clearly given, calculate total dose per intake
+- Example: 1.5 tablets of 50mg = 75mg
+
+TIMES:
+- If frequency is stated but exact times are not written:
+  - once daily = ["08:00"]
+  - twice daily = ["06:00", "18:00"]
+  - three times daily = ["06:00", "14:00", "22:00"]
+  - four times daily = ["06:00", "12:00", "18:00", "22:00"]
+
+DESCRIPTION:
+- Only extract the actual written instructions
+- Do not explain
+- Keep it short and exact
+
+Return only valid JSON:
+
+{
+  "status": "Valid",
+  "explanation": "",
+  "medications": [
+    {
+      "name": "",
+      "dose": "",
+      "description": "",
+      "timesPerDay": 0,
+      "times": []
+    }
+  ]
+}
+
+If invalid, return:
+
+{
+  "status": "Invalid",
+  "explanation": "reason",
+  "medications": []
+}
+`),
 
   buildPrompt: (text: string) =>
     buildSharedPrompt(`

@@ -25,5 +25,5 @@ TASK:
 
 INPUT:
 ${input}
-`, "conversational"),
+`, "conversational", "help you understand health and medical topics"),
 };

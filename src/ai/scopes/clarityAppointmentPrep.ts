@@ -4,6 +4,8 @@ export const clarityAppointmentPrep = {
   id: "clarityAppointmentPrep",
   conversational: true,
   storageKey: "chat:clarity_appointment_prep",
+  topic: "help you prepare for your medical appointment",
+  warning: "This is a preparation guide only. Your doctor has the final say on your care.",
 
   initialMessage:
     "Let’s prepare for your appointment. What type of visit do you have?",
@@ -26,5 +28,5 @@ TASK:
 
 INPUT:
 ${input}
-`, "conversational"),
+`, "conversational", "help you prepare for your medical appointment"),
 };

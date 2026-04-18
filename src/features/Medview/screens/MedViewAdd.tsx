@@ -16,8 +16,8 @@ import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
-import { openCameraAndScan } from "../../../ai/camera/cameraService";
-import { runAI } from "../../../ai/core/runAI";
+import { openCameraAndScan, PhotoMode } from "../../../ai/camera/cameraService";
+import { runAIOnPhoto } from "../../../ai/camera/runAIOnPhoto";
 import { medviewMedicationScan } from "../../../ai/scopes/medviewMedicationScan";
 import { addDebugEntry } from "../../../ai/core/debug";
 import { AIDebugPanel } from "../../../components/AIDebugPanel";
@@ -70,7 +70,7 @@ export function MedViewAdd() {
     setIsScanning(true);
 
     try {
-      const cameraResult = await openCameraAndScan();
+      const cameraResult = await openCameraAndScan(PhotoMode.VisionWithFallback);
 
       if (!cameraResult) {
         setIsScanning(false);
@@ -78,17 +78,10 @@ export function MedViewAdd() {
       }
 
       const uri = cameraResult.imageUri;
-      const text = cameraResult.text;
-
       addDebugEntry("MedViewAdd", "scan_uri", uri);
       setImage(uri);
 
-      if (!text) {
-        setError("OCR failed or no text detected");
-        return;
-      }
-
-      const aiResult = await runAI({ text, scope: medviewMedicationScan });
+      const aiResult = await runAIOnPhoto(uri, medviewMedicationScan, PhotoMode.VisionWithFallback);
 
       if (aiResult.error) {
         setError(aiResult.error);

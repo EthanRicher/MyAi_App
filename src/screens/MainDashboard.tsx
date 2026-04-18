@@ -27,7 +27,7 @@ type TriageResult = {
   routeLabel: string;
 };
 
-const RECORD_LIMIT = 5; // seconds
+const RECORD_LIMIT = 5;
 const BTN_SIZE = 160;
 
 export function MainDashboard() {
@@ -80,7 +80,6 @@ export function MainDashboard() {
       onTranscript: handleTranscript,
     });
 
-  // Start/stop countdown + timer animation when recording state changes
   useEffect(() => {
     if (isRecording) {
       setCountdown(RECORD_LIMIT);
@@ -124,7 +123,6 @@ export function MainDashboard() {
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 12 }]}>
 
-      {/* ── Top bar ── */}
       <View style={styles.topBar}>
         <TouchableOpacity
           onPress={() => navigation.replace("Splash")}
@@ -144,7 +142,6 @@ export function MainDashboard() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Greeting ── */}
       <View style={styles.greetingZone}>
         <Text style={styles.greeting}>Hello, Margaret</Text>
         <View style={styles.subRow}>
@@ -164,7 +161,6 @@ export function MainDashboard() {
         </View>
       </View>
 
-      {/* ── Record button ── */}
       <View style={styles.buttonZone}>
         <View style={styles.btnWrapper}>
           {isRecording && (
@@ -195,7 +191,6 @@ export function MainDashboard() {
         </View>
       </View>
 
-      {/* ── Explore Features ── */}
       <TouchableOpacity
         onPress={() => navigation.navigate("Home")}
         style={[styles.exploreBtn, (isRecording || isProcessing) && styles.exploreBtnDisabled]}
@@ -207,7 +202,6 @@ export function MainDashboard() {
         </Text>
       </TouchableOpacity>
 
-      {/* ── Fixed content box — examples or result ── */}
       <View style={styles.contentBox}>
         {result ? (
           <>
@@ -226,15 +220,18 @@ export function MainDashboard() {
         ) : (
           <>
             <Text style={styles.suggestionsLabel}>You could ask me...</Text>
-            {[
-              "What's my next pill?",
-              "I'm not feeling well",
-              "Explain my prescription",
-            ].map((q) => (
-              <View key={q} style={styles.suggestionBubble}>
-                <Text style={styles.suggestionText}>{q}</Text>
-              </View>
-            ))}
+            <View style={styles.suggestionsBody}>
+              {[
+                "What's my next pill?",
+                "I'm not feeling well",
+                "Explain my prescription",
+              ].map((q) => (
+                <View key={q} style={styles.suggestionRow}>
+                  <View style={styles.suggestionDot} />
+                  <Text style={styles.suggestionText}>{q}</Text>
+                </View>
+              ))}
+            </View>
           </>
         )}
       </View>
@@ -250,7 +247,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
 
-  // ── Top bar ──────────────────────────────────────────────
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -274,7 +270,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // ── Greeting ─────────────────────────────────────────────
   greetingZone: {
     alignItems: "center",
     paddingTop: 10,
@@ -298,7 +293,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // ── Error badge ───────────────────────────────────────────
   errorBadge: {
     borderWidth: 1,
     borderColor: "#E53935",
@@ -315,7 +309,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // ── Record button ─────────────────────────────────────────
   buttonZone: {
     alignItems: "center",
     paddingTop: 30,
@@ -349,7 +342,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  // ── Timer ring ────────────────────────────────────────────
   btnWrapper: {
     alignItems: "center",
     justifyContent: "center",
@@ -365,7 +357,6 @@ const styles = StyleSheet.create({
     borderRightColor: "rgba(255,255,255,0.9)",
   },
 
-  // ── Explore Features ──────────────────────────────────────
   exploreBtn: {
     width: "100%",
     paddingVertical: 14,
@@ -387,7 +378,6 @@ const styles = StyleSheet.create({
     color: colors.textCaption,
   },
 
-  // ── Content box ───────────────────────────────────────────
   contentBox: {
     flex: 1,
     marginTop: 16,
@@ -429,24 +419,33 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  // ── Suggestions ───────────────────────────────────────────
   suggestionsLabel: {
     color: colors.textCaption,
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
+    letterSpacing: 1,
+    marginBottom: 12,
   },
-  suggestionBubble: {
-    backgroundColor: "#13133a",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#5a5a7a",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  suggestionsBody: {
+    flex: 1,
+    justifyContent: "space-evenly",
+  },
+  suggestionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  suggestionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    opacity: 0.7,
   },
   suggestionText: {
-    color: colors.text,
+    color: colors.textMuted,
     fontSize: 20,
+    fontStyle: "italic",
   },
 });

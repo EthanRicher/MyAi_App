@@ -3,6 +3,8 @@ import { buildSharedPrompt } from "./_shared";
 export const clarityDoctorExplained = {
   id: "clarityDoctorExplained",
   storageKey: "chat:clarity_doctor_explained",
+  topic: "explain what your doctor said in simple terms",
+  warning: "This is not a substitute for professional medical advice. Always follow your doctor's guidance.",
 
   initialMessage:
     "You can paste or record what your doctor said. I will explain it in simple terms.",
@@ -25,5 +27,5 @@ TASK:
 
 INPUT:
 ${input}
-`),
+`, "breakdown", "explain what your doctor said in simple terms"),
 };

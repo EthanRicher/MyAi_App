@@ -69,18 +69,16 @@ export function ClarityChat() {
       : rawText;
     const result = await runAI({ text, scope });
 
-    const aiText =
-      result.error
-        ? "Something went wrong."
-        : typeof result.output === "string"
-        ? result.output
-        : typeof result.raw === "string"
-        ? result.raw
-        : "No response";
+    if (result.error) {
+      return { aiText: "Sorry, I couldn't get a response. Please try again.", isError: true };
+    }
 
-    return {
-      aiText,
-    };
+    const aiText =
+      typeof result.output === "string" ? result.output
+      : typeof result.raw === "string" ? result.raw
+      : "No response";
+
+    return { aiText };
   };
 
   const handleCameraPress = openCameraAndScan;
@@ -95,6 +93,7 @@ export function ClarityChat() {
       onProcessMessage={handleProcessMessage}
       disclaimer={scopeDescriptions[scopeId] || "AI is here to help you understand"}
       disclaimerSub="Always confirm with your doctor before acting on anything here."
+      messageWarning={scope.warning}
       backTo="Clarity"
       backLabel="Clarity"
       speechEnabled

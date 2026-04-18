@@ -3,9 +3,16 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { addDebugEntry } from "../core/debug";
 import { runOCR } from "./ocrService";
+import { runVision } from "./runVision";
 import { CameraInputResult } from "../../components/ChatScreen";
 
-export async function openCameraAndScan(): Promise<CameraInputResult | null> {
+export enum PhotoMode {
+  Vision = "vision",
+  OCR = "ocr",
+  VisionWithFallback = "vision_with_fallback",
+}
+
+export async function openCameraAndScan(mode: PhotoMode = PhotoMode.VisionWithFallback): Promise<CameraInputResult | null> {
   try {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -40,9 +47,35 @@ export async function openCameraAndScan(): Promise<CameraInputResult | null> {
     const imageUri = manipulated.uri;
     addDebugEntry("cameraService", "compressed_uri", imageUri);
 
+    if (mode === PhotoMode.OCR) {
+      const ocrText = await runOCR(imageUri);
+      addDebugEntry("cameraService", "ocr_text", ocrText);
+      return {
+        imageUri,
+        text: ocrText?.trim()
+          ? ocrText.trim()
+          : "The photo was hard to read. Ask the user to retake it more clearly.",
+      };
+    }
+
+    if (mode === PhotoMode.Vision) {
+      const visionText = await runVision(imageUri);
+      addDebugEntry("cameraService", "vision_text", visionText);
+      return {
+        imageUri,
+        text: visionText || "The photo could not be analysed. Please try again.",
+      };
+    }
+
+    const visionText = await runVision(imageUri);
+    if (visionText) {
+      addDebugEntry("cameraService", "vision_text", visionText);
+      return { imageUri, text: visionText };
+    }
+
+    addDebugEntry("cameraService", "vision_empty_falling_back_to_ocr", true);
     const ocrText = await runOCR(imageUri);
     addDebugEntry("cameraService", "ocr_text", ocrText);
-
     return {
       imageUri,
       text: ocrText?.trim()

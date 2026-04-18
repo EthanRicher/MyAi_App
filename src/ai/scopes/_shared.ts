@@ -1,12 +1,21 @@
-const SHARED_RULES = `
+const BASE_RULES = `
 GENERAL RULES:
 - Do NOT diagnose
 - Do NOT replace medical advice
 - Do NOT make up missing info
 - If unsure, say so
 - Keep responses simple and clear
-- If the user asks something completely unrelated to your task, politely say so and briefly remind them what you are here to help with
 `.trim();
+
+const buildRelevanceRule = (topic?: string) =>
+  topic
+    ? `- If the message is off-topic or not related to your purpose, respond with exactly: "Sorry, I think that's off-topic. I'm here to ${topic}."`
+    : `- If the user asks something completely unrelated to your task, politely say so and briefly remind them what you are here to help with`;
+
+const buildPhotoRelevanceRule = (topic?: string) =>
+  topic
+    ? `- Only reject the photo if it clearly shows something with NO possible connection to ${topic} — such as a selfie, a landscape, food, or a random object. If there is any doubt, try to help. If you do reject it, respond with exactly: "Sorry, this photo doesn't seem relevant. I'm here to ${topic}."`
+    : `- Only reject the photo if it is clearly and obviously unrelated to your task`;
 
 const BREAKDOWN_FORMAT = `
 RESPONSE FORMAT (always follow exactly):
@@ -44,7 +53,22 @@ export const buildConversationContext = (
     : currentMessage;
 };
 
-export const buildSharedPrompt = (body: string, format: "breakdown" | "conversational" = "breakdown") => {
+export const buildSharedPrompt = (
+  body: string,
+  format: "breakdown" | "conversational" = "breakdown",
+  topic?: string
+) => {
+  const rules = `${BASE_RULES}\n- ${buildRelevanceRule(topic)}`;
   const formatBlock = format === "conversational" ? CONVERSATIONAL_FORMAT : BREAKDOWN_FORMAT;
-  return `${SHARED_RULES}\n\n${formatBlock}\n\n${body}`;
+  return `${rules}\n\n${formatBlock}\n\n${body}`;
+};
+
+export const buildSharedPhotoPrompt = (
+  body: string,
+  format: "breakdown" | "conversational" = "breakdown",
+  topic?: string
+) => {
+  const rules = `${BASE_RULES}\n- ${buildPhotoRelevanceRule(topic)}`;
+  const formatBlock = format === "conversational" ? CONVERSATIONAL_FORMAT : BREAKDOWN_FORMAT;
+  return `${rules}\n\n${formatBlock}\n\n${body}`;
 };

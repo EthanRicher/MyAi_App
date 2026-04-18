@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { HelpCircle, Plus } from "lucide-react-native";
+import { HelpCircle, Plus, X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
@@ -15,12 +16,25 @@ export function MedViewLanding() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { medications } = useMedications();
+  const [explainMode, setExplainMode] = useState(false);
 
   const meds: Medication[] = medications;
 
   const total = meds.reduce((sum, m) => sum + (m.times?.length || 0), 0);
   const taken = meds.reduce((sum, m) => sum + (m.taken?.filter(t => t).length || 0), 0);
   const pct = total ? (taken / total) * 100 : 0;
+
+  const hasMeds = meds.length > 0;
+
+  function handleExplainPress() {
+    if (!hasMeds) return;
+    setExplainMode((prev) => !prev);
+  }
+
+  function handleExplainMed(med: Medication) {
+    setExplainMode(false);
+    navigation.navigate("MedViewChat", { med });
+  }
 
   return (
     <View style={styles.container}>
@@ -53,8 +67,15 @@ export function MedViewLanding() {
         {meds.map((m) => (
           <TouchableOpacity
             key={m.id}
-            onPress={() => navigation.navigate("MedViewDetail", { id: m.id })}
-            style={styles.medRow}
+            onPress={() => {
+              if (explainMode) {
+                handleExplainMed(m);
+              } else {
+                navigation.navigate("MedViewDetail", { id: m.id });
+              }
+            }}
+            style={[styles.medRow, explainMode && styles.medRowHighlighted]}
+            activeOpacity={0.7}
           >
             <View
               style={[
@@ -66,6 +87,11 @@ export function MedViewLanding() {
               <Text style={styles.medName}>{m.name}</Text>
               <Text style={styles.medSub}>{m.dose} · {m.dosesPerDay} times daily</Text>
             </View>
+            {explainMode && (
+              <View style={styles.explainBubble}>
+                <Text style={styles.explainBubbleText}>Explain</Text>
+              </View>
+            )}
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -80,11 +106,27 @@ export function MedViewLanding() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate("MedViewChat")}
-          style={styles.explainBtn}
+          onPress={handleExplainPress}
+          style={[
+            styles.explainBtn,
+            !hasMeds && styles.explainBtnDisabled,
+            explainMode && styles.explainBtnActive,
+          ]}
+          disabled={!hasMeds}
+          activeOpacity={hasMeds ? 0.7 : 1}
         >
-          <HelpCircle size={22} color={colors.green} />
-          <Text style={styles.explainText}>Explain</Text>
+          {explainMode ? (
+            <X size={22} color={colors.background} />
+          ) : (
+            <HelpCircle size={22} color={hasMeds ? colors.green : colors.textMuted} />
+          )}
+          <Text style={[
+            styles.explainText,
+            !hasMeds && styles.explainTextDisabled,
+            explainMode && styles.explainTextActive,
+          ]}>
+            {explainMode ? "Cancel" : "Explain"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -154,6 +196,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+
+  medRowHighlighted: {
+    borderColor: colors.green,
+    backgroundColor: colors.card,
   },
 
   dot: { width: 12, height: 12, borderRadius: 6 },
@@ -162,6 +211,19 @@ const styles = StyleSheet.create({
 
   medName: { color: colors.text, fontSize: 18, fontWeight: "600" },
   medSub: { color: colors.textMuted, fontSize: 15 },
+
+  explainBubble: {
+    backgroundColor: colors.green,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+
+  explainBubbleText: {
+    color: colors.background,
+    fontSize: 14,
+    fontWeight: "700",
+  },
 
   bottomBar: {
     paddingHorizontal: 20,
@@ -200,5 +262,18 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
 
-  explainText: { color: colors.textMuted, fontSize: 17 },
+  explainBtnDisabled: {
+    opacity: 0.4,
+  },
+
+  explainBtnActive: {
+    backgroundColor: colors.green,
+    borderColor: colors.green,
+  },
+
+  explainText: { color: colors.green, fontSize: 17, fontWeight: "600" },
+
+  explainTextDisabled: { color: colors.textMuted },
+
+  explainTextActive: { color: colors.background },
 });

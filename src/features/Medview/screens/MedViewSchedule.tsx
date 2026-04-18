@@ -18,10 +18,8 @@ export function MedViewSchedule() {
     }))
   );
 
-  // Sort by time ascending
   const sorted = [...schedule].sort((a, b) => a.time.localeCompare(b.time));
 
-  // Group by time
   const groups: { time: string; items: typeof sorted }[] = [];
   for (const item of sorted) {
     const last = groups[groups.length - 1];

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { MessageCircle, Brain, Calendar, Heart, HelpCircle, BookOpen, Users, Mail, Bookmark, Palette, ChevronRight } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
@@ -27,11 +28,12 @@ const storiesCards = [
 
 export function Companion() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<"conversation" | "stories">("conversation");
   const cards = tab === "conversation" ? conversationCards : storiesCards;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom + 12 }]}>
       <BackButton label="Companion" to="Home" />
 
       <View style={styles.tabs}>
@@ -48,37 +50,25 @@ export function Companion() {
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.list}>
-          {cards.map((c) => (
-            <TouchableOpacity
-              key={c.title}
-              onPress={() => navigation.navigate("CompanionChat", { title: c.title, initialMessage: c.msg })}
-              style={styles.card}
-              accessibilityLabel={c.title}
-            >
-              <View style={styles.iconWrap}>
-                <c.icon size={28} color="#BB86FC" />
-              </View>
-              <View style={styles.cardText}>
-                <Text style={styles.cardTitle}>{c.title}</Text>
-                <Text style={styles.cardDesc}>{c.desc}</Text>
-              </View>
-              <ChevronRight size={24} color={colors.border} />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <TouchableOpacity
-          onPress={() => navigation.navigate("CompanionChat", { title: "Companion Chat", initialMessage: "Hello! I'm your companion. I'm here to chat, listen, and keep you company. What would you like to talk about today?" })}
-          style={styles.ctaBtn}
-          accessibilityLabel="Start a conversation"
-        >
-          <Text style={styles.ctaText}>Start a Conversation</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.disclaimer}>AI companion. For crises, contact a helpline.</Text>
-      </ScrollView>
+      <View style={styles.list}>
+        {cards.map((c) => (
+          <TouchableOpacity
+            key={c.title}
+            onPress={() => navigation.navigate("CompanionChat", { title: c.title, initialMessage: c.msg })}
+            style={styles.card}
+            accessibilityLabel={c.title}
+          >
+            <View style={styles.iconWrap}>
+              <c.icon size={28} color="#BB86FC" />
+            </View>
+            <View style={styles.cardText}>
+              <Text style={styles.cardTitle}>{c.title}</Text>
+              <Text style={styles.cardDesc}>{c.desc}</Text>
+            </View>
+            <ChevronRight size={24} color={colors.border} />
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 }
@@ -102,12 +92,17 @@ const styles = StyleSheet.create({
   tabActive: { borderBottomColor: "#BB86FC" },
   tabText: { fontSize: 18, fontWeight: "600", color: colors.textCaption },
   tabTextActive: { color: colors.text },
-  content: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, gap: 12 },
-  list: { gap: 10 },
+  list: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 10,
+  },
   card: {
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: 16,
-    padding: 16,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -125,14 +120,4 @@ const styles = StyleSheet.create({
   cardText: { flex: 1 },
   cardTitle: { color: colors.text, fontSize: 20, fontWeight: "600" },
   cardDesc: { color: colors.textMuted, fontSize: 16 },
-  ctaBtn: {
-    width: "100%",
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: "#BB86FC",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  ctaText: { color: colors.background, fontSize: 18, fontWeight: "700" },
-  disclaimer: { color: colors.textCaption, textAlign: "center", fontSize: 13, lineHeight: 20 },
 });

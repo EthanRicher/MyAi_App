@@ -7,20 +7,9 @@ import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
 import { buildCompanionPrompt } from "../../../ai/scopes/companion/companionChat";
 import { buildConversationContext } from "../../../ai/scopes/_shared/conversation";
 import { AIScope } from "../../../ai/core/types";
+import { companionChatConfig } from "../../../config/chatConfigs";
 
 type Route = RouteProp<RootStackParamList, "CompanionChat">;
-
-const contextDescriptions: Record<string, string> = {
-  "Brain Games":     "Trivia, puzzles and brain teasers",
-  "Plan My Day":     "Let's plan a simple, balanced day",
-  "Calm Down":       "Calming breathing and relaxation",
-  "Ask Anything":    "Ask me anything — tech, cooking, emails",
-  "Share Stories":   "I'd love to hear your stories",
-  "Family Tree":     "Let's talk about your family",
-  "Write Letters":   "I'll help you write a heartfelt letter",
-  "Memory Book":     "Let's cherish your favourite memories",
-  "Creative Corner": "Poems, stories and creative activities",
-};
 
 export function CompanionChat() {
   const route = useRoute<Route>();
@@ -49,21 +38,24 @@ export function CompanionChat() {
     return { aiText };
   };
 
-  const description = title ? contextDescriptions[title] : undefined;
+  const cfg = companionChatConfig;
+  const disclaimer = title
+    ? cfg.modeDisclaimers[title] ?? cfg.defaultDisclaimer
+    : cfg.defaultDisclaimer;
 
   return (
     <ChatScreen
       title={title || "Companion Chat"}
-      accentColor="#BB86FC"
-      aiLabel="AI"
+      accentColor={cfg.accentColor}
+      aiLabel={cfg.aiLabel}
       storageKey={`chat:companion:${title || "general"}`}
       initialMessages={initialMessages}
       onProcessMessage={handleProcessMessage}
-      disclaimer={description || "I'm here to chat and keep you company"}
+      disclaimer={disclaimer}
       disclaimerSub="I'm an AI companion — for urgent concerns please speak to someone you trust."
-      backTo="Companion"
-      backLabel="Companion"
-      speechEnabled
+      backTo={cfg.backTo}
+      backLabel={cfg.backLabel}
+      speechEnabled={cfg.speechEnabled}
       onTranscribeAudio={whisperTranscribe}
     />
   );

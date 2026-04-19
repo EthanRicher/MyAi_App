@@ -11,6 +11,7 @@ import { runAI } from "../../../ai/core/runAI";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
 import { openCameraAndScan, PhotoMode } from "../../../ai/camera/cameraService";
 import { buildConversationContext } from "../../../ai/scopes/_shared/conversation";
+import { clarityChatConfigs } from "../../../config/chatConfigs";
 
 type Route = RouteProp<RootStackParamList, "ClarityChat">;
 
@@ -26,35 +27,11 @@ const scopeTitles: Record<ScopeId, string> = {
   medviewScheduleSupport: "Schedule Support",
 };
 
-const scopeInitialMessages: Record<ScopeId, string> = {
-  clarityAppointmentPrep: "Let’s get ready for your appointment. Tell me what kind of visit you have coming up.",
-  clarityDoctorExplained: "Tell me what your doctor said and I’ll explain it in simpler words.",
-  clarityExplainEveryday: "I can explain bills, tech, admin, or everyday text in simpler language.",
-  clarityExplainMedication: "Tell me the medication name or paste the medication text and I’ll explain it simply.",
-  clarityGeneralChat: "Hello! I’m your Clarity assistant. Tell me what you want help understanding.",
-  claritySummariseDocument: "Paste the document text and I’ll summarise it in plain English.",
-  medviewMedicationChat: "Ask me about your medication.",
-  medviewMedicationScan: "Send medication text and I’ll help extract it.",
-  medviewScheduleSupport: "Ask me about your medication schedule.",
-};
-
-const scopeDescriptions: Record<ScopeId, string> = {
-  clarityAppointmentPrep: "I’ll help you prep for your appointment",
-  clarityDoctorExplained: "I’ll explain what your doctor said simply",
-  clarityExplainEveryday: "I’ll simplify bills, letters and everyday text",
-  clarityExplainMedication: "I’ll explain your medication simply",
-  clarityGeneralChat: "I’ll help you understand health topics",
-  claritySummariseDocument: "I’ll summarise your document plainly",
-  medviewMedicationChat: "Ask me anything about your medications",
-  medviewMedicationScan: "Send a photo or text and I’ll explain it",
-  medviewScheduleSupport: "I’ll help with your medication schedule",
-};
-
-
 export function ClarityChat() {
   const route = useRoute<Route>();
   const scopeId = ((route.params as any)?.scopeId || "clarityGeneralChat") as ScopeId;
   const scope = getScope(scopeId);
+  const config = clarityChatConfigs[scopeId];
 
   const storageKey = `chat:${scope.id}`;
   const initialMessages = useMemo<ChatMessage[]>(() => [], []);
@@ -84,19 +61,19 @@ export function ClarityChat() {
   return (
     <ChatScreen
       title={scopeTitles[scopeId] || "Clarity Chat"}
-      accentColor="#0dd9f7"
-      aiLabel="AI"
+      accentColor={config?.accentColor ?? "#0dd9f7"}
+      aiLabel={config?.aiLabel ?? "AI"}
       storageKey={storageKey}
       initialMessages={initialMessages}
       onProcessMessage={handleProcessMessage}
-      disclaimer={scopeDescriptions[scopeId] || "AI is here to help you understand"}
+      disclaimer={config?.disclaimer ?? "AI is here to help you understand"}
       disclaimerSub="Always confirm with your doctor before acting on anything here."
       messageWarning={scope.warning}
-      backTo="Clarity"
-      backLabel="Clarity"
-      speechEnabled
+      backTo={config?.backTo ?? "Clarity"}
+      backLabel={config?.backLabel ?? "Clarity"}
+      speechEnabled={config?.speechEnabled ?? true}
       onTranscribeAudio={whisperTranscribe}
-      onCameraPress={handleCameraPress}
+      onCameraPress={config?.cameraEnabled ? handleCameraPress : undefined}
     />
   );
 }

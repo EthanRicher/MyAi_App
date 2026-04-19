@@ -5,17 +5,17 @@ import {
   ChatMessage,
   ChatSendPayload,
 } from "../../../components/ChatScreen";
-import { colors } from "../../../theme";
 import { runAI } from "../../../ai/core/runAI";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
 import { openCameraAndScan, PhotoMode } from "../../../ai/camera/cameraService";
 import { medviewMedicationChat } from "../../../ai/scopes/medview/medicationChat";
-import { buildConversationContext } from "../../../ai/scopes/_shared/conversation";
-import { buildSharedPrompt } from "../../../ai/scopes/_shared/formats";
+import { buildConversationContext, buildSharedPrompt } from "../../../ai/scopes/_shared";
+import { medviewChatConfig } from "../../../config/chatConfigs";
 
 export function MedViewChat() {
   const route = useRoute<any>();
   const med = route.params?.med;
+  const cfg = medviewChatConfig;
 
   const storageKey = med
     ? `chat:medviewMedicationChat:${med.id}`
@@ -64,16 +64,16 @@ Explain this medication. Cover what it is for, how it is taken, and key things t
   return (
     <ChatScreen
       title="MedView Chat"
-      accentColor={colors.green}
-      aiLabel="MedView AI"
+      accentColor={cfg.accentColor}
+      aiLabel={cfg.aiLabel}
       storageKey={storageKey}
       initialMessages={initialMessages}
       onProcessMessage={handleProcessMessage}
-      disclaimer="I'm here to explain your medication"
+      disclaimer={cfg.disclaimer}
       disclaimerSub="This is not medical advice. Always confirm with your doctor."
-      backTo="MedView"
-      backLabel="MedView Chat"
-      speechEnabled
+      backTo={cfg.backTo}
+      backLabel={cfg.backLabel}
+      speechEnabled={cfg.speechEnabled}
       onTranscribeAudio={whisperTranscribe}
       onCameraPress={(onImageReady) => openCameraAndScan(PhotoMode.VisionWithFallback, onImageReady)}
       autoPrompt={med ? "Explain this medication." : undefined}

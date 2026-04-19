@@ -8,9 +8,10 @@ import {
 import { colors } from "../../../theme";
 import { runAI } from "../../../ai/core/runAI";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
-import { openCameraAndScan } from "../../../ai/camera/cameraService";
-import { medviewMedicationChat } from "../../../ai/scopes/medviewMedicationChat";
-import { buildConversationContext, buildSharedPrompt } from "../../../ai/scopes/_shared";
+import { openCameraAndScan, PhotoMode } from "../../../ai/camera/cameraService";
+import { medviewMedicationChat } from "../../../ai/scopes/medview/medicationChat";
+import { buildConversationContext } from "../../../ai/scopes/_shared/conversation";
+import { buildSharedPrompt } from "../../../ai/scopes/_shared/formats";
 
 export function MedViewChat() {
   const route = useRoute<any>();
@@ -20,13 +21,7 @@ export function MedViewChat() {
     ? `chat:medviewMedicationChat:${med.id}`
     : "chat:medviewMedicationChat:general";
 
-  const initialMessages = useMemo<ChatMessage[]>(
-    () =>
-      med
-        ? []
-        : [{ role: "ai", text: "Ask me about your medication." }],
-    [med?.id]
-  );
+  const initialMessages = useMemo<ChatMessage[]>(() => [], []);
 
   const handleProcessMessage = async (payload: ChatSendPayload, history: ChatMessage[]) => {
     const message = payload.text?.trim() || "";
@@ -80,7 +75,7 @@ Explain this medication. Cover what it is for, how it is taken, and key things t
       backLabel="MedView Chat"
       speechEnabled
       onTranscribeAudio={whisperTranscribe}
-      onCameraPress={openCameraAndScan}
+      onCameraPress={(onImageReady) => openCameraAndScan(PhotoMode.VisionWithFallback, onImageReady)}
       autoPrompt={med ? "Explain this medication." : undefined}
       clearOnLoad={!!med}
       messageWarning={medviewMedicationChat.warning}

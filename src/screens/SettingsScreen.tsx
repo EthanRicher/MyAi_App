@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
-import { ChevronDown, ChevronUp, User, Lock, Shield, Eye, Bell, Clock, Phone, HelpCircle, Trash2, Bot } from "lucide-react-native";
+import { ChevronDown, ChevronUp, User, Lock, Shield, Eye, Bell, Clock, Phone, HelpCircle, Trash2, Bot, Plus, X } from "lucide-react-native";
 import Slider from "@react-native-community/slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BackButton } from "../components/BackButton";
 import { colors } from "../theme";
 import { useAISettings } from "../hooks/useAISettings";
+import { useMedications } from "../features/Medview/hooks/useMedication";
+import { useUserProfile } from "../profile/hooks/useUserProfile";
+import { Carer } from "../profile/models/UserProfile";
 
 function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
   return (
@@ -24,7 +27,9 @@ function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => vo
 export function SettingsScreen() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ Accessibility: true, "Emergency Access": true });
   const { settings: aiSettings, update: updateAI } = useAISettings();
-  const [fontSize, setFontSize] = useState(18);
+  const { clearMeds } = useMedications();
+  const { profile, updateProfile, clearProfile } = useUserProfile();
+  const [fontSize, setFontSize] = useState<"Normal" | "Large" | "Extra Large">("Normal");
   const [highContrast, setHighContrast] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [familyAccess, setFamilyAccess] = useState(true);
@@ -39,6 +44,8 @@ export function SettingsScreen() {
     try {
       if (deleteMode === "all") {
         await AsyncStorage.clear();
+        clearMeds();
+        clearProfile();
       } else if (deleteMode === "chats") {
         const allKeys = await AsyncStorage.getAllKeys();
         const chatKeys = allKeys.filter((k) => k.startsWith("chat:"));
@@ -55,15 +62,67 @@ export function SettingsScreen() {
       title: "About Me", icon: User,
       content: (
         <View style={styles.sectionContent}>
-          <View><Text style={styles.fieldLabel}>Name</Text><Text style={styles.fieldValue}>Margaret Thompson</Text></View>
-          <View><Text style={styles.fieldLabel}>Preferences</Text><Text style={styles.fieldValueMuted}>Large text, simple language</Text></View>
-          <View><Text style={styles.fieldLabel}>Interests</Text><Text style={styles.fieldValueMuted}>Gardening, cooking, family</Text></View>
-          <View><Text style={styles.fieldLabel}>Language</Text><Text style={styles.fieldValueMuted}>English (Australia)</Text></View>
+          {(
+            [
+              { label: "Full Name", key: "name", placeholder: "Your name" },
+              { label: "Email", key: "email", placeholder: "your@email.com" },
+              { label: "Phone", key: "phone", placeholder: "+61 400 000 000" },
+              { label: "Date of Birth", key: "dateOfBirth", placeholder: "DD/MM/YYYY" },
+              { label: "Address", key: "address", placeholder: "Your address" },
+              { label: "Language", key: "language", placeholder: "e.g. English" },
+              { label: "Preferences", key: "preferences", placeholder: "e.g. Large text, simple language" },
+              { label: "Interests", key: "interests", placeholder: "e.g. Gardening, cooking" },
+              { label: "Notes", key: "notes", placeholder: "Anything else useful" },
+            ] as { label: string; key: keyof typeof profile; placeholder: string }[]
+          ).map(({ label, key, placeholder }) => (
+            <View key={key}>
+              <Text style={styles.fieldLabel}>{label}</Text>
+              <TextInput
+                value={profile[key] as string}
+                onChangeText={(v) => updateProfile({ [key]: v })}
+                placeholder={placeholder}
+                placeholderTextColor={colors.textCaption}
+                style={styles.profileInput}
+              />
+            </View>
+          ))}
+
+          <Text style={[styles.fieldLabel, { marginTop: 8 }]}>Emergency Contact</Text>
+          <TextInput value={profile.emergencyContact.name} onChangeText={(v) => updateProfile({ emergencyContact: { ...profile.emergencyContact, name: v } })} placeholder="Name" placeholderTextColor={colors.textCaption} style={styles.profileInput} />
+          <TextInput value={profile.emergencyContact.relationship} onChangeText={(v) => updateProfile({ emergencyContact: { ...profile.emergencyContact, relationship: v } })} placeholder="Relationship" placeholderTextColor={colors.textCaption} style={styles.profileInput} />
+          <TextInput value={profile.emergencyContact.phone} onChangeText={(v) => updateProfile({ emergencyContact: { ...profile.emergencyContact, phone: v } })} placeholder="Phone" placeholderTextColor={colors.textCaption} style={styles.profileInput} />
+
+          <View style={[styles.row, { marginTop: 8 }]}>
+            <Text style={styles.fieldLabel}>Carers</Text>
+            <TouchableOpacity onPress={() => updateProfile({ carers: [...profile.carers, { id: Date.now().toString(), name: "", relationship: "", phone: "", email: "" }] })}>
+              <Plus size={20} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+          {profile.carers.map((carer, idx) => (
+            <View key={carer.id} style={styles.carerCard}>
+              <View style={styles.carerHeader}>
+                <Text style={styles.fieldLabel}>Carer {idx + 1}</Text>
+                <TouchableOpacity onPress={() => updateProfile({ carers: profile.carers.filter((_, i) => i !== idx) })}>
+                  <X size={18} color={colors.destructive} />
+                </TouchableOpacity>
+              </View>
+              {(["name", "relationship", "phone", "email"] as (keyof Carer)[]).filter(k => k !== "id").map((k) => (
+                <TextInput
+                  key={k}
+                  value={carer[k] as string}
+                  onChangeText={(v) => updateProfile({ carers: profile.carers.map((c, i) => i === idx ? { ...c, [k]: v } : c) })}
+                  placeholder={k.charAt(0).toUpperCase() + k.slice(1)}
+                  placeholderTextColor={colors.textCaption}
+                  style={styles.profileInput}
+                />
+              ))}
+            </View>
+          ))}
         </View>
       ),
     },
     {
-      title: "Login & Security", icon: Lock,
+      title: "Login & Security [NYI]", icon: Lock,
       content: (
         <View style={styles.sectionContent}>
           <TouchableOpacity style={styles.secBtn}><Text style={styles.secBtnText}>Change Passcode</Text></TouchableOpacity>
@@ -90,26 +149,23 @@ export function SettingsScreen() {
       ),
     },
     {
-      title: "Accessibility", icon: Eye,
+      title: "Accessibility [NYI]", icon: Eye,
       content: (
         <View style={styles.sectionContent}>
           <View>
-            <View style={styles.row}>
-              <Text style={styles.settingLabel}>Font Size</Text>
-              <Text style={styles.settingValue}>{fontSize}px</Text>
-            </View>
-            <Slider
-              minimumValue={14}
-              maximumValue={28}
-              value={fontSize}
-              onValueChange={(v) => setFontSize(Math.round(v))}
-              minimumTrackTintColor={colors.primary}
-              maximumTrackTintColor={colors.border}
-              thumbTintColor={colors.primary}
-            />
-            <View style={styles.row}>
-              <Text style={styles.sliderMin}>14px</Text>
-              <Text style={styles.sliderMax}>28px</Text>
+            <Text style={styles.settingLabel}>Font Size</Text>
+            <View style={[styles.row, { gap: 10, marginTop: 10 }]}>
+              {(["Normal", "Large", "Extra Large"] as const).map((size) => (
+                <TouchableOpacity
+                  key={size}
+                  onPress={() => setFontSize(size)}
+                  style={[styles.fontSizeBtn, fontSize === size && styles.fontSizeBtnActive]}
+                >
+                  <Text style={[styles.fontSizeBtnText, fontSize === size && styles.fontSizeBtnTextActive]}>
+                    {size}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
           <View style={styles.row}>
@@ -124,7 +180,7 @@ export function SettingsScreen() {
       ),
     },
     {
-      title: "Notifications", icon: Bell,
+      title: "Notifications [NYI]", icon: Bell,
       content: (
         <View style={styles.sectionContent}>
           <View style={styles.row}>
@@ -139,7 +195,7 @@ export function SettingsScreen() {
       ),
     },
     {
-      title: "Healthy Usage", icon: Clock,
+      title: "Healthy Usage [NYI]", icon: Clock,
       content: (
         <View style={styles.sectionContent}>
           <Text style={styles.privacyNote}>Session time today: 25 minutes</Text>
@@ -148,7 +204,7 @@ export function SettingsScreen() {
       ),
     },
     {
-      title: "Emergency Access", icon: Phone,
+      title: "Emergency Access [NYI]", icon: Phone,
       content: (
         <View style={styles.sectionContent}>
           <View style={styles.row}>
@@ -173,47 +229,7 @@ export function SettingsScreen() {
       ),
     },
     {
-      title: "AI & Chat", icon: Bot,
-      content: (
-        <View style={styles.sectionContent}>
-          <View style={styles.row}>
-            <View style={styles.settingLabelGroup}>
-              <Text style={styles.settingLabel}>Save Chat History</Text>
-              <Text style={styles.settingCaption}>Remember conversations between sessions</Text>
-            </View>
-            <ToggleSwitch
-              on={aiSettings.saveChatHistory}
-              onToggle={() => updateAI({ saveChatHistory: !aiSettings.saveChatHistory })}
-              label="Save chat history toggle"
-            />
-          </View>
-          <View style={styles.row}>
-            <View style={styles.settingLabelGroup}>
-              <Text style={styles.settingLabel}>AI Uses Chat History</Text>
-              <Text style={styles.settingCaption}>AI reads prior messages for context</Text>
-            </View>
-            <ToggleSwitch
-              on={aiSettings.useHistory}
-              onToggle={() => updateAI({ useHistory: !aiSettings.useHistory })}
-              label="AI uses chat history toggle"
-            />
-          </View>
-          <View style={styles.row}>
-            <View style={styles.settingLabelGroup}>
-              <Text style={styles.settingLabel}>Clear History on Exit</Text>
-              <Text style={styles.settingCaption}>Wipe chat when you leave a conversation</Text>
-            </View>
-            <ToggleSwitch
-              on={aiSettings.clearOnExit}
-              onToggle={() => updateAI({ clearOnExit: !aiSettings.clearOnExit })}
-              label="Clear history on exit toggle"
-            />
-          </View>
-        </View>
-      ),
-    },
-    {
-      title: "Help & Support", icon: HelpCircle,
+      title: "Help & Support [NYI]", icon: HelpCircle,
       content: (
         <View style={styles.sectionContent}>
           <TouchableOpacity style={styles.secBtn}><Text style={styles.secBtnText}>Frequently Asked Questions</Text></TouchableOpacity>
@@ -299,11 +315,18 @@ const styles = StyleSheet.create({
   settingCaption: { color: colors.textCaption, fontSize: 12 },
   settingValue: { color: colors.text, fontSize: 15, fontWeight: "600" },
   sliderMin: { color: colors.textCaption, fontSize: 12 },
+  fontSizeBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.border, alignItems: "center" },
+  fontSizeBtnActive: { borderColor: colors.primary, backgroundColor: colors.primary + "18" },
+  fontSizeBtnText: { color: colors.textMuted, fontSize: 14, fontWeight: "600" },
+  fontSizeBtnTextActive: { color: colors.primary },
   sliderMax: { color: colors.textCaption, fontSize: 12 },
   toggle: { width: 48, height: 28, borderRadius: 14, position: "relative" },
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.text, position: "absolute", top: 4 },
   warningText: { color: colors.orange, fontSize: 13 },
   emailInput: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, color: colors.text, fontSize: 15 },
+  profileInput: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, color: colors.text, fontSize: 15, marginBottom: 6 },
+  carerCard: { backgroundColor: colors.background, borderRadius: 12, padding: 12, marginTop: 6, gap: 4 },
+  carerHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
   accessLog: { backgroundColor: colors.background, borderRadius: 12, padding: 12 },
   accessLogText: { color: colors.textCaption, fontSize: 13 },
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center" },

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useUserProfile } from "../profile/hooks/useUserProfile";
 import {
   View,
   Text,
@@ -11,6 +12,7 @@ import {
   Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AI_WARNING } from "../ai/scopes/_shared/warnings";
 import { Camera, Send, Mic, X, Keyboard } from "lucide-react-native";
 import { BackButton } from "./BackButton";
 import { BackendRequiredModal } from "./BackendRequiredModal";
@@ -26,7 +28,8 @@ export interface ChatMessage {
   text?: string;
   imageUri?: string;
   isError?: boolean;
-  showWarning?: boolean;
+  warningText?: string;
+  timestamp?: string;
 }
 
 export interface ChatSendPayload {
@@ -99,7 +102,7 @@ interface Props {
   backendDescription?: string;
   speechEnabled?: boolean;
   onTranscribeAudio?: (uri: string) => Promise<string>;
-  onCameraPress?: () => Promise<CameraInputResult | null>;
+  onCameraPress?: (onImageReady: (imageUri: string) => void) => Promise<CameraInputResult | null>;
   placeholder?: string;
   autoPrompt?: string;
   messageWarning?: string;
@@ -127,6 +130,23 @@ export function ChatScreen({
   messageWarning,
   clearOnLoad = false,
 }: Props) {
+  const { profile } = useUserProfile();
+  const userFirstName = profile.name.trim().split(" ")[0] || "You";
+
+  const resolveWarning = (text: string, scopeWarning?: string): string | undefined => {
+    const t = text.trimStart().toLowerCase();
+    if (t.startsWith("sorry") || t.startsWith("i couldn't") || t.startsWith("i'm sorry")) return undefined;
+    const hasStructure = text.includes("**") || text.includes("- ");
+    const wordCount = text.trim().split(/\s+/).length;
+    if (!hasStructure && wordCount < 40) return undefined;
+    return scopeWarning ?? AI_WARNING;
+  };
+
+  const now = () => {
+    const d = new Date();
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
   const [input, setInput] = useState("");
@@ -189,7 +209,7 @@ export function ChatScreen({
     setMessages([]);
     setTyping(true);
     onProcessMessage({ text: autoPrompt }, []).then((result) => {
-      const aiMessage: ChatMessage = { role: "ai", text: result.aiText, isError: result.isError, showWarning: !result.isError && !!messageWarning };
+      const aiMessage: ChatMessage = { role: "ai", text: result.aiText, isError: result.isError, warningText: result.isError ? undefined : resolveWarning(result.aiText, messageWarning), timestamp: now() };
       setMessages([aiMessage]);
       if (settings.saveChatHistory) {
         AsyncStorage.setItem(storageKey, JSON.stringify([aiMessage]));
@@ -230,6 +250,7 @@ export function ChatScreen({
       role: "user",
       imageUri: payload.imageUri,
       text: payload.hiddenText || payload.imageUri ? "" : cleanText,
+      timestamp: now(),
     };
 
     const nextWithUser = [...messages, userMessage];
@@ -247,7 +268,8 @@ export function ChatScreen({
       role: "ai",
       text: result.aiText,
       isError: result.isError,
-      showWarning: !result.isError && !!messageWarning,
+      warningText: result.isError ? undefined : resolveWarning(result.aiText, messageWarning),
+      timestamp: now(),
     };
 
     const nextWithAi = [...nextWithUser, aiMessage];
@@ -283,6 +305,7 @@ export function ChatScreen({
       role: "ai",
       text: "I couldn't hear you. Please try again.",
       isError: true,
+      timestamp: now(),
     };
     setMessages((prev) => [...prev, errorMessage]);
     clearSpeechError();
@@ -329,7 +352,16 @@ export function ChatScreen({
     }
 
     try {
-      const result = await onCameraPress();
+      const result = await onCameraPress((imageUri) => {
+        const previewMessage: ChatMessage = {
+          role: "user",
+          imageUri,
+          text: "",
+          timestamp: now(),
+        };
+        setMessages((prev) => [...prev, previewMessage]);
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      });
 
       if (!result) {
         return;
@@ -353,11 +385,26 @@ export function ChatScreen({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.container}>
-        <BackButton label={backLabel || "Back"} to={backTo} />
+        <BackButton
+          label={backLabel || "Back"}
+          to={backTo}
+          hideTitle
+          right={
+            <TouchableOpacity
+              onPress={async () => {
+                setMessages([]);
+                await AsyncStorage.removeItem(storageKey);
+              }}
+              style={[styles.clearChatBtn, { borderColor: accentColor + "88", backgroundColor: accentColor + "18" }]}
+            >
+              <Text numberOfLines={1} style={[styles.clearChatBtnText, { color: accentColor }]}>Clear Chat</Text>
+            </TouchableOpacity>
+          }
+        />
 
         {!!disclaimer && (
           <View style={[styles.disclaimerBanner, { backgroundColor: accentColor + "18", borderBottomColor: accentColor + "55" }]}>
-            <Text style={[styles.disclaimerBannerTitle, { color: accentColor }]}>{disclaimer}</Text>
+            <Text numberOfLines={1} style={[styles.disclaimerBannerTitle, { color: accentColor }]}>{disclaimer}</Text>
           </View>
         )}
 
@@ -372,35 +419,38 @@ export function ChatScreen({
           {messages.map((m, i) =>
             m.role === "ai" ? (
               <View key={i} style={styles.aiBubbleWrap}>
-                <View style={[styles.aiBubble, m.isError && styles.aiBubbleError]}>
-                  <Text style={[styles.aiLabel, { color: accentColor }]}>
-                    {aiLabel}
-                  </Text>
+                <View style={styles.aiBubble}>
+                  <View style={styles.bubbleLabelRow}>
+                    <Text style={[styles.aiLabel, { color: accentColor }]}>{aiLabel}</Text>
+                    {!!m.timestamp && <Text style={styles.timestamp}>{m.timestamp}</Text>}
+                  </View>
                   {!!m.imageUri && (
                     <Image source={{ uri: m.imageUri }} style={styles.messageImage} />
                   )}
-                  {!!m.text && renderMessageContent(m.text, accentColor, styles.messageText)}
-                  {!!m.showWarning && !!messageWarning && (
+                  {!!m.text && (m.isError
+                    ? <Text style={styles.errorBubbleText}>{m.text}</Text>
+                    : renderMessageContent(m.text, accentColor, styles.messageText)
+                  )}
+                  {!!m.warningText && (
                     <View style={styles.messageWarningBanner}>
                       <Text style={styles.messageWarningIcon}>⚠️</Text>
-                      <Text style={styles.messageWarningText}>{messageWarning}</Text>
+                      <Text style={styles.messageWarningText}>{m.warningText}</Text>
                     </View>
                   )}
                 </View>
               </View>
             ) : (
               <View key={i} style={styles.userBubbleWrap}>
-                <View
-                  style={[
-                    styles.userBubble,
-                    { backgroundColor: accentColor + "22" },
-                  ]}
-                >
+                <View style={[styles.userBubble, m.imageUri && !m.text ? styles.photoBubble : undefined]}>
+                  <View style={styles.bubbleLabelRow}>
+                    <Text style={styles.userLabel}>{userFirstName}</Text>
+                    {!!m.timestamp && <Text style={styles.timestamp}>{m.timestamp}</Text>}
+                  </View>
                   {!!m.imageUri && (
                     <Image source={{ uri: m.imageUri }} style={styles.messageImage} />
                   )}
                   {!!m.text && !m.imageUri && (
-                    <Text style={styles.messageText}>{m.text}</Text>
+                    <Text style={styles.userBubbleText}>{m.text}</Text>
                   )}
                 </View>
               </View>
@@ -410,9 +460,7 @@ export function ChatScreen({
           {typing && (
             <View style={styles.aiBubbleWrap}>
               <View style={styles.aiBubble}>
-                <Text style={[styles.aiLabel, { color: accentColor }]}>
-                  {aiLabel}
-                </Text>
+                <Text style={[styles.aiLabel, { color: accentColor }]}>{aiLabel}</Text>
                 <Text style={styles.messageText}>Typing...</Text>
               </View>
             </View>
@@ -528,6 +576,14 @@ const styles = StyleSheet.create({
   },
 
   aiBubble: {
+    backgroundColor: "#222268",
+    padding: 16,
+    borderRadius: 16,
+    width: "95%",
+    gap: 10,
+  },
+
+  userBubble: {
     backgroundColor: colors.card,
     padding: 16,
     borderRadius: 16,
@@ -535,22 +591,36 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  aiBubbleError: {
-    backgroundColor: "#2a0a0a",
-    borderWidth: 1,
-    borderColor: "#7f1f1f",
+  userBubbleText: {
+    color: colors.text,
+    fontSize: 16,
   },
 
-  userBubble: {
-    padding: 16,
-    borderRadius: 16,
-    width: "95%",
-    gap: 10,
+  errorBubbleText: {
+    color: colors.destructive,
+    fontSize: 16,
+    fontWeight: "700",
   },
 
   aiLabel: {
     fontWeight: "700",
     marginBottom: 4,
+  },
+
+  userLabel: {
+    fontWeight: "700",
+    color: colors.textMuted,
+  },
+
+  bubbleLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+
+  timestamp: {
+    color: colors.textCaption,
   },
 
   messageText: {
@@ -597,27 +667,46 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
 
+  photoBubble: {
+    width: undefined,
+    alignSelf: "flex-end",
+  },
+
   disclaimerBanner: {
     width: "100%",
     borderBottomWidth: 1,
     paddingHorizontal: 16,
-    paddingVertical: 7,
+    paddingVertical: 14,
   },
   disclaimerBannerTitle: {
-    fontSize: 13,
+    fontSize: 18,
+    fontWeight: "600",
     textAlign: "center",
+  },
+  clearChatBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: "center",
+  },
+  clearChatBtnText: {
+    fontSize: 15,
     fontWeight: "600",
   },
   messageWarningBanner: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     backgroundColor: "#2A2000",
-    borderWidth: 1,
-    borderColor: "#F9A825",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F9A825",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     marginTop: 8,
+    marginHorizontal: -16,
+    marginBottom: -16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
     gap: 8,
   },
   messageWarningIcon: {

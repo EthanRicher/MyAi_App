@@ -13,8 +13,8 @@ const modules = [
   { name: "Clarity Layer", desc: "Understand complex medical information clearly", icon: Search, color: "#0dd9f7", screen: "Clarity" },
   { name: "MedView", desc: "Manage your medications", icon: Pill, color: "#4CAF50", screen: "MedView" },
   { name: "Companion", desc: "Chat, stories and daily support", icon: Brain, color: "#BB86FC", screen: "Companion" },
-  { name: "SenseGuard", desc: "Track your symptoms and overall wellbeing", icon: Heart, color: "#FF9800", screen: "SenseGuard" },
-  { name: "SafeHarbour", desc: "Stay safe and secure online", icon: Shield, color: "#F44336", screen: "SafeHarbour" },
+  { name: "SenseGuard [NYI]", desc: "Track your symptoms and overall wellbeing", icon: Heart, color: "#FF9800", screen: "SenseGuard" },
+  { name: "SafeHarbour [NYI]", desc: "Stay safe and secure online", icon: Shield, color: "#F44336", screen: "SafeHarbour" },
 ] as const;
 
 export function HomeMenu() {

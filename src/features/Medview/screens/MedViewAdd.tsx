@@ -18,7 +18,7 @@ import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
 import { openCameraAndScan, PhotoMode } from "../../../ai/camera/cameraService";
 import { runAIOnPhoto } from "../../../ai/camera/runAIOnPhoto";
-import { medviewMedicationScan } from "../../../ai/scopes/medviewMedicationScan";
+import { medviewMedicationScan } from "../../../ai/scopes/medview/medicationScan";
 import { addDebugEntry } from "../../../ai/core/debug";
 import { AIDebugPanel } from "../../../components/AIDebugPanel";
 
@@ -46,6 +46,7 @@ export function MedViewAdd() {
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [showPickerIndex, setShowPickerIndex] = useState<number | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [dividerMessage, setDividerMessage] = useState("");
 
   const visibleCount = Math.max(0, Math.min(10, Number(amount) || 0));
   const times = Array.from({ length: visibleCount }, (_, i) => allTimes[i] || "");
@@ -106,30 +107,34 @@ export function MedViewAdd() {
       setDose((prev) => output.dose || prev);
       setDescription((prev) => output.description || prev);
 
-      const nextTimes =
-        Array.isArray(output?.times) && output.times.length > 0
+      if (output.name && !output.dose && !output.description) {
+        setDividerMessage("No dose or specific instructions provided");
+        setTimeout(() => setDividerMessage(""), 3000);
+      }
+
+      const hasScannedTimes = Array.isArray(output?.times) && output.times.length > 0;
+      const hasScannedTimesPerDay = typeof output?.timesPerDay === "number" && output.timesPerDay > 0;
+
+      if (hasScannedTimes || hasScannedTimesPerDay) {
+        const nextTimes = hasScannedTimes
           ? output.times.map((t: string) => normaliseTime(t))
-          : allTimes.length > 0
-          ? allTimes
-          : ["08:00"];
+          : allTimes.length > 0 ? allTimes : [];
 
-      const nextTimesPerDay =
-        typeof output?.timesPerDay === "number" && output.timesPerDay > 0
+        const nextTimesPerDay = hasScannedTimesPerDay
           ? output.timesPerDay
-          : nextTimes.length > 0
-          ? nextTimes.length
-          : 1;
+          : nextTimes.length;
 
-      setAmount(String(nextTimesPerDay));
-      setAllTimes((prev) => {
-        const updated = [...prev];
-        const targetLength = Math.max(updated.length, nextTimesPerDay);
-        while (updated.length < targetLength) updated.push("");
-        nextTimes.forEach((time: string, index: number) => {
-          updated[index] = normaliseTime(time);
+        setAmount(String(nextTimesPerDay));
+        setAllTimes((prev) => {
+          const updated = [...prev];
+          const targetLength = Math.max(updated.length, nextTimesPerDay);
+          while (updated.length < targetLength) updated.push("");
+          nextTimes.forEach((time: string, index: number) => {
+            updated[index] = normaliseTime(time);
+          });
+          return updated;
         });
-        return updated;
-      });
+      }
     } finally {
       setIsScanning(false);
     }
@@ -143,6 +148,9 @@ export function MedViewAdd() {
     if (visibleCount <= 0 || times.some((t) => !t.trim())) errors.push("times");
 
     setInvalidFields(errors);
+    if (errors.length > 0) {
+      setTimeout(() => setInvalidFields([]), 3000);
+    }
 
     if (errors.length > 0) {
       setError("Please fill all required fields");
@@ -193,7 +201,7 @@ export function MedViewAdd() {
         >
           <Camera size={20} color={colors.text} />
           <Text style={styles.photoBtnText}>
-            {isScanning ? "Scanning..." : "Scan Image"}
+            {isScanning ? "Scanning..." : "Scan Prescription"}
           </Text>
         </TouchableOpacity>
 
@@ -203,7 +211,9 @@ export function MedViewAdd() {
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>Or enter manually</Text>
+          <Text style={[styles.dividerText, dividerMessage ? { color: "#FFA726" } : undefined]}>
+            {dividerMessage || "Or enter manually"}
+          </Text>
           <View style={styles.dividerLine} />
         </View>
 
@@ -294,8 +304,14 @@ export function MedViewAdd() {
             <ScrollView
               nestedScrollEnabled
               style={styles.timesScroll}
+              contentContainerStyle={times.length === 0 ? { flexGrow: 1 } : undefined}
               showsVerticalScrollIndicator={times.length > 3}
             >
+              {times.length === 0 && (
+                <View style={styles.noTimesBox}>
+                  <Text style={styles.noTimesText}>No Times</Text>
+                </View>
+              )}
               {times.map((t, i) => (
                 <View key={i} style={styles.timeItem}>
                   <TouchableOpacity
@@ -435,7 +451,7 @@ const styles = StyleSheet.create({
   },
 
   textArea: {
-    height: 70,
+    height: 140,
     textAlignVertical: "top",
     paddingTop: 9,
   },
@@ -456,6 +472,23 @@ const styles = StyleSheet.create({
 
   timesScroll: {
     flex: 1,
+  },
+
+  noTimesBox: {
+    flex: 1,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    borderRadius: 10,
+    marginBottom: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  noTimesText: {
+    color: colors.textMuted,
+    fontSize: 15,
+    fontWeight: "500",
   },
 
   timeItem: {

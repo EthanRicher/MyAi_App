@@ -10,13 +10,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Mic, Settings, LogOut, ArrowRight } from "lucide-react-native";
+import { Mic, Settings, LogOut, ArrowRight, LayoutGrid } from "lucide-react-native";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { colors } from "../theme";
 import { useSpeechInput } from "../ai/speech/useSpeechInput";
 import { whisperTranscribe } from "../ai/speech/whisperTranscriber";
 import { runAI } from "../ai/core/runAI";
-import { mainDashboardTriage } from "../ai/scopes/mainDashboardTriage";
+import { mainDashboardTriage } from "../ai/scopes/main/dashboardTriage";
+import { useUserProfile } from "../profile/hooks/useUserProfile";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Main">;
 
@@ -33,6 +34,8 @@ const BTN_SIZE = 160;
 export function MainDashboard() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const { profile } = useUserProfile();
+  const firstName = profile.name.trim().split(" ")[0] || "there";
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<TriageResult | null>(null);
@@ -40,14 +43,11 @@ export function MainDashboard() {
   const [countdown, setCountdown] = useState(RECORD_LIMIT);
 
   const timerAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0)).current;
   const timerAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const pulseAnimRef = useRef<Animated.CompositeAnimation | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const timerRotate = timerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
 
   const handleTranscript = async (transcript: string) => {
     setIsProcessing(true);
@@ -74,7 +74,7 @@ export function MainDashboard() {
     }
   };
 
-  const { isRecording, speechError, startRecording, stopRecording } =
+  const { isRecording, speechError, clearSpeechError, startRecording, stopRecording } =
     useSpeechInput({
       transcribe: whisperTranscribe,
       onTranscript: handleTranscript,
@@ -92,6 +92,15 @@ export function MainDashboard() {
       });
       timerAnimRef.current.start();
 
+      pulseAnim.setValue(0);
+      pulseAnimRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
+        ])
+      );
+      pulseAnimRef.current.start();
+
       intervalRef.current = setInterval(() => {
         setCountdown((s) => s - 1);
       }, 1000);
@@ -101,9 +110,11 @@ export function MainDashboard() {
       }, RECORD_LIMIT * 1000);
     } else {
       timerAnimRef.current?.stop();
+      pulseAnimRef.current?.stop();
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (autoStopRef.current) clearTimeout(autoStopRef.current);
       timerAnim.setValue(0);
+      pulseAnim.setValue(0);
       setCountdown(RECORD_LIMIT);
     }
   }, [isRecording]);
@@ -117,6 +128,18 @@ export function MainDashboard() {
       startRecording();
     }
   };
+
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(""), 5000);
+    return () => clearTimeout(t);
+  }, [error]);
+
+  useEffect(() => {
+    if (!speechError) return;
+    const t = setTimeout(() => clearSpeechError(), 5000);
+    return () => clearTimeout(t);
+  }, [speechError]);
 
   const displayError = error || speechError;
 
@@ -143,19 +166,17 @@ export function MainDashboard() {
       </View>
 
       <View style={styles.greetingZone}>
-        <Text style={styles.greeting}>Hello, Margaret</Text>
+        <Text style={styles.greeting}>Hello, {firstName}</Text>
         <View style={styles.subRow}>
           {displayError ? (
-            <View style={styles.errorBadge}>
-              <Text style={styles.errorBadgeText}>Sorry, I didn't catch that. Try again</Text>
-            </View>
+            <Text style={styles.errorText}>I'm sorry, I didn't quite catch that. Please give it another try!</Text>
           ) : (
             <Text style={styles.sub}>
               {isRecording
                 ? "Recording..."
                 : isProcessing
                 ? "Processing your request…"
-                : "Tap to tell me what you need"}
+                : "I'd love to hear from you, tap to tell me what's on your mind"}
             </Text>
           )}
         </View>
@@ -165,7 +186,7 @@ export function MainDashboard() {
         <View style={styles.btnWrapper}>
           {isRecording && (
             <Animated.View
-              style={[styles.timerRing, { transform: [{ rotate: timerRotate }] }]}
+              style={[styles.timerRing, { opacity: pulseAnim }]}
               pointerEvents="none"
             />
           )}
@@ -179,28 +200,17 @@ export function MainDashboard() {
             ]}
             accessibilityLabel={isRecording ? "Tap to stop recording" : "Tap to record"}
           >
+            <Text style={styles.recordLabel}>
+              {isProcessing ? "Thinking..." : isRecording ? `Recording... ${countdown}s` : "Press here to start recording"}
+            </Text>
             {isProcessing ? (
               <ActivityIndicator size="large" color={colors.text} />
             ) : (
-              <Mic size={52} color={colors.text} strokeWidth={2.5} />
+              <Mic size={36} color={isRecording ? colors.text : "#E53935"} strokeWidth={2.5} />
             )}
-            <Text style={styles.recordLabel}>
-              {isProcessing ? "Thinking..." : isRecording ? String(countdown) : "Record"}
-            </Text>
           </TouchableOpacity>
         </View>
       </View>
-
-      <TouchableOpacity
-        onPress={() => navigation.navigate("Home")}
-        style={[styles.exploreBtn, (isRecording || isProcessing) && styles.exploreBtnDisabled]}
-        disabled={isRecording || isProcessing}
-        accessibilityLabel="Explore features"
-      >
-        <Text style={[styles.exploreBtnText, (isRecording || isProcessing) && styles.exploreBtnTextDisabled]}>
-          Explore Features
-        </Text>
-      </TouchableOpacity>
 
       <View style={styles.contentBox}>
         {result ? (
@@ -219,12 +229,14 @@ export function MainDashboard() {
           </>
         ) : (
           <>
-            <Text style={styles.suggestionsLabel}>You could ask me...</Text>
+            <Text style={styles.suggestionsLabel}>You could ask me things like...</Text>
             <View style={styles.suggestionsBody}>
               {[
                 "What's my next pill?",
                 "I'm not feeling well",
                 "Explain my prescription",
+                "Help me understand my diagnosis",
+                "When should I take my medication?",
               ].map((q) => (
                 <View key={q} style={styles.suggestionRow}>
                   <View style={styles.suggestionDot} />
@@ -235,6 +247,19 @@ export function MainDashboard() {
           </>
         )}
       </View>
+
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Home")}
+        style={[styles.exploreBtn, (isRecording || isProcessing) && styles.exploreBtnDisabled]}
+        disabled={isRecording || isProcessing}
+        accessibilityLabel="Explore features"
+      >
+        <LayoutGrid size={20} color={(isRecording || isProcessing) ? colors.textCaption : colors.primary} strokeWidth={2} />
+        <Text style={[styles.exploreBtnText, (isRecording || isProcessing) && styles.exploreBtnTextDisabled]}>
+          Explore Features
+        </Text>
+        <ArrowRight size={18} color={(isRecording || isProcessing) ? colors.textCaption : colors.primary} strokeWidth={2.5} />
+      </TouchableOpacity>
 
     </View>
   );
@@ -288,53 +313,51 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   subRow: {
-    height: 36,
+    height: 64,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  errorBadge: {
-    borderWidth: 1,
-    borderColor: "#E53935",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    backgroundColor: "#1a0505",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  errorBadgeText: {
-    color: "#FF8A80",
-    fontSize: 16,
+  errorText: {
+    color: "#E53935",
+    fontSize: 22,
     textAlign: "center",
   },
 
   buttonZone: {
     alignItems: "center",
-    paddingTop: 30,
+    paddingTop: 12,
   },
   recordBtn: {
-    width: BTN_SIZE,
+    width: "100%",
     height: BTN_SIZE,
-    borderRadius: BTN_SIZE / 2,
-    backgroundColor: "#E53935",
+    borderRadius: 16,
+    backgroundColor: colors.card,
+    borderWidth: 3,
+    borderStyle: "dashed",
+    borderColor: "#E53935",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
     shadowColor: "#E53935",
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 30,
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
     elevation: 10,
   },
   recordBtnActive: {
-    backgroundColor: "#B71C1C",
-    shadowOpacity: 0.8,
-    shadowRadius: 40,
+    backgroundColor: "#E53935",
+    borderStyle: "solid",
+    borderColor: "#E53935",
+    shadowColor: "#E53935",
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
   },
   recordBtnDisabled: {
-    backgroundColor: "#555",
-    shadowOpacity: 0.1,
+    backgroundColor: colors.card,
+    borderColor: "#E53935",
+    shadowOpacity: 0.4,
   },
   recordLabel: {
     color: colors.text,
@@ -343,36 +366,47 @@ const styles = StyleSheet.create({
   },
 
   btnWrapper: {
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
   timerRing: {
     position: "absolute",
-    width: BTN_SIZE + 20,
-    height: BTN_SIZE + 20,
-    borderRadius: (BTN_SIZE + 20) / 2,
-    borderWidth: 5,
-    borderColor: "transparent",
-    borderTopColor: "rgba(255,255,255,0.9)",
-    borderRightColor: "rgba(255,255,255,0.9)",
+    top: -6,
+    left: -6,
+    right: -6,
+    bottom: -6,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: "rgba(13,217,247,0.8)",
   },
 
   exploreBtn: {
     width: "100%",
     paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    borderRadius: 14,
+    backgroundColor: colors.card,
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 36,
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   exploreBtnText: {
     color: colors.primary,
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
+    letterSpacing: 0.4,
   },
   exploreBtnDisabled: {
-    borderColor: colors.textCaption,
+    backgroundColor: colors.card,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   exploreBtnTextDisabled: {
     color: colors.textCaption,
@@ -380,10 +414,10 @@ const styles = StyleSheet.create({
 
   contentBox: {
     flex: 1,
-    marginTop: 16,
+    marginTop: 14,
     backgroundColor: colors.card,
     borderRadius: 16,
-    padding: 18,
+    padding: 14,
     justifyContent: "space-between",
   },
   transcriptLabel: {
@@ -420,8 +454,8 @@ const styles = StyleSheet.create({
   },
 
   suggestionsLabel: {
-    color: colors.textCaption,
-    fontSize: 14,
+    color: colors.text,
+    fontSize: 17,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 1,

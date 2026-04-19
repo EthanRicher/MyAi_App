@@ -14,7 +14,7 @@ import { colors } from "../../../theme";
 import { useSpeechInput } from "../../../ai/speech/useSpeechInput";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
 import { runAI } from "../../../ai/core/runAI";
-import { clarityDoctorExplained } from "../../../ai/scopes/clarityDoctorExplained";
+import { clarityDoctorExplained } from "../../../ai/scopes/clarity/doctorExplained";
 
 type Entry = {
   transcript: string;

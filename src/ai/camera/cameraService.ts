@@ -12,7 +12,10 @@ export enum PhotoMode {
   VisionWithFallback = "vision_with_fallback",
 }
 
-export async function openCameraAndScan(mode: PhotoMode = PhotoMode.VisionWithFallback): Promise<CameraInputResult | null> {
+export async function openCameraAndScan(
+  mode: PhotoMode = PhotoMode.VisionWithFallback,
+  onImageReady?: (imageUri: string) => void
+): Promise<CameraInputResult | null> {
   try {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -46,6 +49,9 @@ export async function openCameraAndScan(mode: PhotoMode = PhotoMode.VisionWithFa
 
     const imageUri = manipulated.uri;
     addDebugEntry("cameraService", "compressed_uri", imageUri);
+
+    // Show image in chat immediately before AI processing starts
+    onImageReady?.(imageUri);
 
     if (mode === PhotoMode.OCR) {
       const ocrText = await runOCR(imageUri);

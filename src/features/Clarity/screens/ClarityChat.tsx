@@ -9,8 +9,8 @@ import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { getScope, ScopeId } from "../../../ai/scopes";
 import { runAI } from "../../../ai/core/runAI";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
-import { openCameraAndScan } from "../../../ai/camera/cameraService";
-import { buildConversationContext } from "../../../ai/scopes/_shared";
+import { openCameraAndScan, PhotoMode } from "../../../ai/camera/cameraService";
+import { buildConversationContext } from "../../../ai/scopes/_shared/conversation";
 
 type Route = RouteProp<RootStackParamList, "ClarityChat">;
 
@@ -39,15 +39,15 @@ const scopeInitialMessages: Record<ScopeId, string> = {
 };
 
 const scopeDescriptions: Record<ScopeId, string> = {
-  clarityAppointmentPrep: "I’ll help you prepare for your appointment.",
-  clarityDoctorExplained: "I’ll explain what your doctor said in plain language.",
-  clarityExplainEveryday: "I’ll simplify bills, letters, and everyday text.",
-  clarityExplainMedication: "I’ll explain what your medication does and how to take it.",
-  clarityGeneralChat: "I’ll help you understand health or medical topics.",
-  claritySummariseDocument: "I’ll summarise your medical document in plain English.",
-  medviewMedicationChat: "Ask me anything about your medications.",
-  medviewMedicationScan: "Send a photo or text of a label and I’ll explain it.",
-  medviewScheduleSupport: "I’ll help you understand your medication schedule.",
+  clarityAppointmentPrep: "I’ll help you prep for your appointment",
+  clarityDoctorExplained: "I’ll explain what your doctor said simply",
+  clarityExplainEveryday: "I’ll simplify bills, letters and everyday text",
+  clarityExplainMedication: "I’ll explain your medication simply",
+  clarityGeneralChat: "I’ll help you understand health topics",
+  claritySummariseDocument: "I’ll summarise your document plainly",
+  medviewMedicationChat: "Ask me anything about your medications",
+  medviewMedicationScan: "Send a photo or text and I’ll explain it",
+  medviewScheduleSupport: "I’ll help with your medication schedule",
 };
 
 
@@ -57,10 +57,7 @@ export function ClarityChat() {
   const scope = getScope(scopeId);
 
   const storageKey = `chat:${scope.id}`;
-  const initialMessages = useMemo<ChatMessage[]>(
-    () => [{ role: "ai", text: scopeInitialMessages[scopeId] || "Hello." }],
-    [scopeId]
-  );
+  const initialMessages = useMemo<ChatMessage[]>(() => [], []);
 
   const handleProcessMessage = async (payload: ChatSendPayload, history: ChatMessage[]) => {
     const rawText = payload.text?.trim() || "";
@@ -81,7 +78,8 @@ export function ClarityChat() {
     return { aiText };
   };
 
-  const handleCameraPress = openCameraAndScan;
+  const handleCameraPress = (onImageReady: (uri: string) => void) =>
+    openCameraAndScan(PhotoMode.VisionWithFallback, onImageReady);
 
   return (
     <ChatScreen

@@ -1,5 +1,5 @@
-import { AIScope } from "../core/types";
-import { buildSharedPrompt } from "./_shared";
+import { AIScope } from "../../core/types";
+import { buildSharedPrompt } from "../_shared";
 
 const contextGuides: Record<string, string> = {
   "Brain Games":
@@ -28,7 +28,10 @@ export const buildCompanionPrompt = (input: string, context?: string) => {
     ? `MODE: ${context}\n${contextGuide}`
     : "MODE: General — friendly conversation, listening, and gentle support.";
 
-  return buildSharedPrompt(`
+  const format = context === "Brain Games" ? "breakdown" : "auto";
+
+  return buildSharedPrompt(
+    `
 You are a warm, caring AI companion for an elderly person.
 
 ${contextBlock}
@@ -41,11 +44,15 @@ TASK:
 
 INPUT:
 ${input}
-`, "conversational", "keep you company and have a friendly conversation");
+`.trim(),
+    format,
+    "keep you company and have a friendly conversation"
+  );
 };
 
 export const companionChat: AIScope = {
   id: "companionChat",
+
   conversational: true,
   buildPrompt: (input: string) => buildCompanionPrompt(input),
 };

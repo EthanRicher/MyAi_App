@@ -1,5 +1,5 @@
-import { AIScope } from "../core/types";
-import { buildSharedPrompt } from "./_shared";
+import { AIScope } from "../../core/types";
+import { buildSharedPrompt } from "../_shared";
 
 export const medviewMedicationScan: AIScope = {
   id: "medviewMedicationScan",
@@ -22,8 +22,9 @@ RULES:
 - If not medication, mark invalid
 
 DOSE:
-- If tablets and strength are clearly given, calculate total dose per intake
-- Example: 1.5 tablets of 50mg = 75mg
+- Only extract the dose exactly as written (e.g. "50mg", "10mg/5ml")
+- Do NOT calculate, infer, or assume a dose if it is not explicitly stated
+- If the dose is not clearly written, leave "dose" empty
 
 TIMES:
 - If frequency is stated but exact times are not written:
@@ -74,8 +75,9 @@ RULES:
 - Animal medication is valid for debugging
 
 DOSE:
-- If tablets and strength are clearly given, calculate total dose per intake
-- Example: 1.5 tablets of 50mg = 75mg
+- Only extract the dose exactly as written (e.g. "50mg", "10mg/5ml")
+- Do NOT calculate, infer, or assume a dose if it is not explicitly stated
+- If the dose is not clearly written, leave "dose" empty
 
 TIMES:
 - If frequency is stated but exact times are not written:

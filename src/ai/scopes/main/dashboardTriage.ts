@@ -1,4 +1,4 @@
-import { AIScope } from "../core/types";
+import { AIScope } from "../../core/types";
 
 export type TriageOutput = {
   reply: string;

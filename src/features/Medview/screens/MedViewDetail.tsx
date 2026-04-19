@@ -53,9 +53,11 @@ export function MedViewDetail() {
 
         <View style={styles.card}>
           <Text style={styles.cardHeading}>Description</Text>
-          <Text style={styles.cardBody}>
-            {med.description || "No description provided."}
-          </Text>
+          <ScrollView style={styles.descriptionScroll} nestedScrollEnabled>
+            <Text style={styles.cardBody}>
+              {med.description || "No description provided."}
+            </Text>
+          </ScrollView>
         </View>
 
         <View style={styles.card}>
@@ -158,6 +160,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     marginBottom: 8,
+  },
+
+  descriptionScroll: {
+    minHeight: 160,
+    maxHeight: 260,
   },
 
   cardBody: {

@@ -7,6 +7,7 @@ type MedicationContextType = {
   addMed: (med: Omit<Medication, "id" | "taken">) => void;
   updateMed: (med: Medication) => void;
   deleteMed: (id: string) => void;
+  clearMeds: () => void;
   toggleTaken: (id: string, index: number) => void;
   getMed: (id: string) => Medication | undefined;
 };
@@ -16,6 +17,7 @@ const MedicationContext = createContext<MedicationContextType>({
   addMed: () => {},
   updateMed: () => {},
   deleteMed: () => {},
+  clearMeds: () => {},
   toggleTaken: () => {},
   getMed: () => undefined,
 });
@@ -70,6 +72,10 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
     setMedications((prev) => prev.filter((m) => m.id !== id));
   };
 
+  const clearMeds = () => {
+    setMedications([]);
+  };
+
   const toggleTaken = (id: string, index: number) => {
     setMedications((prev) =>
       prev.map((m) =>
@@ -89,7 +95,7 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
 
   return (
     <MedicationContext.Provider
-      value={{ medications, addMed, updateMed, deleteMed, toggleTaken, getMed }}
+      value={{ medications, addMed, updateMed, deleteMed, clearMeds, toggleTaken, getMed }}
     >
       {children}
     </MedicationContext.Provider>

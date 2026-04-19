@@ -1,4 +1,4 @@
-import { buildSharedPrompt } from "./_shared";
+import { buildSharedPrompt } from "../_shared";
 
 export const clarityImageTriage = {
   id: "clarityImageTriage",

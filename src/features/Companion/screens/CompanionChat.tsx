@@ -4,39 +4,29 @@ import { ChatScreen, ChatMessage, ChatSendPayload } from "../../../components/Ch
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { runAI } from "../../../ai/core/runAI";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
-import { buildCompanionPrompt } from "../../../ai/scopes/companionChat";
-import { buildConversationContext } from "../../../ai/scopes/_shared";
+import { buildCompanionPrompt } from "../../../ai/scopes/companion/companionChat";
+import { buildConversationContext } from "../../../ai/scopes/_shared/conversation";
 import { AIScope } from "../../../ai/core/types";
 
 type Route = RouteProp<RootStackParamList, "CompanionChat">;
 
 const contextDescriptions: Record<string, string> = {
-  "Brain Games":     "Let's give your mind a gentle workout with trivia and puzzles.",
-  "Plan My Day":     "I'll help you plan a simple, balanced day.",
-  "Calm Down":       "I'll guide you through some calming breathing and relaxation.",
-  "Ask Anything":    "Ask me anything — tech, cooking, emails, or how things work.",
-  "Share Stories":   "I'd love to hear your stories and memories.",
-  "Family Tree":     "Let's talk about your family and the people you love.",
-  "Write Letters":   "I'll help you write a heartfelt letter to someone you care about.",
-  "Memory Book":     "Let's recall and cherish your favourite memories together.",
-  "Creative Corner": "Let's get creative with a poem, story, or something beautiful.",
+  "Brain Games":     "Trivia, puzzles and brain teasers",
+  "Plan My Day":     "Let's plan a simple, balanced day",
+  "Calm Down":       "Calming breathing and relaxation",
+  "Ask Anything":    "Ask me anything — tech, cooking, emails",
+  "Share Stories":   "I'd love to hear your stories",
+  "Family Tree":     "Let's talk about your family",
+  "Write Letters":   "I'll help you write a heartfelt letter",
+  "Memory Book":     "Let's cherish your favourite memories",
+  "Creative Corner": "Poems, stories and creative activities",
 };
 
 export function CompanionChat() {
   const route = useRoute<Route>();
   const { title, initialMessage } = route.params || {};
 
-  const initialMessages = useMemo<ChatMessage[]>(
-    () => [
-      {
-        role: "ai",
-        text:
-          initialMessage ||
-          "Hello! I'm your companion. I'm here to chat, listen, and keep you company. What would you like to talk about today?",
-      },
-    ],
-    [initialMessage]
-  );
+  const initialMessages = useMemo<ChatMessage[]>(() => [], []);
 
   const scope: AIScope = useMemo(() => ({
     id: "companionChat",
@@ -69,7 +59,7 @@ export function CompanionChat() {
       storageKey={`chat:companion:${title || "general"}`}
       initialMessages={initialMessages}
       onProcessMessage={handleProcessMessage}
-      disclaimer={description || "I'm here to chat, listen, and keep you company"}
+      disclaimer={description || "I'm here to chat and keep you company"}
       disclaimerSub="I'm an AI companion — for urgent concerns please speak to someone you trust."
       backTo="Companion"
       backLabel="Companion"

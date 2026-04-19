@@ -84,13 +84,13 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingBottom: 8,
+    paddingVertical: 14,
     alignItems: "center",
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
   tabActive: { borderBottomColor: "#BB86FC" },
-  tabText: { fontSize: 18, fontWeight: "600", color: colors.textCaption },
+  tabText: { fontSize: 22, fontWeight: "600", color: colors.textCaption },
   tabTextActive: { color: colors.text },
   list: {
     flex: 1,

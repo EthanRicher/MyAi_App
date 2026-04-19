@@ -7,9 +7,11 @@ import { colors } from "../theme";
 interface Props {
   label?: string;
   to?: string;
+  right?: React.ReactNode;
+  hideTitle?: boolean;
 }
 
-export function BackButton({ label = "Back", to }: Props) {
+export function BackButton({ label = "Back", to, right, hideTitle }: Props) {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
@@ -31,10 +33,14 @@ export function BackButton({ label = "Back", to }: Props) {
         <ChevronLeft size={22} color="#fff" strokeWidth={2.5} />
       </TouchableOpacity>
 
-      <Text style={styles.title}>{label}</Text>
+      {!hideTitle
+        ? <Text style={styles.title}>{label}</Text>
+        : <View style={styles.titleSpacer} />
+      }
 
-      {/* Spacer to balance the exit button */}
-      <View style={styles.spacer} />
+      <View style={styles.rightSlot}>
+        {right ?? null}
+      </View>
     </View>
   );
 }
@@ -59,10 +65,23 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     color: colors.text,
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "700",
   },
   spacer: {
     width: 36,
+  },
+  side: {
+    width: 110,
+    alignItems: "flex-start",
+  },
+  sideRight: {
+    alignItems: "flex-end",
+  },
+  titleSpacer: {
+    flex: 1,
+  },
+  rightSlot: {
+    alignItems: "flex-end",
   },
 });

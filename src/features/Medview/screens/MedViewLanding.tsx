@@ -64,6 +64,11 @@ export function MedViewLanding() {
         contentContainerStyle={styles.medListContent}
         showsVerticalScrollIndicator={false}
       >
+        {meds.length === 0 && (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>No Medication</Text>
+          </View>
+        )}
         {meds.map((m) => (
           <TouchableOpacity
             key={m.id}
@@ -125,7 +130,7 @@ export function MedViewLanding() {
             !hasMeds && styles.explainTextDisabled,
             explainMode && styles.explainTextActive,
           ]}>
-            {explainMode ? "Cancel" : "Explain"}
+            {explainMode ? "Cancel" : "Explain My Medication"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -276,4 +281,20 @@ const styles = StyleSheet.create({
   explainTextDisabled: { color: colors.textMuted },
 
   explainTextActive: { color: colors.background },
+
+  emptyBox: {
+    borderRadius: 10,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    paddingVertical: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  emptyText: {
+    color: colors.textMuted,
+    fontSize: 17,
+    fontWeight: "500",
+  },
 });

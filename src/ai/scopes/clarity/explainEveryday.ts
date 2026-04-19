@@ -1,7 +1,8 @@
-import { buildSharedPrompt } from "./_shared";
+import { buildSharedPrompt, AI_WARNING } from "../_shared";
 
 export const clarityExplainEveryday = {
   id: "clarityExplainEveryday",
+  warning: AI_WARNING,
   storageKey: "chat:clarity_explain_everyday",
 
   initialMessage:

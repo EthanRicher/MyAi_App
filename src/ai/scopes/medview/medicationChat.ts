@@ -16,7 +16,7 @@ Do NOT repeat a full overview if one has already been given. Answer specifically
 
 ${text}
 `.trim(),
-      inferFormat(text),
+      "auto",
       TOPIC
     ),
 

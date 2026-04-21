@@ -28,7 +28,7 @@ export const buildCompanionPrompt = (input: string, context?: string) => {
     ? `MODE: ${context}\n${contextGuide}`
     : "MODE: General — friendly conversation, listening, and gentle support.";
 
-  const format = context === "Brain Games" ? "breakdown" : "auto";
+  const format = "auto";
 
   return buildSharedPrompt(
     `

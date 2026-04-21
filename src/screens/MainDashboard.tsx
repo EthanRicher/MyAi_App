@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Animated,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -34,6 +35,8 @@ const BTN_SIZE = 160;
 export function MainDashboard() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const fs = (size: number) => Math.round(size * Math.max(Math.min(width / 390, 1), 0.78));
   const { profile } = useUserProfile();
   const firstName = profile.name.trim().split(" ")[0] || "there";
 
@@ -153,7 +156,7 @@ export function MainDashboard() {
           accessibilityLabel="Logout"
         >
           <LogOut size={24} color="#F44336" />
-          <Text style={[styles.topBtnText, { color: "#F44336" }]}>Logout</Text>
+          <Text style={[styles.topBtnText, { color: "#F44336", fontSize: fs(18) }]}>Logout</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => navigation.navigate("Settings")}
@@ -161,17 +164,17 @@ export function MainDashboard() {
           accessibilityLabel="Settings"
         >
           <Settings size={24} color={colors.textMuted} />
-          <Text style={[styles.topBtnText, { color: colors.textMuted }]}>Settings</Text>
+          <Text style={[styles.topBtnText, { color: colors.textMuted, fontSize: fs(18) }]}>Settings</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.greetingZone}>
-        <Text style={styles.greeting}>Hello, {firstName}</Text>
+        <Text style={[styles.greeting, { fontSize: fs(36) }]}>Hello, {firstName}</Text>
         <View style={styles.subRow}>
           {displayError ? (
-            <Text style={styles.errorText}>I'm sorry, I didn't quite catch that. Please give it another try!</Text>
+            <Text style={[styles.errorText, { fontSize: fs(22) }]}>I'm sorry, I didn't quite catch that. Please give it another try!</Text>
           ) : (
-            <Text style={styles.sub}>
+            <Text style={[styles.sub, { fontSize: fs(22) }]}>
               {isRecording
                 ? "Recording..."
                 : isProcessing
@@ -200,7 +203,7 @@ export function MainDashboard() {
             ]}
             accessibilityLabel={isRecording ? "Tap to stop recording" : "Tap to record"}
           >
-            <Text style={styles.recordLabel}>
+            <Text style={[styles.recordLabel, { fontSize: fs(22) }]}>
               {isProcessing ? "Thinking..." : isRecording ? `Recording... ${countdown}s` : "Press here to start recording"}
             </Text>
             {isProcessing ? (
@@ -217,19 +220,19 @@ export function MainDashboard() {
           <>
             <Text style={styles.transcriptLabel}>You said:</Text>
             <Text style={styles.transcriptText}>"{result.transcript}"</Text>
-            <Text style={styles.replyText}>{result.reply}</Text>
+            <Text style={[styles.replyText, { fontSize: fs(18) }]}>{result.reply}</Text>
             <TouchableOpacity
               style={styles.navBtn}
               onPress={() => navigation.navigate(result.route as any)}
               accessibilityLabel={`Go to ${result.routeLabel}`}
             >
-              <Text style={styles.navBtnText}>Go to {result.routeLabel}</Text>
+              <Text style={[styles.navBtnText, { fontSize: fs(18) }]}>Go to {result.routeLabel}</Text>
               <ArrowRight size={20} color={colors.background} strokeWidth={2.5} />
             </TouchableOpacity>
           </>
         ) : (
           <>
-            <Text style={styles.suggestionsLabel}>You could ask me things like...</Text>
+            <Text style={[styles.suggestionsLabel, { fontSize: fs(13) }]}>You could ask me things like...</Text>
             <View style={styles.suggestionsBody}>
               {[
                 "What's my next pill?",
@@ -240,7 +243,7 @@ export function MainDashboard() {
               ].map((q) => (
                 <View key={q} style={styles.suggestionRow}>
                   <View style={styles.suggestionDot} />
-                  <Text style={styles.suggestionText}>{q}</Text>
+                  <Text style={[styles.suggestionText, { fontSize: fs(16) }]}>{q}</Text>
                 </View>
               ))}
             </View>
@@ -255,7 +258,7 @@ export function MainDashboard() {
         accessibilityLabel="Explore features"
       >
         <LayoutGrid size={20} color={(isRecording || isProcessing) ? colors.textCaption : colors.primary} strokeWidth={2} />
-        <Text style={[styles.exploreBtnText, (isRecording || isProcessing) && styles.exploreBtnTextDisabled]}>
+        <Text style={[styles.exploreBtnText, (isRecording || isProcessing) && styles.exploreBtnTextDisabled, { fontSize: fs(20) }]}>
           Explore Features
         </Text>
         <ArrowRight size={18} color={(isRecording || isProcessing) ? colors.textCaption : colors.primary} strokeWidth={2.5} />

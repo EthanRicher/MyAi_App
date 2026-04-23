@@ -22,9 +22,13 @@ RULES:
 - If not medication, mark invalid
 
 DOSE:
-- Only extract the dose exactly as written (e.g. "50mg", "10mg/5ml")
-- Do NOT calculate, infer, or assume a dose if it is not explicitly stated
-- If the dose is not clearly written, leave "dose" empty
+- Extract the actual dose the patient should TAKE, not just the tablet strength
+- If the prescription states a quantity AND a tablet strength, multiply them to get the real dose
+  - Example: "take 1.5 tablets of 50mg" → dose is "75mg"
+  - Example: "take 2 tablets of 100mg" → dose is "200mg"
+  - Example: "take 1 tablet of 10mg" → dose is "10mg"
+- If only a tablet strength is written with no quantity, extract it as-is
+- If the dose cannot be determined, leave "dose" empty
 
 TIMES:
 - If frequency is stated but exact times are not written:
@@ -75,9 +79,13 @@ RULES:
 - Animal medication is valid for debugging
 
 DOSE:
-- Only extract the dose exactly as written (e.g. "50mg", "10mg/5ml")
-- Do NOT calculate, infer, or assume a dose if it is not explicitly stated
-- If the dose is not clearly written, leave "dose" empty
+- Extract the actual dose the patient should TAKE, not just the tablet strength
+- If the prescription states a quantity AND a tablet strength, multiply them to get the real dose
+  - Example: "take 1.5 tablets of 50mg" → dose is "75mg"
+  - Example: "take 2 tablets of 100mg" → dose is "200mg"
+  - Example: "take 1 tablet of 10mg" → dose is "10mg"
+- If only a tablet strength is written with no quantity, extract it as-is
+- If the dose cannot be determined, leave "dose" empty
 
 TIMES:
 - If frequency is stated but exact times are not written:

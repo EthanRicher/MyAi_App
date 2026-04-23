@@ -42,6 +42,7 @@ export function CompanionChat() {
   const disclaimer = title
     ? cfg.modeDisclaimers[title] ?? cfg.defaultDisclaimer
     : cfg.defaultDisclaimer;
+  const starterPrompts = title ? cfg.modeStarterPrompts[title] : undefined;
 
   return (
     <ChatScreen
@@ -57,6 +58,7 @@ export function CompanionChat() {
       backLabel={cfg.backLabel}
       speechEnabled={cfg.speechEnabled}
       onTranscribeAudio={whisperTranscribe}
+      starterPrompts={starterPrompts}
     />
   );
 }

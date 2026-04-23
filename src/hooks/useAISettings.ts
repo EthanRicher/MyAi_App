@@ -7,12 +7,14 @@ export type AISettings = {
   saveChatHistory: boolean;
   useHistory: boolean;
   clearOnExit: boolean;
+  showStarterPrompts: boolean;
 };
 
 const DEFAULTS: AISettings = {
   saveChatHistory: true,
   useHistory: true,
   clearOnExit: false,
+  showStarterPrompts: true,
 };
 
 export async function loadAISettings(): Promise<AISettings> {

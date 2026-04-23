@@ -229,6 +229,57 @@ export function SettingsScreen() {
       ),
     },
     {
+      title: "AI & Chat", icon: Bot,
+      content: (
+        <View style={styles.sectionContent}>
+          <View style={styles.row}>
+            <View style={styles.settingLabelGroup}>
+              <Text style={styles.settingLabel}>Starter Prompts</Text>
+              <Text style={styles.settingCaption}>Show suggestion buttons when a chat is empty</Text>
+            </View>
+            <ToggleSwitch
+              on={aiSettings.showStarterPrompts}
+              onToggle={() => updateAI({ showStarterPrompts: !aiSettings.showStarterPrompts })}
+              label="Starter prompts toggle"
+            />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.settingLabelGroup}>
+              <Text style={styles.settingLabel}>Save Chat History</Text>
+              <Text style={styles.settingCaption}>Remember conversations between sessions</Text>
+            </View>
+            <ToggleSwitch
+              on={aiSettings.saveChatHistory}
+              onToggle={() => updateAI({ saveChatHistory: !aiSettings.saveChatHistory })}
+              label="Save chat history toggle"
+            />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.settingLabelGroup}>
+              <Text style={styles.settingLabel}>Use Conversation History</Text>
+              <Text style={styles.settingCaption}>Send prior messages as context to the AI</Text>
+            </View>
+            <ToggleSwitch
+              on={aiSettings.useHistory}
+              onToggle={() => updateAI({ useHistory: !aiSettings.useHistory })}
+              label="Use history toggle"
+            />
+          </View>
+          <View style={styles.row}>
+            <View style={styles.settingLabelGroup}>
+              <Text style={styles.settingLabel}>Clear Chats on Exit</Text>
+              <Text style={styles.settingCaption}>Wipe each chat when you leave the screen</Text>
+            </View>
+            <ToggleSwitch
+              on={aiSettings.clearOnExit}
+              onToggle={() => updateAI({ clearOnExit: !aiSettings.clearOnExit })}
+              label="Clear on exit toggle"
+            />
+          </View>
+        </View>
+      ),
+    },
+    {
       title: "Help & Support [NYI]", icon: HelpCircle,
       content: (
         <View style={styles.sectionContent}>

@@ -30,7 +30,7 @@ export type RootStackParamList = {
   Clarity: undefined;
   ClarityRecord: undefined;
   ClarityResult: undefined;
-  ClarityChat: { title?: string; initialMessage?: string; chips?: string[] };
+  ClarityChat: { title?: string; initialMessage?: string; chips?: string[]; scopeId?: string };
   MedView: undefined;
   MedViewSchedule: undefined;
   MedViewDetail: { id: string };

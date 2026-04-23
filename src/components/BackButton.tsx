@@ -14,6 +14,7 @@ interface Props {
 export function BackButton({ label = "Back", to, right, hideTitle }: Props) {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const inChat = !!right;
 
   const handlePress = () => {
     if (to) {
@@ -26,17 +27,19 @@ export function BackButton({ label = "Back", to, right, hideTitle }: Props) {
   return (
     <View style={[styles.bar, { paddingTop: insets.top + 8 }]}>
       <TouchableOpacity
-        style={styles.exitBtn}
+        style={[styles.exitBtn, inChat ? styles.exitBtnChat : styles.exitBtnSmall]}
         onPress={handlePress}
         accessibilityLabel={`Go back to ${label}`}
       >
-        <ChevronLeft size={22} color="#fff" strokeWidth={2.5} />
+        <ChevronLeft size={inChat ? 20 : 22} color="#fff" strokeWidth={2.5} />
+        <Text style={[styles.exitLabel, inChat ? styles.exitLabelChat : styles.exitLabelSmall]}>Back</Text>
       </TouchableOpacity>
 
-      {!hideTitle
-        ? <Text style={styles.title}>{label}</Text>
-        : <View style={styles.titleSpacer} />
-      }
+      {!hideTitle && (
+        <View style={styles.titleAbsolute} pointerEvents="none">
+          <Text style={styles.title} numberOfLines={1}>{label}</Text>
+        </View>
+      )}
 
       <View style={styles.rightSlot}>
         {right ?? null}
@@ -49,39 +52,58 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingLeft: 6,
+    paddingRight: 16,
     paddingBottom: 12,
     backgroundColor: colors.card,
   },
   exitBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    borderRadius: 8,
     backgroundColor: "#E53935",
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
+    gap: 2,
+  },
+  exitBtnChat: {
+    height: 36,
+    width: 110,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  exitBtnSmall: {
+    height: 36,
+    paddingHorizontal: 8,
+  },
+  exitLabel: {
+    color: "#fff",
+    fontWeight: "700",
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
+  },
+  exitLabelChat: {
+    fontSize: 15,
+  },
+  exitLabelSmall: {
+    fontSize: 16,
+  },
+  titleAbsolute: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 12,
+    alignItems: "center",
+    pointerEvents: "none",
   },
   title: {
-    flex: 1,
-    textAlign: "center",
     color: colors.text,
     fontSize: 24,
     fontWeight: "700",
-  },
-  spacer: {
-    width: 36,
-  },
-  side: {
-    width: 110,
-    alignItems: "flex-start",
-  },
-  sideRight: {
-    alignItems: "flex-end",
-  },
-  titleSpacer: {
-    flex: 1,
+    textAlign: "center",
   },
   rightSlot: {
+    marginLeft: "auto",
     alignItems: "flex-end",
   },
 });

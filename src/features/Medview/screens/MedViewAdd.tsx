@@ -6,7 +6,8 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
+  Platform,
+  Modal,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
@@ -45,11 +46,20 @@ export function MedViewAdd() {
   const [error, setError] = useState("");
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [showPickerIndex, setShowPickerIndex] = useState<number | null>(null);
+  const [pickerDate, setPickerDate] = useState(new Date());
   const [isScanning, setIsScanning] = useState(false);
   const [dividerMessage, setDividerMessage] = useState("");
 
   const visibleCount = Math.max(0, Math.min(10, Number(amount) || 0));
   const times = Array.from({ length: visibleCount }, (_, i) => allTimes[i] || "");
+
+  const formatAmPm = (time: string) => {
+    if (!time) return "";
+    const [h, m] = time.split(":").map(Number);
+    const period = h >= 12 ? "PM" : "AM";
+    const hour = h % 12 || 12;
+    return `${hour}:${m.toString().padStart(2, "0")} ${period}`;
+  };
 
   const normaliseTime = (value: string) => {
     const trimmed = value.trim();
@@ -140,6 +150,19 @@ export function MedViewAdd() {
     }
   };
 
+  const commitPicker = () => {
+    if (showPickerIndex === null) return;
+    const hours = pickerDate.getHours().toString().padStart(2, "0");
+    const minutes = pickerDate.getMinutes().toString().padStart(2, "0");
+    setAllTimes((prev) => {
+      const updated = [...prev];
+      updated[showPickerIndex] = `${hours}:${minutes}`;
+      return updated;
+    });
+    setInvalidFields((prev) => prev.filter((f) => f !== "times"));
+    setShowPickerIndex(null);
+  };
+
   const handleSave = () => {
     const errors: string[] = [];
 
@@ -191,6 +214,48 @@ export function MedViewAdd() {
 
   return (
     <View style={styles.container}>
+      <Modal
+        visible={showPickerIndex !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={commitPicker}
+      >
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={commitPicker}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              {showPickerIndex !== null ? `Time ${showPickerIndex + 1}` : ""}
+            </Text>
+            <DateTimePicker
+              mode="time"
+              value={pickerDate}
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={(event, selectedDate) => {
+                if (Platform.OS === "android") {
+                  if (event.type === "set" && selectedDate) {
+                    setPickerDate(selectedDate);
+                    const hours = selectedDate.getHours().toString().padStart(2, "0");
+                    const minutes = selectedDate.getMinutes().toString().padStart(2, "0");
+                    setAllTimes((prev) => {
+                      const updated = [...prev];
+                      updated[showPickerIndex!] = `${hours}:${minutes}`;
+                      return updated;
+                    });
+                    setInvalidFields((prev) => prev.filter((f) => f !== "times"));
+                  }
+                  setShowPickerIndex(null);
+                } else {
+                  if (selectedDate) setPickerDate(selectedDate);
+                }
+              }}
+              style={styles.modalPicker}
+            />
+            <TouchableOpacity style={styles.modalConfirmBtn} onPress={commitPicker}>
+              <Text style={styles.modalConfirmText}>Confirm</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <BackButton label="MedView" to="MedView" />
 
       <View style={styles.content}>
@@ -301,64 +366,28 @@ export function MedViewAdd() {
           <View style={styles.timesWrap}>
             <Text style={styles.label}>Select Times</Text>
 
-            <ScrollView
-              nestedScrollEnabled
-              style={styles.timesScroll}
-              contentContainerStyle={times.length === 0 ? { flexGrow: 1 } : undefined}
-              showsVerticalScrollIndicator={times.length > 3}
-            >
+            <View style={styles.timesInner}>
               {times.length === 0 && (
                 <View style={styles.noTimesBox}>
                   <Text style={styles.noTimesText}>No Times</Text>
                 </View>
               )}
               {times.map((t, i) => (
-                <View key={i} style={styles.timeItem}>
-                  <TouchableOpacity
-                    onPress={() => setShowPickerIndex(i)}
-                    style={[
-                      styles.input,
-                      invalidFields.includes("times") && styles.errorInput,
-                    ]}
-                  >
-                    <Text style={{ color: t ? colors.text : colors.textMuted }}>
-                      {t || `Select time ${i + 1}`}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {showPickerIndex === i && (
-                    <DateTimePicker
-                      mode="time"
-                      value={new Date()}
-                      onChange={(event, selectedDate) => {
-                        setShowPickerIndex(null);
-
-                        if (selectedDate) {
-                          const hours = selectedDate
-                            .getHours()
-                            .toString()
-                            .padStart(2, "0");
-                          const minutes = selectedDate
-                            .getMinutes()
-                            .toString()
-                            .padStart(2, "0");
-
-                          setAllTimes((prev) => {
-                            const updated = [...prev];
-                            updated[i] = `${hours}:${minutes}`;
-                            return updated;
-                          });
-
-                          setInvalidFields((prev) =>
-                            prev.filter((f) => f !== "times")
-                          );
-                        }
-                      }}
-                    />
-                  )}
-                </View>
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => {
+                    const existing = t ? new Date(`2000-01-01T${t}:00`) : new Date();
+                    setPickerDate(existing);
+                    setShowPickerIndex(i);
+                  }}
+                  style={[styles.input, styles.timeItem, invalidFields.includes("times") && styles.errorInput]}
+                >
+                  <Text style={{ color: t ? colors.text : colors.textMuted }}>
+                    {t ? formatAmPm(t) : `Select time ${i + 1}`}
+                  </Text>
+                </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
           </View>
         </View>
       </View>
@@ -451,7 +480,7 @@ const styles = StyleSheet.create({
   },
 
   textArea: {
-    height: 140,
+    height: 100,
     textAlignVertical: "top",
     paddingTop: 9,
   },
@@ -468,14 +497,50 @@ const styles = StyleSheet.create({
   timesWrap: {
     flex: 1,
     gap: 8,
+    marginTop: 16,
   },
 
-  timesScroll: {
+  timesInner: {
+    gap: 10,
+  },
+
+  modalBackdrop: {
     flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCard: {
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    padding: 24,
+    width: "85%",
+    alignItems: "center",
+    gap: 16,
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  modalPicker: {
+    width: "100%",
+  },
+  modalConfirmBtn: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: colors.green,
+    alignItems: "center",
+  },
+  modalConfirmText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "700",
   },
 
   noTimesBox: {
-    flex: 1,
+    height: 80,
     borderWidth: 2,
     borderStyle: "dashed",
     borderColor: colors.border,
@@ -492,7 +557,7 @@ const styles = StyleSheet.create({
   },
 
   timeItem: {
-    marginBottom: 10,
+    marginBottom: 0,
   },
 
   saveWrap: {
@@ -521,4 +586,5 @@ const styles = StyleSheet.create({
     borderColor: "red",
     borderWidth: 2,
   },
+
 });

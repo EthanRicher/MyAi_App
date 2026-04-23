@@ -24,6 +24,7 @@ export type ChatConfig = {
   backLabel: string;
   speechEnabled: boolean;
   cameraEnabled: boolean;
+  starterPrompts?: string[]; // shown as chips when chat is empty
 };
 
 // ─── Clarity Chats ────────────────────────────────────────────────────────────
@@ -43,6 +44,7 @@ export const clarityChatConfigs: Record<string, ChatConfig> = {
     backLabel: "Clarity",
     speechEnabled: true,
     cameraEnabled: true,
+    starterPrompts: ["What is high blood pressure?", "Explain what a CT scan is", "What does cholesterol mean?"],
   },
   clarityDoctorExplained: {
     scopeId: "clarityDoctorExplained",
@@ -73,6 +75,7 @@ export const clarityChatConfigs: Record<string, ChatConfig> = {
     backLabel: "Clarity",
     speechEnabled: true,
     cameraEnabled: true,
+    starterPrompts: ["What is paracetamol used for?", "Explain ibuprofen side effects", "What is metformin?"],
   },
   clarityExplainEveryday: {
     scopeId: "clarityExplainEveryday",
@@ -88,6 +91,7 @@ export const clarityChatConfigs: Record<string, ChatConfig> = {
     backLabel: "Clarity",
     speechEnabled: true,
     cameraEnabled: true,
+    starterPrompts: ["What is a Medicare statement?", "Explain what a rates notice is", "What does a Centrelink letter mean?"],
   },
   clarityAppointmentPrep: {
     scopeId: "clarityAppointmentPrep",
@@ -103,6 +107,7 @@ export const clarityChatConfigs: Record<string, ChatConfig> = {
     backLabel: "Clarity",
     speechEnabled: true,
     cameraEnabled: false,
+    starterPrompts: ["Help me prepare questions for my GP", "What should I ask about my blood test?", "I have a specialist appointment tomorrow"],
   },
   claritySummariseDocument: {
     scopeId: "claritySummariseDocument",
@@ -167,4 +172,16 @@ export const companionChatConfig = {
     "Memory Book":     "Let's cherish your favourite memories",
     "Creative Corner": "Poems, stories and creative activities",
   } as Record<string, string>,
+
+  modeStarterPrompts: {
+    "Brain Games":     ["Ask me some trivia", "Give me a brain teaser", "Let's do a word puzzle"],
+    "Plan My Day":     ["Help me plan a nice day", "What's a good morning routine?", "Plan a relaxing afternoon for me"],
+    "Calm Down":       ["Guide me through deep breathing", "Help me relax right now", "I'm feeling anxious, can you help?"],
+    "Ask Anything":    ["What's a good recipe for soup?", "How do I write a good email?", "Explain how Wi-Fi works"],
+    "Share Stories":   ["Tell me an interesting story", "I'd love to share a memory", "What's a good topic to chat about?"],
+    "Family Tree":     ["Help me remember my family history", "Let's talk about my grandchildren", "Tell me about keeping a family tree"],
+    "Write Letters":   ["Help me write a letter to a friend", "I want to write to my grandchildren", "Help me write a thank you note"],
+    "Memory Book":     ["Help me document a favourite memory", "Let's talk about a special moment", "I want to remember a cherished day"],
+    "Creative Corner": ["Write me a short poem", "Let's make up a short story", "Give me a fun creative activity"],
+  } as Record<string, string[]>,
 };

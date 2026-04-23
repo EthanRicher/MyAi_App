@@ -107,7 +107,14 @@ interface Props {
   autoPrompt?: string;
   messageWarning?: string;
   clearOnLoad?: boolean;
+  starterPrompts?: string[];
 }
+
+const BTN_COLORS = {
+  record: "#E53935",
+  type:   "#FF9800",
+  photo:  "#00BCD4",
+};
 
 export function ChatScreen({
   title: _title,
@@ -129,6 +136,7 @@ export function ChatScreen({
   autoPrompt,
   messageWarning,
   clearOnLoad = false,
+  starterPrompts,
 }: Props) {
   const { profile } = useUserProfile();
   const userFirstName = profile.name.trim().split(" ")[0] || "You";
@@ -154,6 +162,9 @@ export function ChatScreen({
   const [showTextInput, setShowTextInput] = useState(false);
   const [pendingAutoSend, setPendingAutoSend] = useState(false);
 
+  const messagesRef = useRef<ChatMessage[]>([]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const { settings } = useAISettings();
@@ -176,9 +187,7 @@ export function ChatScreen({
         if (saved) {
           const parsed: ChatMessage[] = JSON.parse(saved);
           setMessages(parsed);
-          if (autoPrompt && parsed.every((m) => m.role === "ai") && parsed.length <= 1) {
-            setPendingAutoSend(true);
-          }
+          if (autoPrompt) setPendingAutoSend(true);
           return;
         }
 
@@ -206,13 +215,17 @@ export function ChatScreen({
     if (!pendingAutoSend || !autoPrompt) return;
     setPendingAutoSend(false);
 
-    setMessages([]);
+    const existing = messagesRef.current;
+    const userMessage: ChatMessage = { role: "user", text: autoPrompt, timestamp: now() };
+    const base = [...existing, userMessage];
+    setMessages(base);
     setTyping(true);
-    onProcessMessage({ text: autoPrompt }, []).then((result) => {
+    onProcessMessage({ text: autoPrompt }, settings.useHistory ? existing : []).then((result) => {
       const aiMessage: ChatMessage = { role: "ai", text: result.aiText, isError: result.isError, warningText: result.isError ? undefined : resolveWarning(result.aiText, messageWarning), timestamp: now() };
-      setMessages([aiMessage]);
+      const next = [...base, aiMessage];
+      setMessages(next);
       if (settings.saveChatHistory) {
-        AsyncStorage.setItem(storageKey, JSON.stringify([aiMessage]));
+        AsyncStorage.setItem(storageKey, JSON.stringify(next));
       }
       setTyping(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -404,7 +417,7 @@ export function ChatScreen({
 
         {!!disclaimer && (
           <View style={[styles.disclaimerBanner, { backgroundColor: accentColor + "18", borderBottomColor: accentColor + "55" }]}>
-            <Text numberOfLines={1} style={[styles.disclaimerBannerTitle, { color: accentColor }]}>{disclaimer}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.disclaimerBannerTitle, { color: accentColor }]}>{disclaimer}</Text>
           </View>
         )}
 
@@ -416,6 +429,20 @@ export function ChatScreen({
             scrollRef.current?.scrollToEnd({ animated: true })
           }
         >
+          {messages.length === 0 && !typing && settings.showStarterPrompts && starterPrompts && starterPrompts.length > 0 && (
+            <View style={styles.starterPromptsWrap}>
+              {starterPrompts.map((prompt) => (
+                <TouchableOpacity
+                  key={prompt}
+                  onPress={() => sendPayload({ text: prompt })}
+                  style={[styles.starterChip, { borderColor: accentColor + "88", backgroundColor: accentColor + "14" }]}
+                >
+                  <Text style={[styles.starterChipText, { color: accentColor }]}>{prompt}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
           {messages.map((m, i) =>
             m.role === "ai" ? (
               <View key={i} style={styles.aiBubbleWrap}>
@@ -503,17 +530,17 @@ export function ChatScreen({
             <View style={styles.actionsCol}>
               <TouchableOpacity
                 onPress={handleMicPress}
-                style={[styles.singleBtn, { borderColor: isRecording ? "#cc3333" : accentColor }]}
+                style={[styles.singleBtn, { borderColor: isRecording ? "#b71c1c" : BTN_COLORS.record, backgroundColor: (isRecording ? "#b71c1c" : BTN_COLORS.record) + "18" }]}
               >
-                <Mic size={22} color={isRecording ? "#cc3333" : accentColor} />
-                <Text style={[styles.actionText, { color: isRecording ? "#cc3333" : accentColor }]}>
+                <Mic size={22} color={isRecording ? "#b71c1c" : BTN_COLORS.record} />
+                <Text style={[styles.actionText, { color: isRecording ? "#b71c1c" : BTN_COLORS.record }]}>
                   {isRecording ? "Stop" : "Record"}
                 </Text>
               </TouchableOpacity>
 
               {isRecording ? (
                 <View style={styles.recordingLabelWrap}>
-                  <Text style={[styles.recordingLabel, { color: "#cc3333" }]}>
+                  <Text style={[styles.recordingLabel, { color: "#b71c1c" }]}>
                     Currently Recording...
                   </Text>
                 </View>
@@ -521,20 +548,20 @@ export function ChatScreen({
                 <View style={styles.actionsRow}>
                   <TouchableOpacity
                     onPress={handleOpenText}
-                    style={[styles.actionBtn, { borderColor: accentColor }]}
+                    style={[styles.actionBtn, { borderColor: BTN_COLORS.type, backgroundColor: BTN_COLORS.type + "18" }]}
                   >
-                    <Keyboard size={22} color={accentColor} />
-                    <Text style={[styles.actionText, { color: accentColor }]}>
+                    <Keyboard size={22} color={BTN_COLORS.type} />
+                    <Text style={[styles.actionText, { color: BTN_COLORS.type }]}>
                       Type
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={handlePhotoPress}
-                    style={[styles.actionBtn, { borderColor: accentColor }]}
+                    style={[styles.actionBtn, { borderColor: BTN_COLORS.photo, backgroundColor: BTN_COLORS.photo + "18" }]}
                   >
-                    <Camera size={22} color={accentColor} />
-                    <Text style={[styles.actionText, { color: accentColor }]}>
+                    <Camera size={22} color={BTN_COLORS.photo} />
+                    <Text style={[styles.actionText, { color: BTN_COLORS.photo }]}>
                       Photo
                     </Text>
                   </TouchableOpacity>
@@ -684,15 +711,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   clearChatBtn: {
+    height: 36,
+    width: 110,
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
     alignItems: "center",
+    justifyContent: "center",
   },
   clearChatBtnText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   messageWarningBanner: {
     flexDirection: "row",
@@ -761,7 +789,10 @@ const styles = StyleSheet.create({
 
   bottomWrap: {
     paddingHorizontal: 10,
-    paddingTop: 10,
+    paddingTop: 12,
+    backgroundColor: colors.card,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
 
   actionsCol: {
@@ -830,5 +861,22 @@ const styles = StyleSheet.create({
   sendBtn: {
     padding: 10,
     borderRadius: 20,
+  },
+
+  starterPromptsWrap: {
+    gap: 10,
+    paddingVertical: 8,
+  },
+  starterChip: {
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    alignItems: "center",
+  },
+  starterChipText: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

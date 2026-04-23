@@ -30,6 +30,7 @@ const scopeTitles: Record<ScopeId, string> = {
 export function ClarityChat() {
   const route = useRoute<Route>();
   const scopeId = ((route.params as any)?.scopeId || "clarityGeneralChat") as ScopeId;
+  const initialMessage = (route.params as any)?.initialMessage as string | undefined;
   const scope = getScope(scopeId);
   const config = clarityChatConfigs[scopeId];
 
@@ -66,6 +67,8 @@ export function ClarityChat() {
       storageKey={storageKey}
       initialMessages={initialMessages}
       onProcessMessage={handleProcessMessage}
+      autoPrompt={initialMessage}
+      starterPrompts={config?.starterPrompts}
       disclaimer={config?.disclaimer ?? "AI is here to help you understand"}
       disclaimerSub="Always confirm with your doctor before acting on anything here."
       messageWarning={scope.warning}

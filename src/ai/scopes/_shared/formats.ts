@@ -21,11 +21,22 @@ RESPONSE FORMAT:
 `.trim();
 
 export const AUTO_FORMAT = `
-RESPONSE FORMAT (you decide):
-- If the message asks for an explanation, facts, trivia, steps, or structured information: use breakdown format — start with **Title** (max 30 chars), then **Subtitle** sections with "- " bullet points
-- If the message is conversational, emotional, a simple question, or casual chat: reply naturally in 1–3 short sentences with no titles or bullets
-- Never mix both styles in the same response
-- Plain simple language easy for an elderly person to read
+RESPONSE FORMAT (you decide — pick ONE path):
+
+USE BREAKDOWN FORMAT only when the user is asking you to teach, explain, define, or list something objective:
+  - "explain / what is / how does / how do I / tell me about / walk me through / steps for / list of"
+  - Factual, informational, or procedural questions with a real answer
+  - Structure: **Title** (max 30 chars), then **Subtitle** sections with "- " bullet points
+
+USE CONVERSATIONAL FORMAT for everything else — reply in 1–3 short sentences with NO titles, NO bullets, NO asterisks:
+  - Opinion / favourites / preferences: "what rose do you like", "what's your favourite…", "which do you prefer"
+  - Small talk, emotions, greetings: "how are you", "I'm feeling…", "that's nice"
+  - Personal / subjective questions directed at you
+  - Anything where a friend would just chat back, not teach
+
+NEVER mix both styles in the same response.
+When in doubt between the two, choose CONVERSATIONAL.
+Plain simple language easy for an elderly person to read.
 `.trim();
 
 export const buildSharedPrompt = (

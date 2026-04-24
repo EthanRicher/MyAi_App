@@ -1,6 +1,7 @@
 import { OPENAI_API_KEY } from "@env";
 import { addDebugEntry } from "./debug";
 import { RunAIArgs, RunAIResult } from "./types";
+import { BREAKDOWN_CHAR_LIMITS, DEFAULT_BREAKDOWN_LENGTH } from "../../config/breakdownSettings";
 
 const sanitiseText = (value: any) => {
   if (typeof value !== "string") {
@@ -69,12 +70,22 @@ const parseLegacyStructuredResponse = (raw: string) => {
   };
 };
 
+const buildLengthRule = (maxChars: number) => `
+
+LENGTH LIMIT (critical):
+- Keep the breakdown under ${maxChars} characters total (including titles and bullets).
+- Prefer short sentences. Cut anything non-essential.
+- If the topic is too big, cover only the most important points.`;
+
 export const runAI = async ({
   text,
   scope,
+  breakdownLength,
 }: RunAIArgs): Promise<RunAIResult> => {
   const safeText = sanitiseText(text);
-  const prompt = sanitiseText(scope.buildPrompt(safeText));
+  const basePrompt = scope.buildPrompt(safeText);
+  const maxChars = BREAKDOWN_CHAR_LIMITS[breakdownLength ?? DEFAULT_BREAKDOWN_LENGTH];
+  const prompt = sanitiseText(basePrompt + buildLengthRule(maxChars));
 
   addDebugEntry("runAI", "input_text", safeText);
   addDebugEntry("runAI", "scope", {

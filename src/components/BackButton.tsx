@@ -25,7 +25,7 @@ export function BackButton({ label = "Back", to, right, hideTitle }: Props) {
   };
 
   return (
-    <View style={[styles.bar, { paddingTop: insets.top + 8 }]}>
+    <View style={[styles.bar, { paddingTop: insets.top + 4 }]}>
       <TouchableOpacity
         style={[styles.exitBtn, inChat ? styles.exitBtnChat : styles.exitBtnSmall]}
         onPress={handlePress}
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingLeft: 6,
     paddingRight: 16,
-    paddingBottom: 12,
+    paddingBottom: 6,
     backgroundColor: colors.card,
   },
   exitBtn: {
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 12,
+    bottom: 6,
     alignItems: "center",
     pointerEvents: "none",
   },

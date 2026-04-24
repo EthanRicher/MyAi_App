@@ -47,6 +47,7 @@ Explain this medication. Cover what it is for, how it is taken, and key things t
       scope: isInitial && med
         ? { ...medviewMedicationChat, buildPrompt: (t) => buildSharedPrompt(t, "breakdown", medviewMedicationChat.topic) }
         : medviewMedicationChat,
+      breakdownLength: cfg.breakdownLength,
     });
 
     if (result.error) {
@@ -79,6 +80,7 @@ Explain this medication. Cover what it is for, how it is taken, and key things t
       autoPrompt={med ? "Explain this medication." : undefined}
       clearOnLoad={!!med}
       messageWarning={medviewMedicationChat.warning}
+      conversational={cfg.conversational}
     />
   );
 }

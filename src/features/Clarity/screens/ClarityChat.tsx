@@ -42,7 +42,7 @@ export function ClarityChat() {
     const text = scope.conversational
       ? buildConversationContext(history, rawText)
       : rawText;
-    const result = await runAI({ text, scope });
+    const result = await runAI({ text, scope, breakdownLength: config?.breakdownLength });
 
     if (result.error) {
       return { aiText: "Sorry, I couldn't get a response. Please try again.", isError: true };
@@ -77,6 +77,7 @@ export function ClarityChat() {
       speechEnabled={config?.speechEnabled ?? true}
       onTranscribeAudio={whisperTranscribe}
       onCameraPress={config?.cameraEnabled ? handleCameraPress : undefined}
+      conversational={config?.conversational ?? false}
     />
   );
 }

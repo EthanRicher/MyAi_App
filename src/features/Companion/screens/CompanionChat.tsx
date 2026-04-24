@@ -14,6 +14,7 @@ type Route = RouteProp<RootStackParamList, "CompanionChat">;
 export function CompanionChat() {
   const route = useRoute<Route>();
   const { title, initialMessage } = route.params || {};
+  const cfg = companionChatConfig;
 
   const initialMessages = useMemo<ChatMessage[]>(() => [], []);
 
@@ -24,7 +25,7 @@ export function CompanionChat() {
 
   const handleProcessMessage = async (payload: ChatSendPayload, history: ChatMessage[]) => {
     const text = buildConversationContext(history, payload.text?.trim() || "");
-    const result = await runAI({ text, scope });
+    const result = await runAI({ text, scope, breakdownLength: cfg.breakdownLength });
 
     if (result.error) {
       return { aiText: "I'm sorry, I didn't quite catch that. Could you try again?", isError: true };
@@ -38,7 +39,6 @@ export function CompanionChat() {
     return { aiText };
   };
 
-  const cfg = companionChatConfig;
   const disclaimer = title
     ? cfg.modeDisclaimers[title] ?? cfg.defaultDisclaimer
     : cfg.defaultDisclaimer;
@@ -59,6 +59,7 @@ export function CompanionChat() {
       speechEnabled={cfg.speechEnabled}
       onTranscribeAudio={whisperTranscribe}
       starterPrompts={starterPrompts}
+      conversational={cfg.conversational}
     />
   );
 }

@@ -21,9 +21,12 @@ export type AIScope = {
   topic?: string;
 };
 
+import type { BreakdownLength } from "../../config/breakdownSettings";
+
 export type RunAIArgs = {
   text: string;
   scope: AIScope;
+  breakdownLength?: BreakdownLength;
 };
 
 export type RunAIResult = {

@@ -4,12 +4,14 @@
 
 import type { ScopeId } from "../ai/scopes";
 import { MEDICAL_WARNING, AI_WARNING } from "../ai/scopes/_shared/warnings";
+import type { BreakdownLength } from "./breakdownSettings";
 
 export type ChatConfig = {
   // ── Scope ──────────────────────────────────────────────────────────────────
   scopeId: ScopeId;
   format: "breakdown" | "conversational" | "auto"; // how the AI structures replies
   conversational: boolean;                          // whether chat history is sent to AI
+  breakdownLength?: BreakdownLength;                // overrides default length cap for breakdowns
   warning?: string;                                 // banner shown under AI replies
 
   // ── History ────────────────────────────────────────────────────────────────
@@ -150,6 +152,7 @@ export const companionChatConfig = {
   scopeId: "companionChat" as ScopeId,
   format: "auto" as const,
   conversational: true,
+  breakdownLength: undefined as BreakdownLength | undefined, // leave undefined to use DEFAULT_BREAKDOWN_LENGTH
   warning: undefined,     // no warning — companion is not informational
   saveHistory: true,
   clearOnExit: false,

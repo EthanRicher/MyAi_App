@@ -16,6 +16,7 @@ import { AI_WARNING } from "../ai/scopes/_shared/warnings";
 import { Camera, Send, Mic, X, Keyboard } from "lucide-react-native";
 import { BackButton } from "./BackButton";
 import { BackendRequiredModal } from "./BackendRequiredModal";
+import { MessageReaderModal, ReaderMessage } from "./MessageReaderModal";
 import { colors } from "../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSpeechInput } from "../ai/speech/useSpeechInput";
@@ -108,6 +109,7 @@ interface Props {
   messageWarning?: string;
   clearOnLoad?: boolean;
   starterPrompts?: string[];
+  conversational?: boolean;
 }
 
 const BTN_COLORS = {
@@ -137,6 +139,7 @@ export function ChatScreen({
   messageWarning,
   clearOnLoad = false,
   starterPrompts,
+  conversational = false,
 }: Props) {
   const { profile } = useUserProfile();
   const userFirstName = profile.name.trim().split(" ")[0] || "You";
@@ -161,6 +164,42 @@ export function ChatScreen({
   const [showBackend, setShowBackend] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [pendingAutoSend, setPendingAutoSend] = useState(false);
+  const [readerPair, setReaderPair] = useState<ReaderMessage[] | null>(null);
+
+  const isBreakdown = (t: string | undefined) =>
+    !!t && (/\*\*[^*]+\*\*/.test(t) || /^[-•*]\s+/m.test(t));
+
+  const openReader = (idx: number) => {
+    const current = messages[idx];
+    if (!current?.text || current.isError) return;
+
+    const aiText =
+      current.role === "ai" ? current.text : messages[idx + 1]?.text;
+    const pairAllowed = conversational && !isBreakdown(aiText);
+
+    const pair: ReaderMessage[] = [];
+    if (!pairAllowed) {
+      pair.push({
+        role: current.role,
+        text: current.text,
+        label: current.role === "ai" ? aiLabel : userFirstName,
+        warningText: current.role === "ai" ? current.warningText : undefined,
+      });
+    } else if (current.role === "ai") {
+      const prev = messages[idx - 1];
+      if (prev?.role === "user" && prev.text) {
+        pair.push({ role: "user", text: prev.text, label: userFirstName });
+      }
+      pair.push({ role: "ai", text: current.text, label: aiLabel, warningText: current.warningText });
+    } else {
+      pair.push({ role: "user", text: current.text, label: userFirstName });
+      const next = messages[idx + 1];
+      if (next?.role === "ai" && next.text && !next.isError) {
+        pair.push({ role: "ai", text: next.text, label: aiLabel, warningText: next.warningText });
+      }
+    }
+    setReaderPair(pair);
+  };
 
   const messagesRef = useRef<ChatMessage[]>([]);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
@@ -446,7 +485,13 @@ export function ChatScreen({
           {messages.map((m, i) =>
             m.role === "ai" ? (
               <View key={i} style={styles.aiBubbleWrap}>
-                <View style={styles.aiBubble}>
+                <TouchableOpacity
+                  activeOpacity={m.text && !m.isError ? 0.8 : 1}
+                  onPress={() => openReader(i)}
+                  onLongPress={() => openReader(i)}
+                  style={styles.aiBubble}
+                  accessibilityHint={m.text && !m.isError ? "Tap to read in full screen" : undefined}
+                >
                   <View style={styles.bubbleLabelRow}>
                     <Text style={[styles.aiLabel, { color: accentColor }]}>{aiLabel}</Text>
                     {!!m.timestamp && <Text style={styles.timestamp}>{m.timestamp}</Text>}
@@ -458,17 +503,30 @@ export function ChatScreen({
                     ? <Text style={styles.errorBubbleText}>{m.text}</Text>
                     : renderMessageContent(m.text, accentColor, styles.messageText)
                   )}
+                  {!!m.text && !m.isError && (
+                    <View style={styles.fullscreenHintWrap}>
+                      <View style={[styles.fullscreenHint, { borderColor: accentColor + "66", backgroundColor: accentColor + "22" }]}>
+                        <Text style={[styles.fullscreenHintText, { color: accentColor }]}>Tap here to fullscreen</Text>
+                      </View>
+                    </View>
+                  )}
                   {!!m.warningText && (
                     <View style={styles.messageWarningBanner}>
                       <Text style={styles.messageWarningIcon}>⚠️</Text>
                       <Text style={styles.messageWarningText}>{m.warningText}</Text>
                     </View>
                   )}
-                </View>
+                </TouchableOpacity>
               </View>
             ) : (
               <View key={i} style={styles.userBubbleWrap}>
-                <View style={[styles.userBubble, m.imageUri && !m.text ? styles.photoBubble : undefined]}>
+                <TouchableOpacity
+                  activeOpacity={m.text ? 0.8 : 1}
+                  onPress={() => openReader(i)}
+                  onLongPress={() => openReader(i)}
+                  style={[styles.userBubble, m.imageUri && !m.text ? styles.photoBubble : undefined]}
+                  accessibilityHint={m.text ? "Tap to read in full screen" : undefined}
+                >
                   <View style={styles.bubbleLabelRow}>
                     <Text style={styles.userLabel}>{userFirstName}</Text>
                     {!!m.timestamp && <Text style={styles.timestamp}>{m.timestamp}</Text>}
@@ -479,7 +537,7 @@ export function ChatScreen({
                   {!!m.text && !m.imageUri && (
                     <Text style={styles.userBubbleText}>{m.text}</Text>
                   )}
-                </View>
+                </TouchableOpacity>
               </View>
             )
           )}
@@ -500,7 +558,7 @@ export function ChatScreen({
         <View
           style={[
             styles.bottomWrap,
-            { paddingBottom: insets.bottom + 10 },
+            { paddingBottom: insets.bottom + 4 },
           ]}
         >
           {showTextInput ? (
@@ -576,6 +634,13 @@ export function ChatScreen({
           onClose={() => setShowBackend(false)}
           description={backendDescription}
         />
+
+        <MessageReaderModal
+          visible={readerPair !== null}
+          messages={readerPair || []}
+          accentColor={accentColor}
+          onClose={() => setReaderPair(null)}
+        />
       </View>
     </KeyboardAvoidingView>
   );
@@ -646,6 +711,23 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
+  fullscreenHintWrap: {
+    alignItems: "center",
+    marginTop: 4,
+  },
+
+  fullscreenHint: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 18,
+    borderWidth: 1.5,
+  },
+
+  fullscreenHintText: {
+    fontSize: 17,
+    fontWeight: "700",
+  },
+
   timestamp: {
     color: colors.textCaption,
   },
@@ -703,7 +785,7 @@ const styles = StyleSheet.create({
     width: "100%",
     borderBottomWidth: 1,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 8,
   },
   disclaimerBannerTitle: {
     fontSize: 18,
@@ -789,7 +871,7 @@ const styles = StyleSheet.create({
 
   bottomWrap: {
     paddingHorizontal: 10,
-    paddingTop: 12,
+    paddingTop: 8,
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
@@ -797,18 +879,18 @@ const styles = StyleSheet.create({
 
   actionsCol: {
     flexDirection: "column",
-    gap: 10,
+    gap: 8,
   },
 
   actionsRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
   },
 
   actionBtn: {
     flex: 1,
-    minHeight: 52,
-    borderRadius: 16,
+    minHeight: 44,
+    borderRadius: 14,
     borderWidth: 1.5,
     backgroundColor: colors.card,
     flexDirection: "row",
@@ -819,8 +901,8 @@ const styles = StyleSheet.create({
 
   singleBtn: {
     width: "100%",
-    minHeight: 52,
-    borderRadius: 16,
+    minHeight: 44,
+    borderRadius: 14,
     borderWidth: 1.5,
     backgroundColor: colors.card,
     flexDirection: "row",

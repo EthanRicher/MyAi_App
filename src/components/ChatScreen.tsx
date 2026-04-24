@@ -17,7 +17,8 @@ import { Camera, Send, Mic, X, Keyboard } from "lucide-react-native";
 import { BackButton } from "./BackButton";
 import { BackendRequiredModal } from "./BackendRequiredModal";
 import { MessageReaderModal, ReaderMessage } from "./MessageReaderModal";
-import { colors } from "../theme";
+import { parseMarkdown } from "./markdown";
+import { colors, warningColors, chatBubble, chatActionColors } from "../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSpeechInput } from "../ai/speech/useSpeechInput";
 import { addDebugEntry } from "../ai/core/debug";
@@ -50,42 +51,31 @@ interface ProcessResult {
 }
 
 function renderMessageContent(text: string, accentColor: string, baseStyle: object) {
-  let mainTitleSeen = false;
-  return text.split("\n").map((line, i) => {
-    const trimmed = line.trim();
-    if (!trimmed) return null;
-
-    const titleMatch = trimmed.match(/^\*\*([^*]+)\*\*:?$/);
-    if (titleMatch) {
-      const rawTitle = titleMatch[1].replace(/^:+|:+$/g, "").trim();
-      const titleText = rawTitle.length > 30 ? rawTitle.slice(0, 30).trimEnd() + "…" : rawTitle;
-      if (!mainTitleSeen) {
-        mainTitleSeen = true;
+  return parseMarkdown(text).map((token, i) => {
+    switch (token.kind) {
+      case "mainTitle":
         return (
           <View key={i} style={[styles.mainTitleChip, { backgroundColor: accentColor + "33", borderColor: accentColor + "88" }]}>
-            <Text style={[styles.mainTitleText, { color: accentColor }]}>{titleText}</Text>
+            <Text style={[styles.mainTitleText, { color: accentColor }]}>{token.text}</Text>
           </View>
         );
-      }
-      return (
-        <View key={i} style={[styles.subTitleChip, { borderColor: accentColor + "55" }]}>
-          <Text style={[styles.subTitleText, { color: accentColor }]}>{titleText}</Text>
-        </View>
-      );
+      case "subTitle":
+        return (
+          <View key={i} style={[styles.subTitleChip, { borderColor: accentColor + "55" }]}>
+            <Text style={[styles.subTitleText, { color: accentColor }]}>{token.text}</Text>
+          </View>
+        );
+      case "bullet":
+        return (
+          <View key={i} style={styles.bulletRow}>
+            <Text style={[baseStyle, { color: accentColor }]}>{"•"}</Text>
+            <Text style={[baseStyle, styles.bulletText]}>{token.text}</Text>
+          </View>
+        );
+      case "paragraph":
+        return <Text key={i} style={baseStyle}>{token.text}</Text>;
     }
-
-    const bulletMatch = trimmed.match(/^[-•*]\s+(.+)$/);
-    if (bulletMatch) {
-      return (
-        <View key={i} style={styles.bulletRow}>
-          <Text style={[baseStyle, { color: accentColor }]}>{"•"}</Text>
-          <Text style={[baseStyle, styles.bulletText]}>{bulletMatch[1]}</Text>
-        </View>
-      );
-    }
-
-    return <Text key={i} style={baseStyle}>{trimmed}</Text>;
-  }).filter(Boolean);
+  });
 }
 
 interface Props {
@@ -111,12 +101,6 @@ interface Props {
   starterPrompts?: string[];
   conversational?: boolean;
 }
-
-const BTN_COLORS = {
-  record: "#E53935",
-  type:   "#FF9800",
-  photo:  "#00BCD4",
-};
 
 export function ChatScreen({
   title: _title,
@@ -588,17 +572,17 @@ export function ChatScreen({
             <View style={styles.actionsCol}>
               <TouchableOpacity
                 onPress={handleMicPress}
-                style={[styles.singleBtn, { borderColor: isRecording ? "#b71c1c" : BTN_COLORS.record, backgroundColor: (isRecording ? "#b71c1c" : BTN_COLORS.record) + "18" }]}
+                style={[styles.singleBtn, { borderColor: isRecording ? chatActionColors.recordActive : chatActionColors.record, backgroundColor: (isRecording ? chatActionColors.recordActive : chatActionColors.record) + "18" }]}
               >
-                <Mic size={22} color={isRecording ? "#b71c1c" : BTN_COLORS.record} />
-                <Text style={[styles.actionText, { color: isRecording ? "#b71c1c" : BTN_COLORS.record }]}>
+                <Mic size={22} color={isRecording ? chatActionColors.recordActive : chatActionColors.record} />
+                <Text style={[styles.actionText, { color: isRecording ? chatActionColors.recordActive : chatActionColors.record }]}>
                   {isRecording ? "Stop" : "Record"}
                 </Text>
               </TouchableOpacity>
 
               {isRecording ? (
                 <View style={styles.recordingLabelWrap}>
-                  <Text style={[styles.recordingLabel, { color: "#b71c1c" }]}>
+                  <Text style={[styles.recordingLabel, { color: chatActionColors.recordActive }]}>
                     Currently Recording...
                   </Text>
                 </View>
@@ -606,20 +590,20 @@ export function ChatScreen({
                 <View style={styles.actionsRow}>
                   <TouchableOpacity
                     onPress={handleOpenText}
-                    style={[styles.actionBtn, { borderColor: BTN_COLORS.type, backgroundColor: BTN_COLORS.type + "18" }]}
+                    style={[styles.actionBtn, { borderColor: chatActionColors.type, backgroundColor: chatActionColors.type + "18" }]}
                   >
-                    <Keyboard size={22} color={BTN_COLORS.type} />
-                    <Text style={[styles.actionText, { color: BTN_COLORS.type }]}>
+                    <Keyboard size={22} color={chatActionColors.type} />
+                    <Text style={[styles.actionText, { color: chatActionColors.type }]}>
                       Type
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={handlePhotoPress}
-                    style={[styles.actionBtn, { borderColor: BTN_COLORS.photo, backgroundColor: BTN_COLORS.photo + "18" }]}
+                    style={[styles.actionBtn, { borderColor: chatActionColors.photo, backgroundColor: chatActionColors.photo + "18" }]}
                   >
-                    <Camera size={22} color={BTN_COLORS.photo} />
-                    <Text style={[styles.actionText, { color: BTN_COLORS.photo }]}>
+                    <Camera size={22} color={chatActionColors.photo} />
+                    <Text style={[styles.actionText, { color: chatActionColors.photo }]}>
                       Photo
                     </Text>
                   </TouchableOpacity>
@@ -668,7 +652,7 @@ const styles = StyleSheet.create({
   },
 
   aiBubble: {
-    backgroundColor: "#222268",
+    backgroundColor: chatBubble.ai,
     padding: 16,
     borderRadius: 16,
     width: "95%",
@@ -807,9 +791,9 @@ const styles = StyleSheet.create({
   messageWarningBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2A2000",
+    backgroundColor: warningColors.deepBg,
     borderTopWidth: 1,
-    borderTopColor: "#F9A825",
+    borderTopColor: warningColors.border,
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginTop: 8,
@@ -826,7 +810,7 @@ const styles = StyleSheet.create({
   messageWarningText: {
     flex: 1,
     fontSize: 12,
-    color: "#FFD54F",
+    color: warningColors.text,
     lineHeight: 18,
     fontWeight: "500",
   },

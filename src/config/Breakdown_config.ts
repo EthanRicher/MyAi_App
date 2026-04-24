@@ -1,6 +1,6 @@
 // ─── Breakdown Length Settings ────────────────────────────────────────────────
 // Controls how long breakdown-style AI responses can be.
-// Per-chat override lives on ChatConfig.breakdownLength in chatConfigs.ts.
+// Per-chat override lives on ChatConfig.breakdownLength in Chat_config.ts.
 // If a chat doesn't set one, DEFAULT_BREAKDOWN_LENGTH applies.
 
 export type BreakdownLength = "concise" | "middle" | "alot";

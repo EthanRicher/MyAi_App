@@ -4,7 +4,7 @@
 
 import type { ScopeId } from "../ai/scopes";
 import { MEDICAL_WARNING, AI_WARNING } from "../ai/scopes/_shared/warnings";
-import type { BreakdownLength } from "./breakdownSettings";
+import type { BreakdownLength } from "./Breakdown_config";
 
 export type ChatConfig = {
   // ── Scope ──────────────────────────────────────────────────────────────────

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc *)",
-      "Bash(node -p \"require\\('./package.json'\\).dependencies['react-native']\")"
+      "Bash(node -p \"require\\('./package.json'\\).dependencies['react-native']\")",
+      "Bash(grep -E \"\\\\.tsx$\")"
     ]
   }
 }

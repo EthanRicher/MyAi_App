@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { LayoutChangeEvent, Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
-import { colors } from "../theme";
+import { colors, chatBubble, warningColors } from "../theme";
+import { parseMarkdown } from "./markdown";
 
 export interface ReaderMessage {
   role: "user" | "ai";
@@ -19,7 +20,7 @@ interface Props {
 }
 
 const MIN_SCALE = 0.15;
-const MAX_SCALE = 0.7; // cap on how big the fullscreen text can grow
+const MAX_SCALE = 0.7;
 
 const BASE = {
   body: 36,
@@ -35,122 +36,96 @@ const BASE = {
   mainRadius: 18,
   subPadH: 18,
   subPadV: 10,
-  subRadius: 10,
   roleLabel: 26,
   roleLabelLine: 32,
   blockGap: 22,
-  warningIcon: 28,
-  warningText: 28,
-  warningTextLine: 38,
-  warningPadH: 20,
-  warningPadV: 14,
-  warningRadius: 14,
-  warningGap: 14,
+  bubbleRadius: 18,
+  bubblePad: 20,
 };
 
-function renderFormatted(text: string, accentColor: string, s: number) {
-  let mainTitleSeen = false;
-  return text.split("\n").map((line, i) => {
-    const trimmed = line.trim();
-    if (!trimmed) return null;
-
-    const titleMatch = trimmed.match(/^\*\*([^*]+)\*\*:?$/);
-    if (titleMatch) {
-      const rawTitle = titleMatch[1].replace(/^:+|:+$/g, "").trim();
-      if (!mainTitleSeen) {
-        mainTitleSeen = true;
+// Render parsed markdown tokens at a given scale. All size-dependent values
+// are inline (need `s`); static layout lives in `contentStyles` below.
+function renderReader(text: string, accentColor: string, s: number) {
+  return parseMarkdown(text).map((token, i) => {
+    switch (token.kind) {
+      case "mainTitle":
         return (
           <View
             key={i}
-            style={{
-              alignSelf: "stretch",
-              borderWidth: 2,
-              borderRadius: BASE.mainRadius * s,
-              paddingHorizontal: BASE.mainPadH * s,
-              paddingVertical: BASE.mainPadV * s,
-              alignItems: "center",
-              backgroundColor: accentColor + "33",
-              borderColor: accentColor + "88",
-            }}
+            style={[
+              contentStyles.mainTitleChip,
+              {
+                borderRadius: BASE.mainRadius * s,
+                paddingHorizontal: BASE.mainPadH * s,
+                paddingVertical: BASE.mainPadV * s,
+                backgroundColor: accentColor + "33",
+                borderColor: accentColor + "88",
+              },
+            ]}
           >
             <Text
-              style={{
-                fontSize: BASE.mainTitle * s,
-                lineHeight: BASE.mainTitleLine * s,
-                fontWeight: "800",
-                textAlign: "center",
-                color: accentColor,
-              }}
+              style={[
+                contentStyles.mainTitleText,
+                { fontSize: BASE.mainTitle * s, lineHeight: BASE.mainTitleLine * s, color: accentColor },
+              ]}
             >
-              {rawTitle}
+              {token.text}
             </Text>
           </View>
         );
-      }
-      return (
-        <View
-          key={i}
-          style={{
-            alignSelf: "stretch",
-            backgroundColor: accentColor + "22",
-            borderTopWidth: 1,
-            borderBottomWidth: 1,
-            borderTopColor: accentColor + "66",
-            borderBottomColor: accentColor + "66",
-            paddingHorizontal: BASE.subPadH * s,
-            paddingVertical: BASE.subPadV * s,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            style={{
-              fontSize: BASE.subTitle * s,
-              lineHeight: BASE.subTitleLine * s,
-              fontWeight: "700",
-              color: accentColor,
-              textAlign: "center",
-            }}
+      case "subTitle":
+        return (
+          <View
+            key={i}
+            style={[
+              contentStyles.subTitleBar,
+              {
+                backgroundColor: accentColor + "22",
+                borderTopColor: accentColor + "66",
+                borderBottomColor: accentColor + "66",
+                paddingHorizontal: BASE.subPadH * s,
+                paddingVertical: BASE.subPadV * s,
+              },
+            ]}
           >
-            {rawTitle}
-          </Text>
-        </View>
-      );
-    }
-
-    const bulletMatch = trimmed.match(/^[-•*]\s+(.+)$/);
-    if (bulletMatch) {
-      return (
-        <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", gap: BASE.bulletGap * s }}>
-          <Text style={{ fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s, color: accentColor }}>•</Text>
+            <Text
+              style={[
+                contentStyles.subTitleText,
+                { fontSize: BASE.subTitle * s, lineHeight: BASE.subTitleLine * s, color: accentColor },
+              ]}
+            >
+              {token.text}
+            </Text>
+          </View>
+        );
+      case "bullet":
+        return (
+          <View key={i} style={[contentStyles.bulletRow, { gap: BASE.bulletGap * s }]}>
+            <Text style={{ fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s, color: accentColor }}>•</Text>
+            <Text
+              style={[
+                contentStyles.bulletText,
+                { fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s },
+              ]}
+            >
+              {token.text}
+            </Text>
+          </View>
+        );
+      case "paragraph":
+        return (
           <Text
-            style={{
-              flex: 1,
-              fontSize: BASE.body * s,
-              lineHeight: BASE.bodyLine * s,
-              color: colors.text,
-              fontWeight: "500",
-            }}
+            key={i}
+            style={[
+              contentStyles.paragraph,
+              { fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s },
+            ]}
           >
-            {bulletMatch[1]}
+            {token.text}
           </Text>
-        </View>
-      );
+        );
     }
-
-    return (
-      <Text
-        key={i}
-        style={{
-          fontSize: BASE.body * s,
-          lineHeight: BASE.bodyLine * s,
-          color: colors.text,
-          fontWeight: "500",
-        }}
-      >
-        {trimmed}
-      </Text>
-    );
-  }).filter(Boolean);
+  });
 }
 
 export function MessageReaderModal({ visible, messages, accentColor = colors.primary, onClose }: Props) {
@@ -165,6 +140,8 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
 
   const messagesKey = messages.map((m) => `${m.role}:${m.text}`).join("|");
   const pinnedWarning = messages.find((m) => m.role === "ai" && !!m.warningText)?.warningText;
+  const isPair = messages.length > 1;
+  const isSingle = messages.length === 1;
 
   useEffect(() => {
     if (visible) {
@@ -195,14 +172,13 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
     setFontScale(clamped);
   }, [containerH, contentH, ready]);
 
-  const onContainerLayout = (e: LayoutChangeEvent) => {
-    setContainerH(e.nativeEvent.layout.height);
+  const onContainerLayout = (e: LayoutChangeEvent) => setContainerH(e.nativeEvent.layout.height);
+  const onContentLayout = (e: LayoutChangeEvent) => {
+    if (!ready) setContentH(e.nativeEvent.layout.height);
   };
 
-  const onContentLayout = (e: LayoutChangeEvent) => {
-    if (ready) return;
-    setContentH(e.nativeEvent.layout.height);
-  };
+  const singleBgOverride =
+    isSingle && { backgroundColor: messages[0].role === "ai" ? chatBubble.ai : chatBubble.user };
 
   return (
     <Modal
@@ -213,55 +189,22 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
       statusBarTranslucent
       navigationBarTranslucent
     >
-      <View
-        style={[
-          styles.container,
-          { paddingTop: insets.top },
-          messages.length === 1 && {
-            backgroundColor: messages[0].role === "ai" ? "#222268" : colors.card,
-          },
-        ]}
-      >
+      <View style={[styles.container, { paddingTop: insets.top }, singleBgOverride]}>
         <View style={styles.bodyWrap} onLayout={onContainerLayout}>
           <View
             style={[styles.content, { opacity: ready ? 1 : 0, gap: BASE.blockGap * fontScale }]}
             onLayout={onContentLayout}
           >
-            {messages.map((m, idx) => {
-              const labelColor = m.role === "ai" ? accentColor : colors.textMuted;
-              const isPair = messages.length > 1;
-              const bubbleBg = m.role === "ai" ? "#222268" : colors.card;
-              return (
-                <View
-                  key={idx}
-                  style={[
-                    { gap: BASE.gap * fontScale },
-                    isPair && {
-                      backgroundColor: bubbleBg,
-                      borderRadius: 18 * fontScale,
-                      padding: 20 * fontScale,
-                    },
-                  ]}
-                >
-                  {isPair && (
-                    <Text
-                      style={{
-                        fontSize: BASE.roleLabel * fontScale,
-                        lineHeight: BASE.roleLabelLine * fontScale,
-                        fontWeight: "800",
-                        color: labelColor,
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      {m.label}
-                    </Text>
-                  )}
-                  <View style={{ gap: BASE.gap * fontScale }}>
-                    {renderFormatted(m.text, accentColor, fontScale)}
-                  </View>
-                </View>
-              );
-            })}
+            {messages.map((m, idx) => (
+              <MessageBlock
+                key={idx}
+                message={m}
+                accentColor={accentColor}
+                scale={fontScale}
+                wrapInBubble={isPair}
+                showLabel={isPair}
+              />
+            ))}
           </View>
         </View>
 
@@ -287,18 +230,101 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
   );
 }
 
+// ── Sub-components ───────────────────────────────────────────────────────────
+
+interface MessageBlockProps {
+  message: ReaderMessage;
+  accentColor: string;
+  scale: number;
+  wrapInBubble: boolean;
+  showLabel: boolean;
+}
+
+function MessageBlock({ message, accentColor, scale, wrapInBubble, showLabel }: MessageBlockProps) {
+  const bubbleBg = message.role === "ai" ? chatBubble.ai : chatBubble.user;
+  const labelColor = message.role === "ai" ? accentColor : colors.textMuted;
+
+  return (
+    <View
+      style={[
+        { gap: BASE.gap * scale },
+        wrapInBubble && {
+          backgroundColor: bubbleBg,
+          borderRadius: BASE.bubbleRadius * scale,
+          padding: BASE.bubblePad * scale,
+        },
+      ]}
+    >
+      {showLabel && (
+        <Text
+          style={[
+            styles.roleLabel,
+            { fontSize: BASE.roleLabel * scale, lineHeight: BASE.roleLabelLine * scale, color: labelColor },
+          ]}
+        >
+          {message.label}
+        </Text>
+      )}
+      <View style={{ gap: BASE.gap * scale }}>
+        {renderReader(message.text, accentColor, scale)}
+      </View>
+    </View>
+  );
+}
+
+// ── StyleSheets ──────────────────────────────────────────────────────────────
+
+// Content styles: static layout properties for tokens. Size-dependent props
+// (fontSize, padding*scale) stay inline in renderReader.
+const contentStyles = StyleSheet.create({
+  mainTitleChip: {
+    alignSelf: "stretch",
+    borderWidth: 2,
+    alignItems: "center",
+  },
+  mainTitleText: {
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  subTitleBar: {
+    alignSelf: "stretch",
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    alignItems: "center",
+  },
+  subTitleText: {
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  bulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  bulletText: {
+    flex: 1,
+    color: colors.text,
+    fontWeight: "500",
+  },
+  paragraph: {
+    color: colors.text,
+    fontWeight: "500",
+  },
+});
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   bodyWrap: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 0,
-    paddingBottom: 0,
     justifyContent: "flex-start",
     overflow: "hidden",
   },
   content: {
     width: "100%",
+  },
+  roleLabel: {
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
   closeBtn: {
     flexDirection: "row",
@@ -314,9 +340,9 @@ const styles = StyleSheet.create({
   warningBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(249,168,37,0.15)",
+    backgroundColor: warningColors.translucentBg,
     borderWidth: 2,
-    borderColor: "#F9A825",
+    borderColor: warningColors.border,
     borderRadius: 14,
     paddingHorizontal: 18,
     paddingVertical: 12,
@@ -332,7 +358,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
-    color: "#FFD54F",
+    color: warningColors.text,
     fontWeight: "600",
   },
 });

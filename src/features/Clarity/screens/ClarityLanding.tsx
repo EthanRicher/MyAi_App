@@ -1,52 +1,14 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Mic, FileText, Pill, Calendar, Globe, ChevronRight } from "lucide-react-native";
+import { ChevronRight } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
-import { ScopeId } from "../../../ai/scopes";
+import { clarityLandingCards as cards } from "../data/ClarityLanding.data";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Clarity">;
-
-const cards: {
-  title: string;
-  desc: string;
-  icon: any;
-  scopeId: ScopeId;
-}[] = [
-  {
-    title: "Doctor Explained",
-    desc: "Record medical conversations",
-    icon: Mic,
-    scopeId: "clarityDoctorExplained",
-  },
-  {
-    title: "Summarise Document",
-    desc: "Simplify medical documents",
-    icon: FileText,
-    scopeId: "claritySummariseDocument",
-  },
-  {
-    title: "Explain Medication",
-    desc: "Understand prescriptions",
-    icon: Pill,
-    scopeId: "clarityExplainMedication",
-  },
-  {
-    title: "Appointment Prep",
-    desc: "Get ready for your visit",
-    icon: Calendar,
-    scopeId: "clarityAppointmentPrep",
-  },
-  {
-    title: "Explain Everyday",
-    desc: "Tech, news & bills made simple",
-    icon: Globe,
-    scopeId: "clarityExplainEveryday",
-  },
-];
 
 export function ClarityLanding() {
   const navigation = useNavigation<Nav>();

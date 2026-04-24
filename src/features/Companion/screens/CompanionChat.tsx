@@ -3,11 +3,12 @@ import { useRoute, RouteProp } from "@react-navigation/native";
 import { ChatScreen, ChatMessage, ChatSendPayload } from "../../../components/ChatScreen";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { runAI } from "../../../ai/core/runAI";
+import { extractAIText } from "../../../ai/core/extractAIText";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
 import { buildCompanionPrompt } from "../../../ai/scopes/companion/companionChat";
 import { buildConversationContext } from "../../../ai/scopes/_shared/conversation";
 import { AIScope } from "../../../ai/core/types";
-import { companionChatConfig } from "../../../config/chatConfigs";
+import { companionChatConfig } from "../../../config/Chat_config";
 
 type Route = RouteProp<RootStackParamList, "CompanionChat">;
 
@@ -31,11 +32,7 @@ export function CompanionChat() {
       return { aiText: "I'm sorry, I didn't quite catch that. Could you try again?", isError: true };
     }
 
-    const aiText =
-      typeof result.output === "string" ? result.output
-      : typeof result.raw === "string" ? result.raw
-      : "I'm here — please tell me more.";
-
+    const aiText = extractAIText(result, "I'm here — please tell me more.");
     return { aiText };
   };
 

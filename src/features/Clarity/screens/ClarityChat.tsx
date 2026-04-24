@@ -8,10 +8,11 @@ import {
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { getScope, ScopeId } from "../../../ai/scopes";
 import { runAI } from "../../../ai/core/runAI";
+import { extractAIText } from "../../../ai/core/extractAIText";
 import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
 import { openCameraAndScan, PhotoMode } from "../../../ai/camera/cameraService";
 import { buildConversationContext } from "../../../ai/scopes/_shared/conversation";
-import { clarityChatConfigs } from "../../../config/chatConfigs";
+import { clarityChatConfigs } from "../../../config/Chat_config";
 
 type Route = RouteProp<RootStackParamList, "ClarityChat">;
 
@@ -48,11 +49,7 @@ export function ClarityChat() {
       return { aiText: "Sorry, I couldn't get a response. Please try again.", isError: true };
     }
 
-    const aiText =
-      typeof result.output === "string" ? result.output
-      : typeof result.raw === "string" ? result.raw
-      : "No response";
-
+    const aiText = extractAIText(result, "No response");
     return { aiText };
   };
 

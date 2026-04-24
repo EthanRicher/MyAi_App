@@ -4,14 +4,7 @@ import { Phone } from "lucide-react-native";
 import { BackButton } from "../../../components/BackButton";
 import { BackendRequiredModal } from "../../../components/BackendRequiredModal";
 import { colors } from "../../../theme";
-
-const moods = [
-  { label: "Great", color: "#4CAF50", emoji: "😄" },
-  { label: "OK", color: "#8BC34A", emoji: "🙂" },
-  { label: "Low", color: "#FF9800", emoji: "😔" },
-  { label: "Worried", color: "#FF5722", emoji: "😟" },
-  { label: "Struggling", color: "#F44336", emoji: "😢" },
-];
+import { moods } from "../data/SenseGuard.data";
 
 interface Entry { symptom: string; date: string; severity: number; }
 

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
 import { ChevronDown, ChevronUp, User, Lock, Shield, Eye, Bell, Clock, Phone, HelpCircle, Trash2, Bot, Plus, X } from "lucide-react-native";
-import Slider from "@react-native-community/slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BackButton } from "../components/BackButton";
 import { colors } from "../theme";
@@ -341,7 +340,6 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 },
-  heading: { color: colors.text, fontSize: 26, fontWeight: "700", marginBottom: 20 },
   sectionList: { gap: 12 },
   section: { backgroundColor: colors.card, borderRadius: 12, overflow: "hidden" },
   sectionHeader: { padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
@@ -350,8 +348,6 @@ const styles = StyleSheet.create({
   sectionBody: { paddingHorizontal: 16, paddingBottom: 16 },
   sectionContent: { gap: 12 },
   fieldLabel: { color: colors.textCaption, fontSize: 13, marginBottom: 2 },
-  fieldValue: { color: colors.text },
-  fieldValueMuted: { color: colors.textMuted },
   secBtn: { width: "100%", paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16 },
   secBtnText: { color: colors.textMuted, fontSize: 15 },
   noteText: { color: colors.textCaption, fontSize: 13 },
@@ -364,13 +360,10 @@ const styles = StyleSheet.create({
   settingLabel: { color: colors.textMuted, fontSize: 15 },
   settingLabelGroup: { flex: 1, gap: 2, paddingRight: 12 },
   settingCaption: { color: colors.textCaption, fontSize: 12 },
-  settingValue: { color: colors.text, fontSize: 15, fontWeight: "600" },
-  sliderMin: { color: colors.textCaption, fontSize: 12 },
   fontSizeBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.border, alignItems: "center" },
   fontSizeBtnActive: { borderColor: colors.primary, backgroundColor: colors.primary + "18" },
   fontSizeBtnText: { color: colors.textMuted, fontSize: 14, fontWeight: "600" },
   fontSizeBtnTextActive: { color: colors.primary },
-  sliderMax: { color: colors.textCaption, fontSize: 12 },
   toggle: { width: 48, height: 28, borderRadius: 14, position: "relative" },
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.text, position: "absolute", top: 4 },
   warningText: { color: colors.orange, fontSize: 13 },

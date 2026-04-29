@@ -1,6 +1,6 @@
 import { BASE_RULES, buildRelevanceRule, buildPhotoRelevanceRule } from "./rules";
 
-export const BREAKDOWN_FORMAT = `
+const BREAKDOWN_FORMAT = `
 RESPONSE FORMAT (always follow exactly):
 - First line: short main title in double asterisks — **Title Here** (max 30 characters, no colons)
 - Leave a blank line after the main title
@@ -11,7 +11,7 @@ RESPONSE FORMAT (always follow exactly):
 - Plain simple language easy for an elderly person to read
 `.trim();
 
-export const CONVERSATIONAL_FORMAT = `
+const CONVERSATIONAL_FORMAT = `
 RESPONSE FORMAT:
 - Reply naturally and conversationally in 1–3 short sentences
 - Only use "- " bullet points if you are listing more than 3 things
@@ -20,7 +20,7 @@ RESPONSE FORMAT:
 - Plain language easy for an elderly person to read
 `.trim();
 
-export const AUTO_FORMAT = `
+const AUTO_FORMAT = `
 RESPONSE FORMAT (you decide — pick ONE path):
 
 USE BREAKDOWN FORMAT only when the user is asking you to teach, explain, define, or list something objective:

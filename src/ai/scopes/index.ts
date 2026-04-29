@@ -28,13 +28,4 @@ export const scopeRegistry = {
 
 export type ScopeId = keyof typeof scopeRegistry;
 
-export const getScope = (id: ScopeId) => {
-  return scopeRegistry[id];
-};
-
-// Sub-folder re-exports
-export * from "./clarity";
-export * from "./medview";
-export * from "./companion";
-export * from "./main";
-export * from "./_shared";
+export const getScope = (id: ScopeId) => scopeRegistry[id];

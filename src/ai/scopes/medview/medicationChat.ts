@@ -1,7 +1,9 @@
 import { AIScope } from "../../core/types";
-import { buildSharedPrompt, buildSharedPhotoPrompt, inferFormat, MEDICAL_WARNING } from "../_shared";
+import { buildSharedPrompt, buildSharedPhotoPrompt, MEDICAL_WARNING } from "../_shared";
 
 const TOPIC = "explain your medications";
+
+type Med = { name: string; dose: string; description: string };
 
 export const medviewMedicationChat: AIScope = {
   id: "medviewMedicationChat",
@@ -17,6 +19,19 @@ Do NOT repeat a full overview if one has already been given. Answer specifically
 ${text}
 `.trim(),
       "auto",
+      TOPIC
+    ),
+
+  buildInitialPrompt: (med: Med) =>
+    buildSharedPrompt(
+      `
+Medication: ${med.name}
+Dose: ${med.dose}
+Description: ${med.description}
+
+Explain this medication. Cover what it is for, how it is taken, and key things to know.
+`.trim(),
+      "breakdown",
       TOPIC
     ),
 

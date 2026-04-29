@@ -1,9 +1,9 @@
-import { AIScope, RunAIResult } from "../core/types";
-import { runAI } from "../core/runAI";
+import { AIScope, RunAIResult } from "../../ai/core/types";
+import { runAI } from "../../ai/core/runAI";
 import { runVision } from "./runVision";
 import { runOCR } from "./ocrService";
 import { PhotoMode } from "./cameraService";
-import { addDebugEntry } from "../core/debug";
+import { addDebugEntry } from "../../ai/core/debug";
 
 export async function runAIOnPhoto(
   imageUri: string,

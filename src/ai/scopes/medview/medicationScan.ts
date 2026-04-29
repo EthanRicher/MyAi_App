@@ -38,9 +38,13 @@ TIMES:
   - four times daily = ["06:00", "12:00", "18:00", "22:00"]
 
 DESCRIPTION:
-- Only extract the actual written instructions
-- Do not explain
-- Keep it short and exact
+- Rewrite the printed instructions in clean, plain English suitable for an elderly reader
+- Preserve the EXACT meaning — do not add, omit, or invent anything
+- Spell out abbreviations: "1 tab po bid" → "Take 1 tablet by mouth twice a day"
+- Use full words: "twice a day" instead of "2 X day", "with food" instead of "w/ food"
+- Use normal sentence case, not ALL CAPS
+- Keep it to one or two short sentences
+- If no instructions are written, leave empty
 
 Return only valid JSON:
 
@@ -95,10 +99,13 @@ TIMES:
   - four times daily = ["06:00", "12:00", "18:00", "22:00"]
 
 DESCRIPTION:
-- Only extract the actual written instructions
-- Do not explain
-- Do not add extra information
-- Keep it short and exact
+- Rewrite the printed instructions in clean, plain English suitable for an elderly reader
+- Preserve the EXACT meaning — do not add, omit, or invent anything
+- Spell out abbreviations: "1 tab po bid" → "Take 1 tablet by mouth twice a day"
+- Use full words: "twice a day" instead of "2 X day", "with food" instead of "w/ food"
+- Use normal sentence case, not ALL CAPS
+- Keep it to one or two short sentences
+- If no instructions are written, leave empty
 
 Return only valid JSON in this exact shape:
 

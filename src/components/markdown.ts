@@ -8,8 +8,25 @@ export type MarkdownToken =
   | { kind: "bullet"; text: string }
   | { kind: "paragraph"; text: string };
 
+export type InlineSegment = { kind: "text" | "bold"; text: string };
+
 const TITLE_RE = /^\*\*([^*]+)\*\*:?$/;
 const BULLET_RE = /^[-•*]\s+(.+)$/;
+const INLINE_BOLD_RE = /\*\*([^*\n]+)\*\*/g;
+
+// Splits a single line of text into runs, marking any **bold** spans so
+// renderers can apply a bold style instead of leaking the asterisks.
+export function parseInline(text: string): InlineSegment[] {
+  const out: InlineSegment[] = [];
+  let i = 0;
+  for (const m of text.matchAll(INLINE_BOLD_RE)) {
+    if (m.index! > i) out.push({ kind: "text", text: text.slice(i, m.index) });
+    out.push({ kind: "bold", text: m[1] });
+    i = m.index! + m[0].length;
+  }
+  if (i < text.length) out.push({ kind: "text", text: text.slice(i) });
+  return out;
+}
 
 export function parseMarkdown(text: string, maxTitleChars = 30): MarkdownToken[] {
   const tokens: MarkdownToken[] = [];

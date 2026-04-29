@@ -15,12 +15,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AI_WARNING } from "../ai/scopes/_shared/warnings";
 import { Camera, Send, Mic, X, Keyboard } from "lucide-react-native";
 import { BackButton } from "./BackButton";
-import { BackendRequiredModal } from "./BackendRequiredModal";
 import { MessageReaderModal, ReaderMessage } from "./MessageReaderModal";
-import { parseMarkdown } from "./markdown";
+import { parseMarkdown, parseInline } from "./markdown";
 import { colors, warningColors, chatBubble, chatActionColors } from "../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useSpeechInput } from "../ai/speech/useSpeechInput";
+import { useSpeechInput } from "../input/speech/useSpeechInput";
+import { whisperTranscribe } from "../input/speech/whisperTranscriber";
 import { addDebugEntry } from "../ai/core/debug";
 import { AIDebugPanel } from "./AIDebugPanel";
 import { useAISettings } from "../hooks/useAISettings";
@@ -45,10 +45,17 @@ export interface CameraInputResult {
   text: string;
 }
 
-interface ProcessResult {
+export interface ProcessResult {
   aiText: string;
   isError?: boolean;
 }
+
+const renderInline = (text: string) =>
+  parseInline(text).map((seg, j) =>
+    seg.kind === "bold"
+      ? <Text key={j} style={{ fontWeight: "700" }}>{seg.text}</Text>
+      : seg.text
+  );
 
 function renderMessageContent(text: string, accentColor: string, baseStyle: object) {
   return parseMarkdown(text).map((token, i) => {
@@ -69,11 +76,11 @@ function renderMessageContent(text: string, accentColor: string, baseStyle: obje
         return (
           <View key={i} style={styles.bulletRow}>
             <Text style={[baseStyle, { color: accentColor }]}>{"•"}</Text>
-            <Text style={[baseStyle, styles.bulletText]}>{token.text}</Text>
+            <Text style={[baseStyle, styles.bulletText]}>{renderInline(token.text)}</Text>
           </View>
         );
       case "paragraph":
-        return <Text key={i} style={baseStyle}>{token.text}</Text>;
+        return <Text key={i} style={baseStyle}>{renderInline(token.text)}</Text>;
     }
   });
 }
@@ -83,18 +90,18 @@ interface Props {
   accentColor: string;
   aiLabel?: string;
   storageKey: string;
-  initialMessages: ChatMessage[];
+  initialMessages?: ChatMessage[];
   onProcessMessage: (message: ChatSendPayload, history: ChatMessage[]) => Promise<ProcessResult>;
   disclaimer?: string;
   disclaimerSub?: string;
   backTo?: string;
   backLabel?: string;
-  backendRequired?: boolean;
-  backendDescription?: string;
   speechEnabled?: boolean;
   onTranscribeAudio?: (uri: string) => Promise<string>;
   onCameraPress?: (onImageReady: (imageUri: string) => void) => Promise<CameraInputResult | null>;
   placeholder?: string;
+  typingLabel?: string;
+  speechErrorMessage?: string;
   autoPrompt?: string;
   messageWarning?: string;
   clearOnLoad?: boolean;
@@ -107,18 +114,18 @@ export function ChatScreen({
   accentColor,
   aiLabel = "AI",
   storageKey,
-  initialMessages,
+  initialMessages = [],
   onProcessMessage,
   disclaimer,
   disclaimerSub: _disclaimerSub,
   backTo,
   backLabel,
-  backendRequired = false,
-  backendDescription = "Backend required",
   speechEnabled: _speechEnabled = false,
-  onTranscribeAudio,
+  onTranscribeAudio = whisperTranscribe,
   onCameraPress,
   placeholder = "Type your message...",
+  typingLabel = "Typing...",
+  speechErrorMessage = "I couldn't hear you. Please try again.",
   autoPrompt,
   messageWarning,
   clearOnLoad = false,
@@ -145,7 +152,6 @@ export function ChatScreen({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
   const [input, setInput] = useState("");
-  const [showBackend, setShowBackend] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [pendingAutoSend, setPendingAutoSend] = useState(false);
   const [readerPair, setReaderPair] = useState<ReaderMessage[] | null>(null);
@@ -270,11 +276,6 @@ export function ChatScreen({
       return;
     }
 
-    if (backendRequired) {
-      setShowBackend(true);
-      return;
-    }
-
     addDebugEntry("ChatScreen", "user_payload", {
       text: cleanText,
       imageUri: payload.imageUri || "",
@@ -339,7 +340,7 @@ export function ChatScreen({
     if (!speechError) return;
     const errorMessage: ChatMessage = {
       role: "ai",
-      text: "I couldn't hear you. Please try again.",
+      text: speechErrorMessage,
       isError: true,
       timestamp: now(),
     };
@@ -350,11 +351,6 @@ export function ChatScreen({
 
   const handleMicPress = async () => {
     clearSpeechError();
-
-    if (backendRequired) {
-      setShowBackend(true);
-      return;
-    }
 
     if (isRecording) {
       await stopRecording();
@@ -377,11 +373,6 @@ export function ChatScreen({
 
   const handlePhotoPress = async () => {
     clearSpeechError();
-
-    if (backendRequired) {
-      setShowBackend(true);
-      return;
-    }
 
     if (!onCameraPress) {
       return;
@@ -530,7 +521,7 @@ export function ChatScreen({
             <View style={styles.aiBubbleWrap}>
               <View style={styles.aiBubble}>
                 <Text style={[styles.aiLabel, { color: accentColor }]}>{aiLabel}</Text>
-                <Text style={styles.messageText}>Typing...</Text>
+                <Text style={styles.messageText}>{typingLabel}</Text>
               </View>
             </View>
           )}
@@ -612,12 +603,6 @@ export function ChatScreen({
             </View>
           )}
         </View>
-
-        <BackendRequiredModal
-          open={showBackend}
-          onClose={() => setShowBackend(false)}
-          description={backendDescription}
-        />
 
         <MessageReaderModal
           visible={readerPair !== null}
@@ -701,14 +686,14 @@ const styles = StyleSheet.create({
   },
 
   fullscreenHint: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 14,
     borderWidth: 1.5,
   },
 
   fullscreenHintText: {
-    fontSize: 17,
+    fontSize: 13,
     fontWeight: "700",
   },
 
@@ -828,7 +813,7 @@ const styles = StyleSheet.create({
   },
 
   recordingText: {
-    color: "red",
+    color: colors.destructive,
     textAlign: "center",
     paddingTop: 6,
   },
@@ -848,7 +833,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: "red",
+    color: colors.destructive,
     textAlign: "center",
     paddingTop: 6,
   },

@@ -1,83 +1,47 @@
-import { useMemo } from "react";
-import { useRoute } from "@react-navigation/native";
+import { useRoute, RouteProp } from "@react-navigation/native";
+import { ChatScreen, ChatMessage, ChatSendPayload } from "../../../components/ChatScreen";
+import { RootStackParamList } from "../../../navigation/AppNavigator";
 import {
-  ChatScreen,
-  ChatMessage,
-  ChatSendPayload,
-} from "../../../components/ChatScreen";
-import { runAI } from "../../../ai/core/runAI";
-import { extractAIText } from "../../../ai/core/extractAIText";
-import { whisperTranscribe } from "../../../ai/speech/whisperTranscriber";
-import { openCameraAndScan, PhotoMode } from "../../../ai/camera/cameraService";
+  runChatTurn,
+  buildChatText,
+  chatScreenPropsFromConfig,
+} from "../../../ai/core/runChatTurn";
+import { defaultCameraHandler } from "../../../input/camera/cameraService";
 import { medviewMedicationChat } from "../../../ai/scopes/medview/medicationChat";
-import { buildConversationContext, buildSharedPrompt } from "../../../ai/scopes/_shared";
 import { medviewChatConfig } from "../../../config/Chat_config";
 
+type Route = RouteProp<RootStackParamList, "MedViewChat">;
+
 export function MedViewChat() {
-  const route = useRoute<any>();
+  const route = useRoute<Route>();
   const med = route.params?.med;
   const cfg = medviewChatConfig;
+  const scope = medviewMedicationChat;
 
   const storageKey = med
-    ? `chat:medviewMedicationChat:${med.id}`
-    : "chat:medviewMedicationChat:general";
+    ? `chat:${scope.id}:${med.id}`
+    : `chat:${scope.id}:general`;
 
-  const initialMessages = useMemo<ChatMessage[]>(() => [], []);
-
-  const handleProcessMessage = async (payload: ChatSendPayload, history: ChatMessage[]) => {
+  const handleProcessMessage = (payload: ChatSendPayload, history: ChatMessage[]) => {
     const message = payload.text?.trim() || "";
     const isInitial = history.length === 0;
 
-    let context: string;
-
-    if (isInitial && med) {
-      context = `Medication: ${med.name}
-Dose: ${med.dose}
-Description: ${med.description}
-
-Explain this medication. Cover what it is for, how it is taken, and key things to know.`;
-    } else {
-      const medHeader = med
-        ? `Medication context: ${med.name}, ${med.dose}\n\n`
-        : "";
-      context = `${medHeader}${buildConversationContext(history, message)}`;
+    if (isInitial && med && scope.buildInitialPrompt) {
+      return runChatTurn(cfg, scope, scope.buildInitialPrompt(med));
     }
 
-    const result = await runAI({
-      text: context,
-      scope: isInitial && med
-        ? { ...medviewMedicationChat, buildPrompt: (t) => buildSharedPrompt(t, "breakdown", medviewMedicationChat.topic) }
-        : medviewMedicationChat,
-      breakdownLength: cfg.breakdownLength,
-    });
-
-    if (result.error) {
-      return { aiText: "Sorry, I couldn't get a response. Please try again.", isError: true };
-    }
-
-    const aiText = extractAIText(result, "No response");
-    return { aiText };
+    const medHeader = med ? `Medication context: ${med.name}, ${med.dose}\n\n` : "";
+    return runChatTurn(cfg, scope, medHeader + buildChatText(cfg, history, message));
   };
 
   return (
     <ChatScreen
-      title="MedView Chat"
-      accentColor={cfg.accentColor}
-      aiLabel={cfg.aiLabel}
+      {...chatScreenPropsFromConfig(cfg)}
       storageKey={storageKey}
-      initialMessages={initialMessages}
       onProcessMessage={handleProcessMessage}
-      disclaimer={cfg.disclaimer}
-      disclaimerSub="This is not medical advice. Always confirm with your doctor."
-      backTo={cfg.backTo}
-      backLabel={cfg.backLabel}
-      speechEnabled={cfg.speechEnabled}
-      onTranscribeAudio={whisperTranscribe}
-      onCameraPress={(onImageReady) => openCameraAndScan(PhotoMode.VisionWithFallback, onImageReady)}
+      onCameraPress={cfg.cameraEnabled ? defaultCameraHandler : undefined}
       autoPrompt={med ? "Explain this medication." : undefined}
       clearOnLoad={!!med}
-      messageWarning={medviewMedicationChat.warning}
-      conversational={cfg.conversational}
     />
   );
 }

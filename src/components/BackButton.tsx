@@ -31,7 +31,7 @@ export function BackButton({ label = "Back", to, right, hideTitle }: Props) {
         onPress={handlePress}
         accessibilityLabel={`Go back to ${label}`}
       >
-        <ChevronLeft size={inChat ? 20 : 22} color="#fff" strokeWidth={2.5} />
+        <ChevronLeft size={inChat ? 20 : 22} color={colors.text} strokeWidth={2.5} />
         <Text style={[styles.exitLabel, inChat ? styles.exitLabelChat : styles.exitLabelSmall]}>Back</Text>
       </TouchableOpacity>
 
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   },
   exitBtn: {
     borderRadius: 8,
-    backgroundColor: "#E53935",
+    backgroundColor: colors.destructive,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   exitLabel: {
-    color: "#fff",
+    color: colors.text,
     fontWeight: "700",
     textAlign: "center",
     textAlignVertical: "center",

@@ -1,7 +1,7 @@
 import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
-import { addDebugEntry } from "../core/debug";
+import { addDebugEntry } from "../../ai/core/debug";
 import { runOCR } from "./ocrService";
 import { runVision } from "./runVision";
 import { CameraInputResult } from "../../components/ChatScreen";
@@ -11,6 +11,11 @@ export enum PhotoMode {
   OCR = "ocr",
   VisionWithFallback = "vision_with_fallback",
 }
+
+// Default camera handler used by chat screens — opens camera in
+// VisionWithFallback mode. Pass directly as ChatScreen's onCameraPress.
+export const defaultCameraHandler = (onImageReady: (uri: string) => void) =>
+  openCameraAndScan(PhotoMode.VisionWithFallback, onImageReady);
 
 export async function openCameraAndScan(
   mode: PhotoMode = PhotoMode.VisionWithFallback,

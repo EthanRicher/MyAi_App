@@ -3,7 +3,7 @@ import { LayoutChangeEvent, Modal, View, Text, TouchableOpacity, StyleSheet } fr
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import { colors, chatBubble, warningColors } from "../theme";
-import { parseMarkdown } from "./markdown";
+import { parseMarkdown, parseInline } from "./markdown";
 
 export interface ReaderMessage {
   role: "user" | "ai";
@@ -42,6 +42,13 @@ const BASE = {
   bubbleRadius: 18,
   bubblePad: 20,
 };
+
+const renderInline = (text: string) =>
+  parseInline(text).map((seg, j) =>
+    seg.kind === "bold"
+      ? <Text key={j} style={{ fontWeight: "700" }}>{seg.text}</Text>
+      : seg.text
+  );
 
 // Render parsed markdown tokens at a given scale. All size-dependent values
 // are inline (need `s`); static layout lives in `contentStyles` below.
@@ -108,7 +115,7 @@ function renderReader(text: string, accentColor: string, s: number) {
                 { fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s },
               ]}
             >
-              {token.text}
+              {renderInline(token.text)}
             </Text>
           </View>
         );
@@ -121,7 +128,7 @@ function renderReader(text: string, accentColor: string, s: number) {
               { fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s },
             ]}
           >
-            {token.text}
+            {renderInline(token.text)}
           </Text>
         );
     }

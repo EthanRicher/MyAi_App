@@ -5,7 +5,7 @@ export const claritySummariseDocument = {
     id: "claritySummariseDocument",
     topic: "simplify medical documents",
     warning: AI_WARNING,
-    format: "auto",
+    format: "breakdown",
     task: `
 You simplify medical documents.
 

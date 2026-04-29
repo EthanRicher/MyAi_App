@@ -17,8 +17,8 @@ import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
-import { openCameraAndScan, PhotoMode } from "../../../ai/camera/cameraService";
-import { runAIOnPhoto } from "../../../ai/camera/runAIOnPhoto";
+import { openCameraAndScan, PhotoMode } from "../../../input/camera/cameraService";
+import { runAIOnPhoto } from "../../../input/camera/runAIOnPhoto";
 import { medviewMedicationScan } from "../../../ai/scopes/medview/medicationScan";
 import { addDebugEntry } from "../../../ai/core/debug";
 import { AIDebugPanel } from "../../../components/AIDebugPanel";
@@ -150,16 +150,21 @@ export function MedViewAdd() {
     }
   };
 
-  const commitPicker = () => {
-    if (showPickerIndex === null) return;
-    const hours = pickerDate.getHours().toString().padStart(2, "0");
-    const minutes = pickerDate.getMinutes().toString().padStart(2, "0");
+  const formatHHMM = (d: Date) =>
+    `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+
+  const setTimeAt = (index: number, value: string) => {
     setAllTimes((prev) => {
       const updated = [...prev];
-      updated[showPickerIndex] = `${hours}:${minutes}`;
+      updated[index] = value;
       return updated;
     });
     setInvalidFields((prev) => prev.filter((f) => f !== "times"));
+  };
+
+  const commitPicker = () => {
+    if (showPickerIndex === null) return;
+    setTimeAt(showPickerIndex, formatHHMM(pickerDate));
     setShowPickerIndex(null);
   };
 
@@ -233,18 +238,11 @@ export function MedViewAdd() {
                 if (Platform.OS === "android") {
                   if (event.type === "set" && selectedDate) {
                     setPickerDate(selectedDate);
-                    const hours = selectedDate.getHours().toString().padStart(2, "0");
-                    const minutes = selectedDate.getMinutes().toString().padStart(2, "0");
-                    setAllTimes((prev) => {
-                      const updated = [...prev];
-                      updated[showPickerIndex!] = `${hours}:${minutes}`;
-                      return updated;
-                    });
-                    setInvalidFields((prev) => prev.filter((f) => f !== "times"));
+                    setTimeAt(showPickerIndex!, formatHHMM(selectedDate));
                   }
                   setShowPickerIndex(null);
-                } else {
-                  if (selectedDate) setPickerDate(selectedDate);
+                } else if (selectedDate) {
+                  setPickerDate(selectedDate);
                 }
               }}
               style={styles.modalPicker}
@@ -276,7 +274,7 @@ export function MedViewAdd() {
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
-          <Text style={[styles.dividerText, dividerMessage ? { color: "#FFA726" } : undefined]}>
+          <Text style={[styles.dividerText, dividerMessage ? { color: colors.orange } : undefined]}>
             {dividerMessage || "Or enter manually"}
           </Text>
           <View style={styles.dividerLine} />
@@ -435,7 +433,7 @@ const styles = StyleSheet.create({
   },
 
   errorText: {
-    color: "red",
+    color: colors.destructive,
     textAlign: "center",
   },
 
@@ -583,7 +581,7 @@ const styles = StyleSheet.create({
   },
 
   errorInput: {
-    borderColor: "red",
+    borderColor: colors.destructive,
     borderWidth: 2,
   },
 

@@ -17,6 +17,9 @@ import { SenseGuard } from "../features/SenseGuard/screens/SenseGuard";
 import { Companion } from "../features/Companion/screens/Companion";
 import { CompanionChat } from "../features/Companion/screens/CompanionChat";
 import { SafeHarbour } from "../features/SafeHarbour/screens/SafeHarbour";
+import { DocsLanding } from "../features/Docs/screens/DocsLanding";
+import { DocsDetail } from "../features/Docs/screens/DocsDetail";
+import { AlertsLog } from "../features/Docs/screens/AlertsLog";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { Medication } from "../features/Medview/models/Medication";
 export type RootStackParamList = {
@@ -40,6 +43,9 @@ export type RootStackParamList = {
   Companion: undefined;
   CompanionChat: { title?: string; initialMessage?: string };
   SafeHarbour: undefined;
+  Docs: undefined;
+  DocsDetail: { id: string };
+  AlertsLog: undefined;
   Settings: undefined;
 };
 
@@ -69,6 +75,9 @@ export function AppNavigator() {
       <Stack.Screen name="Companion" component={Companion} />
       <Stack.Screen name="CompanionChat" component={CompanionChat} />
       <Stack.Screen name="SafeHarbour" component={SafeHarbour} />
+      <Stack.Screen name="Docs" component={DocsLanding} />
+      <Stack.Screen name="DocsDetail" component={DocsDetail} />
+      <Stack.Screen name="AlertsLog" component={AlertsLog} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );

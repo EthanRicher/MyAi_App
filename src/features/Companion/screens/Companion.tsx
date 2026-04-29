@@ -53,6 +53,7 @@ export function Companion() {
             <ChevronRight size={24} color={colors.border} />
           </TouchableOpacity>
         ))}
+
       </View>
     </View>
   );

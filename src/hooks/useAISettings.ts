@@ -8,6 +8,7 @@ export type AISettings = {
   useHistory: boolean;
   clearOnExit: boolean;
   showStarterPrompts: boolean;
+  defaultLanguage: "English";
 };
 
 const DEFAULTS: AISettings = {
@@ -15,6 +16,7 @@ const DEFAULTS: AISettings = {
   useHistory: true,
   clearOnExit: false,
   showStarterPrompts: true,
+  defaultLanguage: "English",
 };
 
 export async function loadAISettings(): Promise<AISettings> {

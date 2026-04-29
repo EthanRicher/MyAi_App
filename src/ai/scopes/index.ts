@@ -10,6 +10,8 @@ import { medviewMedicationScan } from "./medview/medicationScan";
 import { medviewScheduleSupport } from "./medview/scheduleSupport";
 import { companionChat } from "./companion/companionChat";
 import { mainDashboardTriage } from "./main/dashboardTriage";
+import { senseguardSymptomLog } from "./senseguard/symptomLog";
+import { safeHarbourScamCheck } from "./safeharbour/scamCheck";
 
 export const scopeRegistry = {
   clarityAppointmentPrep,
@@ -24,6 +26,8 @@ export const scopeRegistry = {
   medviewScheduleSupport,
   companionChat,
   mainDashboardTriage,
+  senseguardSymptomLog,
+  safeHarbourScamCheck,
 } as const;
 
 export type ScopeId = keyof typeof scopeRegistry;

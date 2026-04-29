@@ -35,7 +35,17 @@ function renderExplanation(text: string) {
     switch (token.kind) {
       case "mainTitle":
       case "subTitle":
-        return <Text key={i} style={styles.explainTitle}>{token.text}</Text>;
+        return (
+          <Text
+            key={i}
+            style={styles.explainTitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+          >
+            {token.text}
+          </Text>
+        );
       case "bullet":
         return (
           <View key={i} style={styles.bulletRow}>

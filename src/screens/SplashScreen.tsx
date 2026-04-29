@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, ActivityIndicator, StyleSheet, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -17,7 +17,11 @@ export function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>MyAI</Text>
+      <Image
+        source={require("../assets/Logo_Full.png")}
+        style={styles.logoFull}
+        resizeMode="contain"
+      />
       <Text style={styles.subtitle}>Your Companion for Everyday Life</Text>
       <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
     </View>
@@ -32,10 +36,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 24,
   },
-  title: {
-    fontSize: 54,
-    fontWeight: "700",
-    color: colors.primary,
+  logoFull: {
+    width: 280,
+    height: 120,
   },
   subtitle: {
     fontSize: 18,

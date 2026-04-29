@@ -1,31 +1,34 @@
 {
   "expo": {
-    "name": "MyAI",
-    "slug": "myai-expo",
+    "name": "MySafe",
+    "slug": "mysafe-expo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
+      "image": "./src/assets/MyAi_logo.png",
+      "resizeMode": "contain",
       "backgroundColor": "#04041c"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.myai.app"
+      "bundleIdentifier": "com.mysafe.app"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./src/assets/icon-adaptive.png",
         "backgroundColor": "#04041c"
       },
-      "package": "com.myai.app"
+      "package": "com.mysafe.app"
     },
     "plugins": [
       "@react-native-community/datetimepicker",
       [
         "expo-image-picker",
         {
-          "cameraPermission": "MyAI needs camera access to scan documents and medications.",
-          "photosPermission": "MyAI needs photo library access to select images."
+          "cameraPermission": "MySafe needs camera access to scan documents and medications.",
+          "photosPermission": "MySafe needs photo library access to select images."
         }
       ]
     ]

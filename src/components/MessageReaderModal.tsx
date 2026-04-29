@@ -46,7 +46,7 @@ const BASE = {
 const renderInline = (text: string) =>
   parseInline(text).map((seg, j) =>
     seg.kind === "bold"
-      ? <Text key={j} style={{ fontWeight: "700" }}>{seg.text}</Text>
+      ? <Text key={j} style={{ fontWeight: "900" }}>{seg.text}</Text>
       : seg.text
   );
 
@@ -75,6 +75,9 @@ function renderReader(text: string, accentColor: string, s: number) {
                 contentStyles.mainTitleText,
                 { fontSize: BASE.mainTitle * s, lineHeight: BASE.mainTitleLine * s, color: accentColor },
               ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
             >
               {token.text}
             </Text>
@@ -100,6 +103,9 @@ function renderReader(text: string, accentColor: string, s: number) {
                 contentStyles.subTitleText,
                 { fontSize: BASE.subTitle * s, lineHeight: BASE.subTitleLine * s, color: accentColor },
               ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
             >
               {token.text}
             </Text>

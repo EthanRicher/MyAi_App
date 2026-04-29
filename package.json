@@ -1,5 +1,5 @@
 {
-  "name": "myai-expo",
+  "name": "mysafe-expo",
   "version": "1.0.0",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -34,6 +34,7 @@
     "@babel/core": "^7.24.0",
     "@types/react": "~19.1.10",
     "babel-preset-expo": "~54.0.10",
+    "sharp": "^0.34.5",
     "typescript": "~5.9.2"
   }
 }

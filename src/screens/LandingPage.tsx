@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -11,7 +11,14 @@ export function LandingPage() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>MyAI</Text>
+      <View style={styles.titleRow}>
+        <Image
+          source={require("../assets/Logo_No_Text.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>MySafe</Text>
+      </View>
       <Text style={styles.subtitle}>
         A friendly companion to help you understand medical information, manage medications, and feel supported every day.
       </Text>
@@ -37,6 +44,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 32,
     gap: 24,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  logo: {
+    width: 64,
+    height: 64,
   },
   title: {
     fontSize: 44,

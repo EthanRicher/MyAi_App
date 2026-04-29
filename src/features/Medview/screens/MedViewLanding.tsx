@@ -57,6 +57,7 @@ export function MedViewLanding() {
             <View style={[styles.progressFill, { width: `${pct}%` }]} />
           </View>
         </View>
+
       </View>
 
       <ScrollView

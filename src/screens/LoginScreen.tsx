@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -69,9 +70,15 @@ export function LoginScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 32 }]}>
-      <Text style={styles.title}>MyAI</Text>
-      <Text style={styles.subtitle}>Welcome back</Text>
+    <View style={[styles.container, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 16 }]}>
+      <View style={styles.logoZone}>
+        <Image
+          source={require("../assets/Logo_Full.png")}
+          style={styles.logoFull}
+          resizeMode="contain"
+        />
+        <Text style={styles.subtitle}>Welcome back</Text>
+      </View>
 
       <Animated.View style={[styles.card, { transform: [{ translateX: shakeAnim }] }]}>
         {/* Tabs */}
@@ -169,10 +176,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 24,
   },
-  title: {
-    fontSize: 44,
-    fontWeight: "700",
-    color: colors.primary,
+  logoZone: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
+  logoFull: {
+    width: 340,
+    height: 200,
     marginBottom: 8,
   },
   subtitle: {

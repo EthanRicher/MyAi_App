@@ -5,6 +5,7 @@
 import type { ScopeId } from "../ai/scopes";
 import { MEDICAL_WARNING, AI_WARNING } from "../ai/scopes/_shared/warnings";
 import type { BreakdownLength } from "./Breakdown_config";
+import type { DocCategory } from "../features/Docs/models/Doc";
 import { colors } from "../theme";
 
 export type ChatConfig = {
@@ -37,6 +38,13 @@ export type ChatConfig = {
   errorMessage: string;       // shown when AI call fails
   fallbackMessage: string;    // shown when AI returns no text
   speechErrorMessage: string; // shown when speech transcription fails
+
+  // ── Docs ───────────────────────────────────────────────────────────────────
+  // When saveable is true, every AI reply in this chat gets a "Save to Docs"
+  // button so the user can stash the reply (a letter, plan, family note, etc.)
+  // into the Docs library. saveCategory routes it to the right section.
+  saveable?: boolean;
+  saveCategory?: DocCategory;
 };
 
 // ─── Shared Defaults ──────────────────────────────────────────────────────────
@@ -120,6 +128,8 @@ export const clarityChatConfigs: Record<string, ChatConfig> = {
     title: "Summarise Document",
     disclaimer: "I'll summarise your document plainly",
     speechEnabled: false,
+    saveable: true,
+    saveCategory: "summary",
   },
 };
 
@@ -191,6 +201,8 @@ export const companionChatConfigs: Record<string, ChatConfig> = {
     title: "Plan My Day",
     disclaimer: "Let's plan a simple, balanced day",
     starterPrompts: ["Help me plan a nice day", "What's a good morning routine?", "Plan a relaxing afternoon for me"],
+    saveable: true,
+    saveCategory: "plan",
   },
   "Calm Down": {
     ...COMPANION_DEFAULTS,
@@ -215,24 +227,32 @@ export const companionChatConfigs: Record<string, ChatConfig> = {
     title: "Family Tree",
     disclaimer: "Let's talk about your family",
     starterPrompts: ["Help me remember my family history", "Let's talk about my grandchildren", "Tell me about keeping a family tree"],
+    saveable: true,
+    saveCategory: "family",
   },
   "Write Letters": {
     ...COMPANION_DEFAULTS,
     title: "Write Letters",
     disclaimer: "I'll help you write a heartfelt letter",
     starterPrompts: ["Help me write a letter to a friend", "I want to write to my grandchildren", "Help me write a thank you note"],
+    saveable: true,
+    saveCategory: "letter",
   },
   "Memory Book": {
     ...COMPANION_DEFAULTS,
     title: "Memory Book",
     disclaimer: "Let's cherish your favourite memories",
     starterPrompts: ["Help me document a favourite memory", "Let's talk about a special moment", "I want to remember a cherished day"],
+    saveable: true,
+    saveCategory: "memory",
   },
   "Creative Corner": {
     ...COMPANION_DEFAULTS,
     title: "Creative Corner",
     disclaimer: "Poems, stories and creative activities",
     starterPrompts: ["Write me a short poem", "Let's make up a short story", "Give me a fun creative activity"],
+    saveable: true,
+    saveCategory: "general",
   },
 };
 

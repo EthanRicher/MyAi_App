@@ -28,7 +28,7 @@ export function parseInline(text: string): InlineSegment[] {
   return out;
 }
 
-export function parseMarkdown(text: string, maxTitleChars = 30): MarkdownToken[] {
+export function parseMarkdown(text: string): MarkdownToken[] {
   const tokens: MarkdownToken[] = [];
   let mainTitleSeen = false;
 
@@ -38,10 +38,7 @@ export function parseMarkdown(text: string, maxTitleChars = 30): MarkdownToken[]
 
     const titleMatch = trimmed.match(TITLE_RE);
     if (titleMatch) {
-      let rawTitle = titleMatch[1].replace(/^:+|:+$/g, "").trim();
-      if (rawTitle.length > maxTitleChars) {
-        rawTitle = rawTitle.slice(0, maxTitleChars).trimEnd() + "…";
-      }
+      const rawTitle = titleMatch[1].replace(/^:+|:+$/g, "").trim();
       if (!mainTitleSeen) {
         mainTitleSeen = true;
         tokens.push({ kind: "mainTitle", text: rawTitle });

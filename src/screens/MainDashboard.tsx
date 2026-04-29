@@ -7,6 +7,7 @@ import {
   Animated,
   ActivityIndicator,
   useWindowDimensions,
+  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -20,7 +21,7 @@ import { whisperTranscribe } from "../input/speech/whisperTranscriber";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Main">;
 
-const BTN_SIZE = 180;
+const BTN_SIZE = 170;
 
 export function MainDashboard() {
   const navigation = useNavigation<Nav>();
@@ -95,12 +96,6 @@ export function MainDashboard() {
     ? "Listening... tap to stop"
     : "Tap the button to speak with your doctor assistant";
 
-  const buttonLabel = isProcessing
-    ? "Processing..."
-    : isRecording
-    ? "Tap to stop"
-    : "Tap to record";
-
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 12 }]}>
 
@@ -130,8 +125,27 @@ export function MainDashboard() {
         </Text>
       </View>
 
-      <View style={[styles.centerZone, { top: height / 2 - (BTN_SIZE / 2 + 32) }]} pointerEvents="box-none">
-        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+      {(() => {
+        const logoSize = width * 1.3;
+        const downOffset = 30;
+        return (
+          <Image
+            source={require("../assets/Logo_Empty.png")}
+            style={[
+              styles.logoBackdrop,
+              {
+                width: logoSize,
+                height: logoSize,
+                top: height / 2 - logoSize / 2 + downOffset,
+              },
+            ]}
+            resizeMode="contain"
+          />
+        );
+      })()}
+
+      <View style={[styles.centerZone, { top: height / 2 - BTN_SIZE / 2 }]} pointerEvents="box-none">
+        <Animated.View style={{ transform: [{ scale: pulseAnim }, { translateY: -10 }] }}>
           <TouchableOpacity
             onPress={handlePress}
             disabled={isProcessing}
@@ -150,8 +164,6 @@ export function MainDashboard() {
             )}
           </TouchableOpacity>
         </Animated.View>
-
-        <Text style={[styles.recordHint, { fontSize: fs(16) }]}>{buttonLabel}</Text>
       </View>
 
       <TouchableOpacity
@@ -202,14 +214,18 @@ const styles = StyleSheet.create({
 
   greetingZone: {
     alignItems: "center",
-    paddingTop: 10,
+    paddingTop: 0,
     gap: 8,
     paddingHorizontal: 16,
   },
+  logoBackdrop: {
+    position: "absolute",
+    alignSelf: "center",
+  },
   centerZone: {
     position: "absolute",
-    left: 0,
-    right: 0,
+    left: -24,
+    right: -24,
     alignItems: "center",
     gap: 24,
   },
@@ -251,11 +267,6 @@ const styles = StyleSheet.create({
   recordCircleProcessing: {
     backgroundColor: "#555",
     shadowOpacity: 0.2,
-  },
-  recordHint: {
-    color: colors.textMuted,
-    fontWeight: "600",
-    letterSpacing: 0.4,
   },
 
   exploreBtn: {

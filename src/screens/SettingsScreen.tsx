@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
-import { ChevronDown, ChevronUp, User, Lock, Shield, Eye, Bell, Clock, Phone, HelpCircle, Trash2, Bot, Plus, X } from "lucide-react-native";
+import { ChevronDown, ChevronUp, User, Lock, Shield, Eye, Bell, Clock, Phone, HelpCircle, Trash2, Bot, Plus, X, Globe } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BackButton } from "../components/BackButton";
 import { colors } from "../theme";
@@ -233,6 +233,17 @@ export function SettingsScreen() {
         <View style={styles.sectionContent}>
           <View style={styles.row}>
             <View style={styles.settingLabelGroup}>
+              <Text style={styles.settingLabel}>Default Language</Text>
+              <Text style={styles.settingCaption}>Other languages will be auto-translated. More languages coming soon.</Text>
+            </View>
+            <View style={styles.lockedPill}>
+              <Globe size={14} color={colors.textMuted} />
+              <Text style={styles.lockedPillText}>{aiSettings.defaultLanguage}</Text>
+              <Lock size={12} color={colors.textCaption} />
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.settingLabelGroup}>
               <Text style={styles.settingLabel}>Starter Prompts</Text>
               <Text style={styles.settingCaption}>Show suggestion buttons when a chat is empty</Text>
             </View>
@@ -284,7 +295,7 @@ export function SettingsScreen() {
         <View style={styles.sectionContent}>
           <TouchableOpacity style={styles.secBtn}><Text style={styles.secBtnText}>Frequently Asked Questions</Text></TouchableOpacity>
           <TouchableOpacity style={styles.secBtn}><Text style={styles.secBtnText}>Contact Support</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.secBtn}><Text style={styles.secBtnText}>How to Use MyAI</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.secBtn}><Text style={styles.secBtnText}>How to Use MySafe</Text></TouchableOpacity>
         </View>
       ),
     },
@@ -364,6 +375,22 @@ const styles = StyleSheet.create({
   fontSizeBtnActive: { borderColor: colors.primary, backgroundColor: colors.primary + "18" },
   fontSizeBtnText: { color: colors.textMuted, fontSize: 14, fontWeight: "600" },
   fontSizeBtnTextActive: { color: colors.primary },
+  lockedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  lockedPillText: {
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: "600",
+  },
   toggle: { width: 48, height: 28, borderRadius: 14, position: "relative" },
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.text, position: "absolute", top: 4 },
   warningText: { color: colors.orange, fontSize: 13 },

@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AI_WARNING } from "../ai/scopes/_shared/warnings";
@@ -17,11 +18,16 @@ import { Camera, Send, Mic, X, Keyboard } from "lucide-react-native";
 import { BackButton } from "./BackButton";
 import { MessageReaderModal, ReaderMessage } from "./MessageReaderModal";
 import { parseMarkdown, parseInline } from "./markdown";
+import { scanKeywords } from "../config/Keywords_config";
 import { colors, warningColors, chatBubble, chatActionColors } from "../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSpeechInput } from "../input/speech/useSpeechInput";
 import { whisperTranscribe } from "../input/speech/whisperTranscriber";
 import { addDebugEntry } from "../ai/core/debug";
+import { translateToEnglish } from "../ai/core/translate";
+import { useDocs } from "../features/Docs/hooks/useDocs";
+import { useAlerts } from "../features/Docs/hooks/useAlerts";
+import { DocCategory } from "../features/Docs/models/Doc";
 import { AIDebugPanel } from "./AIDebugPanel";
 import { useAISettings } from "../hooks/useAISettings";
 
@@ -32,6 +38,7 @@ export interface ChatMessage {
   isError?: boolean;
   warningText?: string;
   timestamp?: string;
+  isTranslation?: boolean;
 }
 
 export interface ChatSendPayload {
@@ -63,13 +70,27 @@ function renderMessageContent(text: string, accentColor: string, baseStyle: obje
       case "mainTitle":
         return (
           <View key={i} style={[styles.mainTitleChip, { backgroundColor: accentColor + "33", borderColor: accentColor + "88" }]}>
-            <Text style={[styles.mainTitleText, { color: accentColor }]}>{token.text}</Text>
+            <Text
+              style={[styles.mainTitleText, { color: accentColor }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+            >
+              {token.text}
+            </Text>
           </View>
         );
       case "subTitle":
         return (
           <View key={i} style={[styles.subTitleChip, { borderColor: accentColor + "55" }]}>
-            <Text style={[styles.subTitleText, { color: accentColor }]}>{token.text}</Text>
+            <Text
+              style={[styles.subTitleText, { color: accentColor }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+            >
+              {token.text}
+            </Text>
           </View>
         );
       case "bullet":
@@ -107,6 +128,8 @@ interface Props {
   clearOnLoad?: boolean;
   starterPrompts?: string[];
   conversational?: boolean;
+  saveable?: boolean;
+  saveCategory?: DocCategory;
 }
 
 export function ChatScreen({
@@ -131,9 +154,16 @@ export function ChatScreen({
   clearOnLoad = false,
   starterPrompts,
   conversational = false,
+  saveable = false,
+  saveCategory = "general",
 }: Props) {
   const { profile } = useUserProfile();
   const userFirstName = profile.name.trim().split(" ")[0] || "You";
+  const { addDoc, upsertDocByTitle } = useDocs();
+  const { addAlert } = useAlerts();
+  const [saveTarget, setSaveTarget] = useState<{ text: string; suggestedTitle: string } | null>(null);
+  const [saveTitle, setSaveTitle] = useState("");
+  const pendingOfferRef = useRef<{ title: string; content: string } | null>(null);
 
   const resolveWarning = (text: string, scopeWarning?: string): string | undefined => {
     const t = text.trimStart().toLowerCase();
@@ -244,13 +274,33 @@ export function ChatScreen({
     if (!pendingAutoSend || !autoPrompt) return;
     setPendingAutoSend(false);
 
-    const existing = messagesRef.current;
-    const userMessage: ChatMessage = { role: "user", text: autoPrompt, timestamp: now() };
-    const base = [...existing, userMessage];
-    setMessages(base);
-    setTyping(true);
-    onProcessMessage({ text: autoPrompt }, settings.useHistory ? existing : []).then((result) => {
-      const aiMessage: ChatMessage = { role: "ai", text: result.aiText, isError: result.isError, warningText: result.isError ? undefined : resolveWarning(result.aiText, messageWarning), timestamp: now() };
+    (async () => {
+      const existing = messagesRef.current;
+      const userMessage: ChatMessage = { role: "user", text: autoPrompt, timestamp: now() };
+      let base = [...existing, userMessage];
+      setMessages(base);
+      setTyping(true);
+
+      let textForAI = autoPrompt;
+      const tr = await translateToEnglish(autoPrompt);
+      if (tr.needed && tr.translated) {
+        const translatedMessage: ChatMessage = {
+          role: "user",
+          text: tr.translated,
+          timestamp: now(),
+          isTranslation: true,
+        };
+        base = [...base, translatedMessage];
+        setMessages(base);
+        textForAI = tr.translated;
+      }
+
+      const result = await onProcessMessage({ text: textForAI }, settings.useHistory ? existing : []);
+      const { clean: cleanAiText, offerTitle } = stripSaveMarker(result.aiText);
+      if (saveable && offerTitle && !result.isError) {
+        pendingOfferRef.current = { title: offerTitle, content: cleanAiText };
+      }
+      const aiMessage: ChatMessage = { role: "ai", text: cleanAiText, isError: result.isError, warningText: result.isError ? undefined : resolveWarning(cleanAiText, messageWarning), timestamp: now() };
       const next = [...base, aiMessage];
       setMessages(next);
       if (settings.saveChatHistory) {
@@ -258,8 +308,61 @@ export function ChatScreen({
       }
       setTyping(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-    });
+    })();
   }, [pendingAutoSend]);
+
+  const buildSuggestedTitle = (text: string): string => {
+    const titleMatch = text.match(/^\*\*([^*\n]+)\*\*\s*$/m);
+    if (titleMatch) return titleMatch[1].trim();
+    const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l.length > 0) || "";
+    return firstLine.replace(/[*#:_-]/g, "").slice(0, 60).trim() || "Untitled";
+  };
+
+  const openSaveModal = (text: string, suggested?: string) => {
+    const title = suggested || buildSuggestedTitle(text);
+    setSaveTitle(title);
+    setSaveTarget({ text, suggestedTitle: title });
+  };
+
+  const SAVE_MARKER_RE = /\n?\s*\[OFFER_SAVE:\s*title\s*=\s*"([^"]+)"\s*\]\s*$/i;
+  const stripSaveMarker = (raw: string): { clean: string; offerTitle?: string } => {
+    const m = raw.match(SAVE_MARKER_RE);
+    if (!m) return { clean: raw };
+    return { clean: raw.slice(0, m.index!).trimEnd(), offerTitle: m[1].trim() };
+  };
+
+  const SAVE_AFFIRMATIVE = /^(yes|yeah|yep|yup|ok|okay|sure|please|please save|do it|do save|save it|save this|save that|save them|save those|save these|save please)\b/i;
+  const SAVE_COMMAND = /\bsave (it|this|that|them|those|these)\b/i;
+  const detectSaveIntent = (text: string): boolean => {
+    const t = text.trim();
+    if (!t) return false;
+    if (pendingOfferRef.current && SAVE_AFFIRMATIVE.test(t)) return true;
+    return SAVE_COMMAND.test(t) || /^(save|please save)\b/i.test(t);
+  };
+
+  const cancelSave = () => {
+    setSaveTarget(null);
+    setSaveTitle("");
+  };
+
+  const confirmSave = () => {
+    if (!saveTarget) return;
+    const payload = {
+      title: saveTitle.trim() || saveTarget.suggestedTitle,
+      category: saveCategory,
+      content: saveTarget.text,
+    };
+    // Family + memory entries upsert by title so the AI's full updated record
+    // replaces the previous version instead of creating duplicates.
+    if (saveCategory === "family" || saveCategory === "memory") {
+      upsertDocByTitle(payload);
+    } else {
+      addDoc(payload);
+    }
+    addDebugEntry("ChatScreen", "doc_saved", { category: saveCategory, title: saveTitle, storageKey });
+    setSaveTarget(null);
+    setSaveTitle("");
+  };
 
   const persistMessages = async (nextMessages: ChatMessage[]) => {
     setMessages(nextMessages);
@@ -283,6 +386,26 @@ export function ChatScreen({
       storageKey,
     });
 
+    if (saveable && cleanText && detectSaveIntent(cleanText)) {
+      const offer = pendingOfferRef.current;
+      if (offer) {
+        openSaveModal(offer.content, offer.title);
+      } else {
+        const lastAi = [...messages].reverse().find((m) => m.role === "ai" && m.text && !m.isError);
+        if (lastAi?.text) openSaveModal(lastAi.text);
+      }
+      pendingOfferRef.current = null;
+    }
+
+    if (cleanText) {
+      const flagged = scanKeywords(cleanText)
+        .filter((s) => s.kind === "flag")
+        .map((s) => s.text);
+      if (flagged.length > 0) {
+        addAlert({ message: cleanText, keywords: flagged, storageKey });
+      }
+    }
+
     const userMessage: ChatMessage = {
       role: "user",
       imageUri: payload.imageUri,
@@ -290,22 +413,43 @@ export function ChatScreen({
       timestamp: now(),
     };
 
-    const nextWithUser = [...messages, userMessage];
+    let nextWithUser = [...messages, userMessage];
     await persistMessages(nextWithUser);
 
     setInput("");
     setTyping(true);
 
+    let textForAI = cleanText;
+    if (cleanText) {
+      const tr = await translateToEnglish(cleanText);
+      if (tr.needed && tr.translated) {
+        const translatedMessage: ChatMessage = {
+          role: "user",
+          text: tr.translated,
+          timestamp: now(),
+          isTranslation: true,
+        };
+        nextWithUser = [...nextWithUser, translatedMessage];
+        await persistMessages(nextWithUser);
+        textForAI = tr.translated;
+      }
+    }
+
     const result = await onProcessMessage({
       ...payload,
-      text: cleanText,
+      text: textForAI,
     }, settings.useHistory ? messages : []);
+
+    const { clean: cleanAiText, offerTitle } = stripSaveMarker(result.aiText);
+    if (saveable && offerTitle && !result.isError) {
+      pendingOfferRef.current = { title: offerTitle, content: cleanAiText };
+    }
 
     const aiMessage: ChatMessage = {
       role: "ai",
-      text: result.aiText,
+      text: cleanAiText,
       isError: result.isError,
-      warningText: result.isError ? undefined : resolveWarning(result.aiText, messageWarning),
+      warningText: result.isError ? undefined : resolveWarning(cleanAiText, messageWarning),
       timestamp: now(),
     };
 
@@ -503,14 +647,34 @@ export function ChatScreen({
                   accessibilityHint={m.text ? "Tap to read in full screen" : undefined}
                 >
                   <View style={styles.bubbleLabelRow}>
-                    <Text style={styles.userLabel}>{userFirstName}</Text>
+                    <Text style={styles.userLabel}>
+                      {m.isTranslation ? `${userFirstName} · Translated to English` : userFirstName}
+                    </Text>
                     {!!m.timestamp && <Text style={styles.timestamp}>{m.timestamp}</Text>}
                   </View>
                   {!!m.imageUri && (
                     <Image source={{ uri: m.imageUri }} style={styles.messageImage} />
                   )}
                   {!!m.text && !m.imageUri && (
-                    <Text style={styles.userBubbleText}>{m.text}</Text>
+                    <View style={styles.userBubbleTextRow}>
+                      {scanKeywords(m.text).flatMap((seg, j) => {
+                        if (seg.kind === "flag") {
+                          return [
+                            <View key={`f${j}`} style={styles.flagPill}>
+                              <Text style={styles.flagPillText}>{seg.text}</Text>
+                            </View>,
+                          ];
+                        }
+                        return seg.text
+                          .split(/(\s+)/)
+                          .filter((w) => w.length > 0 && !/^\s+$/.test(w))
+                          .map((w, k) => (
+                            <Text key={`t${j}-${k}`} style={styles.userBubbleText}>
+                              {w}
+                            </Text>
+                          ));
+                      })}
+                    </View>
                   )}
                 </TouchableOpacity>
               </View>
@@ -610,6 +774,36 @@ export function ChatScreen({
           accentColor={accentColor}
           onClose={() => setReaderPair(null)}
         />
+
+        <Modal
+          visible={saveTarget !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={cancelSave}
+        >
+          <View style={styles.saveOverlay}>
+            <View style={styles.saveCard}>
+              <Text style={styles.saveTitleHeading}>Save to Docs</Text>
+              <Text style={styles.saveSubtle}>Give this a title so you can find it later.</Text>
+              <TextInput
+                value={saveTitle}
+                onChangeText={setSaveTitle}
+                placeholder="Title"
+                placeholderTextColor={colors.textCaption}
+                style={styles.saveInput}
+                autoFocus
+              />
+              <View style={styles.saveBtnRow}>
+                <TouchableOpacity onPress={cancelSave} style={styles.saveCancelBtn}>
+                  <Text style={styles.saveCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={confirmSave} style={[styles.saveConfirmBtn, { backgroundColor: accentColor }]}>
+                  <Text style={styles.saveConfirmText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </KeyboardAvoidingView>
   );
@@ -657,6 +851,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
+  userBubbleTextRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    columnGap: 4,
+    rowGap: 4,
+  },
+  flagPill: {
+    backgroundColor: colors.destructive,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  flagPillText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
   errorBubbleText: {
     color: colors.destructive,
     fontSize: 16,
@@ -694,6 +907,71 @@ const styles = StyleSheet.create({
 
   fullscreenHintText: {
     fontSize: 13,
+    fontWeight: "700",
+  },
+
+  saveOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  saveCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 22,
+    gap: 12,
+  },
+  saveTitleHeading: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  saveSubtle: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  saveInput: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: colors.text,
+    fontSize: 16,
+  },
+  saveBtnRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  saveCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+  },
+  saveCancelText: {
+    color: colors.textMuted,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  saveConfirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  saveConfirmText: {
+    color: colors.background,
+    fontSize: 16,
     fontWeight: "700",
   },
 

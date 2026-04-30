@@ -17,10 +17,10 @@ import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
-import { openCameraAndScan, PhotoMode } from "../../../input/camera/cameraService";
-import { runAIOnPhoto } from "../../../input/camera/runAIOnPhoto";
-import { medviewMedicationScan } from "../../../ai/scopes/medview/medicationScan";
-import { addDebugEntry } from "../../../ai/core/debug";
+import { openCameraAndScan, PhotoMode } from "../../../backend/1_Input/Camera/Input_Camera";
+import { runAIOnPhoto } from "../../../backend/1_Input/Camera/Input_PhotoToAI";
+import { medviewMedicationScan } from "../../../backend/3_Scopes/MedView/Scan_Medication";
+import { addDebugEntry } from "../../../backend/4_AI/AI_Debug";
 import { AIDebugPanel } from "../../../components/AIDebugPanel";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedViewAdd">;

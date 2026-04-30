@@ -1,7 +1,7 @@
 import { OPENAI_API_KEY } from "@env";
-import { addDebugEntry } from "../../ai/core/debug";
+import { addDebugEntry } from "../../4_AI/AI_Debug";
 
-export type WhisperTranscribeOptions = {
+type WhisperTranscribeOptions = {
   model?: string;
   language?: string;
   prompt?: string;

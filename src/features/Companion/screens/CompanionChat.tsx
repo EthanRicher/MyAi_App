@@ -6,10 +6,10 @@ import {
   runChatTurn,
   buildChatText,
   chatScreenPropsFromConfig,
-} from "../../../ai/core/runChatTurn";
-import { buildCompanionPrompt } from "../../../ai/scopes/companion/companionChat";
-import { AIScope } from "../../../ai/core/types";
-import { getCompanionChatConfig } from "../../../config/Chat_config";
+} from "../../../backend/4_AI/AI_RunChatTurn";
+import { buildCompanionPrompt } from "../../../backend/3_Scopes/Companion/Chat_Companion";
+import { AIScope } from "../../../backend/4_AI/AI_Types";
+import { getCompanionChatConfig } from "../../../config/Companion";
 import { useDocs } from "../../Docs/hooks/useDocs";
 
 type Route = RouteProp<RootStackParamList, "CompanionChat">;

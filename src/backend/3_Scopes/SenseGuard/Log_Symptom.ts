@@ -1,5 +1,5 @@
-import { AIScope } from "../../core/types";
-import { buildSharedPrompt, MEDICAL_WARNING } from "../_shared";
+import { AIScope } from "../../4_AI/AI_Types";
+import { buildSharedPrompt } from "../_Common";
 
 const TOPIC = "log a symptom";
 
@@ -11,8 +11,6 @@ export type SymptomLogOutput = {
 
 export const senseguardSymptomLog: AIScope = {
   id: "senseguardSymptomLog",
-  topic: TOPIC,
-  warning: MEDICAL_WARNING,
   responseFormat: "json",
 
   buildPrompt: (text: string) =>

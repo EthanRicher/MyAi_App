@@ -6,7 +6,6 @@ import { LockoutScreen } from "../screens/LockoutScreen";
 import { MainDashboard } from "../screens/MainDashboard";
 import { HomeMenu } from "../screens/HomeMenu";
 import { ClarityLanding } from "../features/Clarity/screens/ClarityLanding";
-import { ClarityRecord } from "../features/Clarity/screens/ClarityRecord";
 import { ClarityChat } from "../features/Clarity/screens/ClarityChat";
 import { MedViewLanding } from "../features/Medview/screens/MedViewLanding";
 import { MedViewSchedule } from "../features/Medview/screens/MedViewSchedule";
@@ -30,7 +29,6 @@ export type RootStackParamList = {
   Main: undefined;
   Home: undefined;
   Clarity: undefined;
-  ClarityRecord: undefined;
   ClarityChat: { title?: string; initialMessage?: string; chips?: string[]; scopeId?: string };
   MedView: undefined;
   MedViewSchedule: undefined;
@@ -64,7 +62,6 @@ export function AppNavigator() {
       <Stack.Screen name="Main" component={MainDashboard} />
       <Stack.Screen name="Home" component={HomeMenu} />
       <Stack.Screen name="Clarity" component={ClarityLanding} />
-      <Stack.Screen name="ClarityRecord" component={ClarityRecord} />
       <Stack.Screen name="ClarityChat" component={ClarityChat} />
       <Stack.Screen name="MedView" component={MedViewLanding} />
       <Stack.Screen name="MedViewSchedule" component={MedViewSchedule} />

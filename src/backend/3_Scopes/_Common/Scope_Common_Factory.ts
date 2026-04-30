@@ -1,5 +1,5 @@
-import type { AIScope } from "../../core/types";
-import { buildSharedPrompt, buildSharedPhotoPrompt } from "./formats";
+import type { AIScope } from "../../4_AI/AI_Types";
+import { buildSharedPrompt, buildSharedPhotoPrompt } from "./Scope_Common_Formats";
 
 type ScopeConfig = {
   id: string;
@@ -21,8 +21,6 @@ const resolveFormat = (
 
 export const createScope = (config: ScopeConfig): AIScope => ({
   id: config.id,
-  topic: config.topic,
-  warning: config.warning,
   responseFormat: config.responseFormat,
   mapOutput: config.mapOutput,
 

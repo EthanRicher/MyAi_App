@@ -44,10 +44,6 @@ export const clearDebugEntries = () => {
   notify();
 };
 
-export const getDebugEntries = () => {
-  return [...entries];
-};
-
 export const subscribeDebugEntries = (
   listener: (entries: AIDebugEntry[]) => void
 ) => {

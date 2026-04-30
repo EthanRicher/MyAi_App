@@ -1,7 +1,7 @@
 import { OPENAI_API_KEY } from "@env";
-import { addDebugEntry } from "./debug";
-import { RunAIArgs, RunAIResult } from "./types";
-import { BREAKDOWN_CHAR_LIMITS, DEFAULT_BREAKDOWN_LENGTH } from "../../config/Breakdown_config";
+import { addDebugEntry } from "./AI_Debug";
+import { RunAIArgs, RunAIResult } from "./AI_Types";
+import { BREAKDOWN_CHAR_LIMITS, DEFAULT_BREAKDOWN_LENGTH } from "../../config/Config_Breakdown";
 
 const sanitiseText = (value: any) => {
   if (typeof value !== "string") {

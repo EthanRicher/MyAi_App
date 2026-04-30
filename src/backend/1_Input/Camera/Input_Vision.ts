@@ -1,6 +1,6 @@
 import { OPENAI_API_KEY } from "@env";
 import * as ImageManipulator from "expo-image-manipulator";
-import { addDebugEntry } from "../../ai/core/debug";
+import { addDebugEntry } from "../../4_AI/AI_Debug";
 
 const VISION_PROMPT = `Analyze this image thoroughly.
 

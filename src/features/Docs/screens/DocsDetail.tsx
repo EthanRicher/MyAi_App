@@ -7,7 +7,7 @@ import { Trash2 } from "lucide-react-native";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
-import { parseMarkdown, parseInline } from "../../../components/markdown";
+import { renderMarkdownWith, parseInline } from "../../../components/render/markdown";
 import { useDocs } from "../hooks/useDocs";
 import { CATEGORY_LABELS } from "../models/Doc";
 
@@ -22,34 +22,30 @@ const renderInline = (text: string) =>
   );
 
 const renderContent = (text: string) =>
-  parseMarkdown(text).map((token, i) => {
-    switch (token.kind) {
-      case "mainTitle":
-        return (
-          <View key={i} style={styles.mainTitleChip}>
-            <Text style={styles.mainTitleText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
-              {token.text}
-            </Text>
-          </View>
-        );
-      case "subTitle":
-        return (
-          <View key={i} style={styles.subTitleChip}>
-            <Text style={styles.subTitleText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
-              {token.text}
-            </Text>
-          </View>
-        );
-      case "bullet":
-        return (
-          <View key={i} style={styles.bulletRow}>
-            <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>{renderInline(token.text)}</Text>
-          </View>
-        );
-      case "paragraph":
-        return <Text key={i} style={styles.paragraph}>{renderInline(token.text)}</Text>;
-    }
+  renderMarkdownWith(text, {
+    mainTitle: (token, i) => (
+      <View key={i} style={styles.mainTitleChip}>
+        <Text style={styles.mainTitleText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+          {token.text}
+        </Text>
+      </View>
+    ),
+    subTitle: (token, i) => (
+      <View key={i} style={styles.subTitleChip}>
+        <Text style={styles.subTitleText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+          {token.text}
+        </Text>
+      </View>
+    ),
+    bullet: (token, i) => (
+      <View key={i} style={styles.bulletRow}>
+        <Text style={styles.bulletDot}>•</Text>
+        <Text style={styles.bulletText}>{renderInline(token.text)}</Text>
+      </View>
+    ),
+    paragraph: (token, i) => (
+      <Text key={i} style={styles.paragraph}>{renderInline(token.text)}</Text>
+    ),
   });
 
 export function DocsDetail() {

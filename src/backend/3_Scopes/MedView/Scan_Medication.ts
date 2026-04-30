@@ -1,9 +1,8 @@
-import { AIScope } from "../../core/types";
-import { buildSharedPrompt } from "../_shared";
+import { AIScope } from "../../4_AI/AI_Types";
+import { buildSharedPrompt } from "../_Common";
 
 export const medviewMedicationScan: AIScope = {
   id: "medviewMedicationScan",
-  topic: "scan medication labels and prescriptions",
   responseFormat: "json",
 
   buildPhotoPrompt: (analysis: string) =>

@@ -1,4 +1,4 @@
-import { RunAIResult } from "./types";
+import { RunAIResult } from "../4_AI/AI_Types";
 
 /**
  * Pulls a string out of a RunAI result, preferring `output` then `raw`, then

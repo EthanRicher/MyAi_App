@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Audio } from "expo-av";
-import { addDebugEntry } from "../../ai/core/debug";
+import { addDebugEntry } from "../../4_AI/AI_Debug";
 
 type UseSpeechInputArgs = {
   transcribe: (uri: string) => Promise<string>;

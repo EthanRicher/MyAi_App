@@ -1,5 +1,5 @@
 import { OCR_API_KEY } from "@env";
-import { addDebugEntry } from "../../ai/core/debug";
+import { addDebugEntry } from "../../4_AI/AI_Debug";
 
 export const runOCR = async (imageUri: string) => {
   try {

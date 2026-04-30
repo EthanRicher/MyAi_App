@@ -1,29 +1,16 @@
-import { buildSharedPrompt, AI_WARNING } from "../_shared";
+import { createScope, AI_WARNING } from "../_Common";
 
-export const clarityExplainEveryday = {
+export const clarityExplainEveryday = createScope({
   id: "clarityExplainEveryday",
+  topic: "explain everyday things like bills, letters, and documents",
   warning: AI_WARNING,
-  storageKey: "chat:clarity_explain_everyday",
-
-  initialMessage:
-    "I can explain everyday things like bills, tech, or news.",
-
-  chips: [
-    "Explain this bill",
-    "Explain this term",
-    "Summarise this",
-  ],
-
-  buildPrompt: (input: string) =>
-    buildSharedPrompt(`
+  format: "breakdown",
+  task: `
 You explain everyday topics in simple language.
 
 TASK:
 - Simplify confusing text
 - Explain meaning clearly
 - Keep it practical
-
-INPUT:
-${input}
-`, "breakdown", "explain everyday things like bills, letters, and documents"),
-};
+`.trim(),
+});

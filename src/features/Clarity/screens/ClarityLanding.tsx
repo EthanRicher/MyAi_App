@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
-import { clarityLandingCards as cards } from "../data/ClarityLanding.data";
+import { clarityLandingCards as cards } from "../../../config/Clarity/_Clarity_Config";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Clarity">;
 

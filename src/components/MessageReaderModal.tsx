@@ -3,7 +3,7 @@ import { LayoutChangeEvent, Modal, View, Text, TouchableOpacity, StyleSheet } fr
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import { colors, chatBubble, warningColors } from "../theme";
-import { parseMarkdown, parseInline } from "./markdown";
+import { renderMarkdownWith, parseInline } from "./render/markdown";
 
 export interface ReaderMessage {
   role: "user" | "ai";
@@ -53,91 +53,85 @@ const renderInline = (text: string) =>
 // Render parsed markdown tokens at a given scale. All size-dependent values
 // are inline (need `s`); static layout lives in `contentStyles` below.
 function renderReader(text: string, accentColor: string, s: number) {
-  return parseMarkdown(text).map((token, i) => {
-    switch (token.kind) {
-      case "mainTitle":
-        return (
-          <View
-            key={i}
-            style={[
-              contentStyles.mainTitleChip,
-              {
-                borderRadius: BASE.mainRadius * s,
-                paddingHorizontal: BASE.mainPadH * s,
-                paddingVertical: BASE.mainPadV * s,
-                backgroundColor: accentColor + "33",
-                borderColor: accentColor + "88",
-              },
-            ]}
-          >
-            <Text
-              style={[
-                contentStyles.mainTitleText,
-                { fontSize: BASE.mainTitle * s, lineHeight: BASE.mainTitleLine * s, color: accentColor },
-              ]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
-              {token.text}
-            </Text>
-          </View>
-        );
-      case "subTitle":
-        return (
-          <View
-            key={i}
-            style={[
-              contentStyles.subTitleBar,
-              {
-                backgroundColor: accentColor + "22",
-                borderTopColor: accentColor + "66",
-                borderBottomColor: accentColor + "66",
-                paddingHorizontal: BASE.subPadH * s,
-                paddingVertical: BASE.subPadV * s,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                contentStyles.subTitleText,
-                { fontSize: BASE.subTitle * s, lineHeight: BASE.subTitleLine * s, color: accentColor },
-              ]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
-              {token.text}
-            </Text>
-          </View>
-        );
-      case "bullet":
-        return (
-          <View key={i} style={[contentStyles.bulletRow, { gap: BASE.bulletGap * s }]}>
-            <Text style={{ fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s, color: accentColor }}>•</Text>
-            <Text
-              style={[
-                contentStyles.bulletText,
-                { fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s },
-              ]}
-            >
-              {renderInline(token.text)}
-            </Text>
-          </View>
-        );
-      case "paragraph":
-        return (
-          <Text
-            key={i}
-            style={[
-              contentStyles.paragraph,
-              { fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s },
-            ]}
-          >
-            {renderInline(token.text)}
-          </Text>
-        );
-    }
+  return renderMarkdownWith(text, {
+    mainTitle: (token, i) => (
+      <View
+        key={i}
+        style={[
+          contentStyles.mainTitleChip,
+          {
+            borderRadius: BASE.mainRadius * s,
+            paddingHorizontal: BASE.mainPadH * s,
+            paddingVertical: BASE.mainPadV * s,
+            backgroundColor: accentColor + "33",
+            borderColor: accentColor + "88",
+          },
+        ]}
+      >
+        <Text
+          style={[
+            contentStyles.mainTitleText,
+            { fontSize: BASE.mainTitle * s, lineHeight: BASE.mainTitleLine * s, color: accentColor },
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+        >
+          {token.text}
+        </Text>
+      </View>
+    ),
+    subTitle: (token, i) => (
+      <View
+        key={i}
+        style={[
+          contentStyles.subTitleBar,
+          {
+            backgroundColor: accentColor + "22",
+            borderTopColor: accentColor + "66",
+            borderBottomColor: accentColor + "66",
+            paddingHorizontal: BASE.subPadH * s,
+            paddingVertical: BASE.subPadV * s,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            contentStyles.subTitleText,
+            { fontSize: BASE.subTitle * s, lineHeight: BASE.subTitleLine * s, color: accentColor },
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+        >
+          {token.text}
+        </Text>
+      </View>
+    ),
+    bullet: (token, i) => (
+      <View key={i} style={[contentStyles.bulletRow, { gap: BASE.bulletGap * s }]}>
+        <Text style={{ fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s, color: accentColor }}>•</Text>
+        <Text
+          style={[
+            contentStyles.bulletText,
+            { fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s },
+          ]}
+        >
+          {renderInline(token.text)}
+        </Text>
+      </View>
+    ),
+    paragraph: (token, i) => (
+      <Text
+        key={i}
+        style={[
+          contentStyles.paragraph,
+          { fontSize: BASE.body * s, lineHeight: BASE.bodyLine * s },
+        ]}
+      >
+        {renderInline(token.text)}
+      </Text>
+    ),
   });
 }
 

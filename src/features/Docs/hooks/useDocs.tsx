@@ -8,7 +8,6 @@ type DocsContextType = {
   upsertDocByTitle: (d: { title: string; category: DocCategory; content: string }) => Doc;
   updateDoc: (doc: Doc) => void;
   deleteDoc: (id: string) => void;
-  clearDocs: () => void;
   getDoc: (id: string) => Doc | undefined;
 };
 
@@ -18,7 +17,6 @@ const DocsContext = createContext<DocsContextType>({
   upsertDocByTitle: () => ({ id: "", title: "", category: "general", content: "", createdAt: "", updatedAt: "" }),
   updateDoc: () => {},
   deleteDoc: () => {},
-  clearDocs: () => {},
   getDoc: () => undefined,
 });
 
@@ -85,12 +83,10 @@ export function DocsProvider({ children }: { children: ReactNode }) {
     setDocs((prev) => prev.filter((d) => d.id !== id));
   };
 
-  const clearDocs = () => setDocs([]);
-
   const getDoc = (id: string) => docs.find((d) => d.id === id);
 
   return (
-    <DocsContext.Provider value={{ docs, addDoc, upsertDocByTitle, updateDoc, deleteDoc, clearDocs, getDoc }}>
+    <DocsContext.Provider value={{ docs, addDoc, upsertDocByTitle, updateDoc, deleteDoc, getDoc }}>
       {children}
     </DocsContext.Provider>
   );

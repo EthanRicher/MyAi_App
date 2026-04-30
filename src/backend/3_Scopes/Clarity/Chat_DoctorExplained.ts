@@ -1,12 +1,11 @@
-import { createScope, MEDICAL_WARNING } from "../_shared";
+import { createScope, MEDICAL_WARNING } from "../_Common";
 
-export const clarityDoctorExplained = {
-  ...createScope({
-    id: "clarityDoctorExplained",
-    topic: "explain what your doctor said in simple terms",
-    warning: MEDICAL_WARNING,
-    format: "auto",
-    task: `
+export const clarityDoctorExplained = createScope({
+  id: "clarityDoctorExplained",
+  topic: "explain what your doctor said in simple terms",
+  warning: MEDICAL_WARNING,
+  format: "auto",
+  task: `
 You explain doctor conversations.
 
 TASK:
@@ -15,7 +14,4 @@ TASK:
 - Explain medical terms
 - Suggest what the patient should remember
 `.trim(),
-  }),
-  storageKey: "chat:clarity_doctor_explained",
-  chips: ["Explain what my doctor said", "Summarise this visit", "What should I do next?"],
-};
+});

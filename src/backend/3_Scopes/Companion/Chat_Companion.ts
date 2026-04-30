@@ -1,5 +1,4 @@
-import { AIScope } from "../../core/types";
-import { buildSharedPrompt } from "../_shared";
+import { buildSharedPrompt } from "../_Common";
 
 const contextGuides: Record<string, string> = {
   "Brain Games":
@@ -24,7 +23,7 @@ FAMILY TREE BEHAVIOUR (very important):
   - If the user confirms, add the new info to that same person.
   - If the user says no (different person with the same name), treat them as a new person and clarify with a distinguishing detail.
   - If the name is new, treat them as a new person and ask one or two warm questions to start their record.
-- When you offer to save (the standard save-offer flow), ALWAYS suggest the person's name as the title in the OFFER_SAVE marker. Produce the FULL updated record (existing facts + new facts merged), so saving overwrites the previous version cleanly.
+- Once you've gathered a name plus 2–3 facts about a person, produce the FULL updated record (existing facts + new facts merged) as your reply, so saving overwrites the previous version cleanly. The save-offer is added by a separate step — your job is just to write the record.
 - Keep the tone gentle and curious. One question at a time.
 `,
   "Write Letters":
@@ -41,8 +40,7 @@ MEMORY BOOK BEHAVIOUR (very important):
   - If they confirm, add the new details to that same memory.
   - If they say no (different memory), treat it as a new one and ask a couple of warm questions to give it a clear identity.
   - If the memory is new, ask one or two gentle questions to flesh it out before offering to save.
-- Save EARLY (after just a few details) rather than waiting for everything — you can always add more later. Once you have a name and 2–3 facts, offer to save.
-- When you offer to save, ALWAYS suggest the memory's short descriptive name as the title in the OFFER_SAVE marker. Produce the FULL updated record (existing details + new details merged), so saving overwrites the previous version cleanly.
+- Once you have a name and 2–3 facts, produce the FULL updated record (existing details + new details merged) as your reply, so saving overwrites the previous version cleanly. The save-offer is added by a separate step — your job is just to write the record.
 - Keep the tone gentle and curious. One question at a time.
 `,
   "Creative Corner":
@@ -65,7 +63,7 @@ ${block}
 `;
 };
 
-export type CompanionDocEntry = { title: string; content: string };
+type CompanionDocEntry = { title: string; content: string };
 
 export const buildCompanionPrompt = (
   input: string,
@@ -131,9 +129,3 @@ ${input}
   );
 };
 
-export const companionChat: AIScope = {
-  id: "companionChat",
-
-  conversational: true,
-  buildPrompt: (input: string) => buildCompanionPrompt(input),
-};

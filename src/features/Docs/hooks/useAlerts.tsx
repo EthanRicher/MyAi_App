@@ -4,14 +4,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export type AlertEntry = {
   id: string;
   message: string;        // the user's full message
-  keywords: string[];     // matched red-flag keywords
+  keywords: string[];     // matched red-flag keywords (hardcoded list)
+  reason?: string;        // AI second-pass reason when no hard match exists, or alongside it
   storageKey: string;     // which chat the alert came from
   timestamp: string;      // ISO
 };
 
 type AlertsContextType = {
   alerts: AlertEntry[];
-  addAlert: (a: { message: string; keywords: string[]; storageKey: string }) => void;
+  addAlert: (a: { message: string; keywords: string[]; reason?: string; storageKey: string }) => void;
   clearAlerts: () => void;
 };
 
@@ -42,11 +43,12 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(alerts));
   }, [alerts, loaded]);
 
-  const addAlert: AlertsContextType["addAlert"] = ({ message, keywords, storageKey }) => {
+  const addAlert: AlertsContextType["addAlert"] = ({ message, keywords, reason, storageKey }) => {
     const entry: AlertEntry = {
       id: Date.now().toString() + ":" + Math.random().toString(36).slice(2, 6),
       message,
       keywords,
+      reason,
       storageKey,
       timestamp: new Date().toISOString(),
     };

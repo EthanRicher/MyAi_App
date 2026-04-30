@@ -14,12 +14,12 @@ import { Mic, Keyboard, Camera, Phone, Shield, AlertTriangle, CheckCircle2, Spar
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../../../components/BackButton";
 import { colors } from "../../../theme";
-import { useSpeechInput } from "../../../input/speech/useSpeechInput";
-import { whisperTranscribe } from "../../../input/speech/whisperTranscriber";
-import { openCameraAndScan, PhotoMode } from "../../../input/camera/cameraService";
-import { runAI } from "../../../ai/core/runAI";
-import { runAIOnPhoto } from "../../../input/camera/runAIOnPhoto";
-import { safeHarbourScamCheck, ScamCheckOutput, ScamLevel } from "../../../ai/scopes/safeharbour/scamCheck";
+import { useSpeechInput } from "../../../backend/1_Input/Speech/Input_SpeechHook";
+import { whisperTranscribe } from "../../../backend/1_Input/Speech/Input_Whisper";
+import { openCameraAndScan, PhotoMode } from "../../../backend/1_Input/Camera/Input_Camera";
+import { runAI } from "../../../backend/4_AI/AI_Run";
+import { runAIOnPhoto } from "../../../backend/1_Input/Camera/Input_PhotoToAI";
+import { safeHarbourScamCheck, ScamCheckOutput, ScamLevel } from "../../../backend/3_Scopes/SafeHarbour/Check_Scam";
 
 const LEVEL_META: Record<ScamLevel, { label: string; color: string; icon: any }> = {
   low: { label: "Low Risk", color: colors.green, icon: CheckCircle2 },

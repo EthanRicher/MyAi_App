@@ -15,10 +15,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../../../components/BackButton";
 import { colors } from "../../../theme";
-import { useSpeechInput } from "../../../input/speech/useSpeechInput";
-import { whisperTranscribe } from "../../../input/speech/whisperTranscriber";
-import { runAI } from "../../../ai/core/runAI";
-import { senseguardSymptomLog, SymptomLogOutput } from "../../../ai/scopes/senseguard/symptomLog";
+import { useSpeechInput } from "../../../backend/1_Input/Speech/Input_SpeechHook";
+import { whisperTranscribe } from "../../../backend/1_Input/Speech/Input_Whisper";
+import { runAI } from "../../../backend/4_AI/AI_Run";
+import { senseguardSymptomLog, SymptomLogOutput } from "../../../backend/3_Scopes/SenseGuard/Log_Symptom";
 
 interface Entry {
   id: string;

@@ -19,7 +19,7 @@ const DEFAULTS: AISettings = {
   defaultLanguage: "English",
 };
 
-export async function loadAISettings(): Promise<AISettings> {
+async function loadAISettings(): Promise<AISettings> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULTS;
@@ -29,18 +29,16 @@ export async function loadAISettings(): Promise<AISettings> {
   }
 }
 
-export async function saveAISettings(settings: AISettings): Promise<void> {
+async function saveAISettings(settings: AISettings): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
 export function useAISettings() {
   const [settings, setSettings] = useState<AISettings>(DEFAULTS);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     loadAISettings().then((s) => {
       setSettings(s);
-      setLoaded(true);
     });
   }, []);
 
@@ -50,5 +48,5 @@ export function useAISettings() {
     await saveAISettings(next);
   };
 
-  return { settings, loaded, update };
+  return { settings, update };
 }

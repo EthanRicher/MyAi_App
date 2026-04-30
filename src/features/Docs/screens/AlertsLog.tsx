@@ -45,14 +45,14 @@ export function AlertsLog() {
           <Text style={styles.headerTitle}>Flagged Messages</Text>
         </View>
         <Text style={styles.headerSub}>
-          Every chat message that matched one of the red-flag keywords gets logged here so you can review them later.
+          Chat messages get logged here when they match a red-flag keyword or when the AI judges them concerning, so you can review them later.
         </Text>
 
         {alerts.length === 0 && (
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyTitle}>Nothing flagged yet</Text>
             <Text style={styles.emptyHint}>
-              When you send a message that mentions things like "chest pain", "emergency", "bleeding" or similar urgent terms, the message will appear here.
+              Messages that mention urgent terms like "chest pain" or "emergency", or that the AI judges as concerning (distress, abuse, possible scam), will appear here.
             </Text>
           </View>
         )}
@@ -61,13 +61,18 @@ export function AlertsLog() {
           <View key={a.id} style={styles.alertCard}>
             <Text style={styles.alertWhen}>{formatWhen(a.timestamp)}</Text>
             <Text style={styles.alertMessage}>{a.message}</Text>
-            <View style={styles.keywordRow}>
-              {a.keywords.map((k, i) => (
-                <View key={i} style={styles.keywordPill}>
-                  <Text style={styles.keywordText}>{k}</Text>
-                </View>
-              ))}
-            </View>
+            {a.keywords.length > 0 && (
+              <View style={styles.keywordRow}>
+                {a.keywords.map((k, i) => (
+                  <View key={i} style={styles.keywordPill}>
+                    <Text style={styles.keywordText}>{k}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            {a.reason && (
+              <Text style={styles.alertReason}>AI flag: {a.reason}</Text>
+            )}
             <Text style={styles.alertChat}>{a.storageKey}</Text>
           </View>
         ))}
@@ -161,6 +166,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 13,
     fontWeight: "700",
+  },
+  alertReason: {
+    color: colors.destructive,
+    fontSize: 14,
+    fontStyle: "italic",
+    lineHeight: 19,
   },
   alertChat: { color: colors.textCaption, fontSize: 12, marginTop: 2 },
 

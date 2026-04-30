@@ -1,5 +1,5 @@
-import { AIScope } from "../../core/types";
-import { buildSharedPrompt, buildSharedPhotoPrompt } from "../_shared";
+import { AIScope } from "../../4_AI/AI_Types";
+import { buildSharedPrompt, buildSharedPhotoPrompt } from "../_Common";
 
 export type ScamLevel = "low" | "med" | "high";
 
@@ -48,7 +48,6 @@ EXPLANATION:
 
 export const safeHarbourScamCheck: AIScope = {
   id: "safeHarbourScamCheck",
-  topic: TOPIC,
   responseFormat: "json",
 
   buildPrompt: (text: string) =>

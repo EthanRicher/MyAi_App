@@ -1,4 +1,4 @@
-import { BASE_RULES, buildRelevanceRule, buildPhotoRelevanceRule } from "./rules";
+import { BASE_RULES, buildRelevanceRule, buildPhotoRelevanceRule } from "./Scope_Common_Rules";
 
 const BREAKDOWN_FORMAT = `
 RESPONSE FORMAT (always follow exactly):
@@ -39,28 +39,27 @@ When in doubt between the two, choose CONVERSATIONAL.
 Plain simple language easy for an elderly person to read.
 `.trim();
 
+type Format = "breakdown" | "conversational" | "auto";
+
+const pickFormatBlock = (format: Format): string =>
+  format === "conversational" ? CONVERSATIONAL_FORMAT
+  : format === "auto" ? AUTO_FORMAT
+  : BREAKDOWN_FORMAT;
+
 export const buildSharedPrompt = (
   body: string,
-  format: "breakdown" | "conversational" | "auto" = "breakdown",
+  format: Format = "breakdown",
   topic?: string
 ) => {
   const rules = `${BASE_RULES}\n- ${buildRelevanceRule(topic)}`;
-  const formatBlock =
-    format === "conversational" ? CONVERSATIONAL_FORMAT
-    : format === "auto" ? AUTO_FORMAT
-    : BREAKDOWN_FORMAT;
-  return `${rules}\n\n${formatBlock}\n\n${body}`;
+  return `${rules}\n\n${pickFormatBlock(format)}\n\n${body}`;
 };
 
 export const buildSharedPhotoPrompt = (
   body: string,
-  format: "breakdown" | "conversational" | "auto" = "breakdown",
+  format: Format = "breakdown",
   topic?: string
 ) => {
   const rules = `${BASE_RULES}\n- ${buildPhotoRelevanceRule(topic)}`;
-  const formatBlock =
-    format === "conversational" ? CONVERSATIONAL_FORMAT
-    : format === "auto" ? AUTO_FORMAT
-    : BREAKDOWN_FORMAT;
-  return `${rules}\n\n${formatBlock}\n\n${body}`;
+  return `${rules}\n\n${pickFormatBlock(format)}\n\n${body}`;
 };

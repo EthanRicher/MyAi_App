@@ -10,8 +10,6 @@ export const colors = {
   green: "#4CAF50",
   orange: "#FF9800",
   purple: "#BB86FC",
-  red: "#F44336",
-  yellow: "#f59e0b",
 } as const;
 
 // Colors used by both chat bubbles and the fullscreen reader.

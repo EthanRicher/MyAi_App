@@ -16,8 +16,8 @@ import { Mic, Settings, LogOut, LayoutGrid, ArrowRight } from "lucide-react-nati
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { colors } from "../theme";
 import { useUserProfile } from "../profile/hooks/useUserProfile";
-import { useSpeechInput } from "../input/speech/useSpeechInput";
-import { whisperTranscribe } from "../input/speech/whisperTranscriber";
+import { useSpeechInput } from "../backend/1_Input/Speech/Input_SpeechHook";
+import { whisperTranscribe } from "../backend/1_Input/Speech/Input_Whisper";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Main">;
 

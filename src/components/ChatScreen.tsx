@@ -13,18 +13,18 @@ import {
   Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AI_WARNING } from "../ai/scopes/_shared/warnings";
+import { AI_WARNING } from "../backend/3_Scopes/_Common/Scope_Common_Warnings";
 import { Camera, Send, Mic, X, Keyboard } from "lucide-react-native";
 import { BackButton } from "./BackButton";
 import { MessageReaderModal, ReaderMessage } from "./MessageReaderModal";
-import { parseMarkdown, parseInline } from "./markdown";
-import { scanKeywords } from "../config/Keywords_config";
+import { renderMarkdownWith, parseInline } from "./render/markdown";
+import { scanKeywords } from "../backend/2_Checks/Text/B_Check_Keywords";
+import { runChecks } from "../backend/2_Checks";
 import { colors, warningColors, chatBubble, chatActionColors } from "../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useSpeechInput } from "../input/speech/useSpeechInput";
-import { whisperTranscribe } from "../input/speech/whisperTranscriber";
-import { addDebugEntry } from "../ai/core/debug";
-import { translateToEnglish } from "../ai/core/translate";
+import { useSpeechInput } from "../backend/1_Input/Speech/Input_SpeechHook";
+import { whisperTranscribe } from "../backend/1_Input/Speech/Input_Whisper";
+import { addDebugEntry } from "../backend/4_AI/AI_Debug";
 import { useDocs } from "../features/Docs/hooks/useDocs";
 import { useAlerts } from "../features/Docs/hooks/useAlerts";
 import { DocCategory } from "../features/Docs/models/Doc";
@@ -55,6 +55,7 @@ export interface CameraInputResult {
 export interface ProcessResult {
   aiText: string;
   isError?: boolean;
+  saveOffer?: { suggestedTitle: string; cleanContent: string };
 }
 
 const renderInline = (text: string) =>
@@ -65,59 +66,52 @@ const renderInline = (text: string) =>
   );
 
 function renderMessageContent(text: string, accentColor: string, baseStyle: object) {
-  return parseMarkdown(text).map((token, i) => {
-    switch (token.kind) {
-      case "mainTitle":
-        return (
-          <View key={i} style={[styles.mainTitleChip, { backgroundColor: accentColor + "33", borderColor: accentColor + "88" }]}>
-            <Text
-              style={[styles.mainTitleText, { color: accentColor }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
-              {token.text}
-            </Text>
-          </View>
-        );
-      case "subTitle":
-        return (
-          <View key={i} style={[styles.subTitleChip, { borderColor: accentColor + "55" }]}>
-            <Text
-              style={[styles.subTitleText, { color: accentColor }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
-              {token.text}
-            </Text>
-          </View>
-        );
-      case "bullet":
-        return (
-          <View key={i} style={styles.bulletRow}>
-            <Text style={[baseStyle, { color: accentColor }]}>{"•"}</Text>
-            <Text style={[baseStyle, styles.bulletText]}>{renderInline(token.text)}</Text>
-          </View>
-        );
-      case "paragraph":
-        return <Text key={i} style={baseStyle}>{renderInline(token.text)}</Text>;
-    }
+  return renderMarkdownWith(text, {
+    mainTitle: (token, i) => (
+      <View key={i} style={[styles.mainTitleChip, { backgroundColor: accentColor + "33", borderColor: accentColor + "88" }]}>
+        <Text
+          style={[styles.mainTitleText, { color: accentColor }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+        >
+          {token.text}
+        </Text>
+      </View>
+    ),
+    subTitle: (token, i) => (
+      <View key={i} style={[styles.subTitleChip, { borderColor: accentColor + "55" }]}>
+        <Text
+          style={[styles.subTitleText, { color: accentColor }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+        >
+          {token.text}
+        </Text>
+      </View>
+    ),
+    bullet: (token, i) => (
+      <View key={i} style={styles.bulletRow}>
+        <Text style={[baseStyle, { color: accentColor }]}>{"•"}</Text>
+        <Text style={[baseStyle, styles.bulletText]}>{renderInline(token.text)}</Text>
+      </View>
+    ),
+    paragraph: (token, i) => (
+      <Text key={i} style={baseStyle}>{renderInline(token.text)}</Text>
+    ),
   });
 }
 
 interface Props {
-  title: string;
   accentColor: string;
   aiLabel?: string;
   storageKey: string;
   initialMessages?: ChatMessage[];
   onProcessMessage: (message: ChatSendPayload, history: ChatMessage[]) => Promise<ProcessResult>;
   disclaimer?: string;
-  disclaimerSub?: string;
   backTo?: string;
   backLabel?: string;
-  speechEnabled?: boolean;
   onTranscribeAudio?: (uri: string) => Promise<string>;
   onCameraPress?: (onImageReady: (imageUri: string) => void) => Promise<CameraInputResult | null>;
   placeholder?: string;
@@ -133,17 +127,14 @@ interface Props {
 }
 
 export function ChatScreen({
-  title: _title,
   accentColor,
   aiLabel = "AI",
   storageKey,
   initialMessages = [],
   onProcessMessage,
   disclaimer,
-  disclaimerSub: _disclaimerSub,
   backTo,
   backLabel,
-  speechEnabled: _speechEnabled = false,
   onTranscribeAudio = whisperTranscribe,
   onCameraPress,
   placeholder = "Type your message...",
@@ -282,7 +273,8 @@ export function ChatScreen({
       setTyping(true);
 
       let textForAI = autoPrompt;
-      const tr = await translateToEnglish(autoPrompt);
+      const checks = await runChecks({ text: autoPrompt });
+      const tr = checks.translation;
       if (tr.needed && tr.translated) {
         const translatedMessage: ChatMessage = {
           role: "user",
@@ -296,11 +288,10 @@ export function ChatScreen({
       }
 
       const result = await onProcessMessage({ text: textForAI }, settings.useHistory ? existing : []);
-      const { clean: cleanAiText, offerTitle } = stripSaveMarker(result.aiText);
-      if (saveable && offerTitle && !result.isError) {
-        pendingOfferRef.current = { title: offerTitle, content: cleanAiText };
+      if (saveable && result.saveOffer && !result.isError) {
+        pendingOfferRef.current = { title: result.saveOffer.suggestedTitle, content: result.saveOffer.cleanContent };
       }
-      const aiMessage: ChatMessage = { role: "ai", text: cleanAiText, isError: result.isError, warningText: result.isError ? undefined : resolveWarning(cleanAiText, messageWarning), timestamp: now() };
+      const aiMessage: ChatMessage = { role: "ai", text: result.aiText, isError: result.isError, warningText: result.isError ? undefined : resolveWarning(result.aiText, messageWarning), timestamp: now() };
       const next = [...base, aiMessage];
       setMessages(next);
       if (settings.saveChatHistory) {
@@ -322,13 +313,6 @@ export function ChatScreen({
     const title = suggested || buildSuggestedTitle(text);
     setSaveTitle(title);
     setSaveTarget({ text, suggestedTitle: title });
-  };
-
-  const SAVE_MARKER_RE = /\n?\s*\[OFFER_SAVE:\s*title\s*=\s*"([^"]+)"\s*\]\s*$/i;
-  const stripSaveMarker = (raw: string): { clean: string; offerTitle?: string } => {
-    const m = raw.match(SAVE_MARKER_RE);
-    if (!m) return { clean: raw };
-    return { clean: raw.slice(0, m.index!).trimEnd(), offerTitle: m[1].trim() };
   };
 
   const SAVE_AFFIRMATIVE = /^(yes|yeah|yep|yup|ok|okay|sure|please|please save|do it|do save|save it|save this|save that|save them|save those|save these|save please)\b/i;
@@ -397,15 +381,6 @@ export function ChatScreen({
       pendingOfferRef.current = null;
     }
 
-    if (cleanText) {
-      const flagged = scanKeywords(cleanText)
-        .filter((s) => s.kind === "flag")
-        .map((s) => s.text);
-      if (flagged.length > 0) {
-        addAlert({ message: cleanText, keywords: flagged, storageKey });
-      }
-    }
-
     const userMessage: ChatMessage = {
       role: "user",
       imageUri: payload.imageUri,
@@ -421,7 +396,24 @@ export function ChatScreen({
 
     let textForAI = cleanText;
     if (cleanText) {
-      const tr = await translateToEnglish(cleanText);
+      const checks = await runChecks({ text: cleanText });
+
+      // Two-layer flag detection: hardcoded keyword scan (deterministic,
+      // covers original + translated) AND an AI second-pass that catches
+      // paraphrased urgency the keyword list misses. Either layer firing
+      // is enough to log an alert; the carer sees both signals when both
+      // matched. Original text is logged so the carer sees what the user
+      // actually typed.
+      if (checks.flaggedWords.length > 0 || checks.flaggedReason) {
+        addAlert({
+          message: cleanText,
+          keywords: checks.flaggedWords,
+          reason: checks.flaggedReason,
+          storageKey,
+        });
+      }
+
+      const tr = checks.translation;
       if (tr.needed && tr.translated) {
         const translatedMessage: ChatMessage = {
           role: "user",
@@ -440,16 +432,15 @@ export function ChatScreen({
       text: textForAI,
     }, settings.useHistory ? messages : []);
 
-    const { clean: cleanAiText, offerTitle } = stripSaveMarker(result.aiText);
-    if (saveable && offerTitle && !result.isError) {
-      pendingOfferRef.current = { title: offerTitle, content: cleanAiText };
+    if (saveable && result.saveOffer && !result.isError) {
+      pendingOfferRef.current = { title: result.saveOffer.suggestedTitle, content: result.saveOffer.cleanContent };
     }
 
     const aiMessage: ChatMessage = {
       role: "ai",
-      text: cleanAiText,
+      text: result.aiText,
       isError: result.isError,
-      warningText: result.isError ? undefined : resolveWarning(cleanAiText, messageWarning),
+      warningText: result.isError ? undefined : resolveWarning(result.aiText, messageWarning),
       timestamp: now(),
     };
 
@@ -1088,32 +1079,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     textAlign: "center",
-  },
-
-  recordingText: {
-    color: colors.destructive,
-    textAlign: "center",
-    paddingTop: 6,
-  },
-
-  speechErrorWrap: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-
-  speechErrorBubble: {
-    width: "100%",
-  },
-
-  speechErrorText: {
-    color: colors.text,
-    fontSize: 15,
-  },
-
-  errorText: {
-    color: colors.destructive,
-    textAlign: "center",
-    paddingTop: 6,
   },
 
   bottomWrap: {

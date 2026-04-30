@@ -1,14 +1,14 @@
 import { useRoute, RouteProp } from "@react-navigation/native";
 import { ChatScreen, ChatMessage, ChatSendPayload } from "../../../components/ChatScreen";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
-import { getScope, ScopeId } from "../../../ai/scopes";
+import { clarityScopes, ScopeId } from "../../../backend/3_Scopes";
 import {
   runChatTurn,
   buildChatText,
   chatScreenPropsFromConfig,
-} from "../../../ai/core/runChatTurn";
-import { defaultCameraHandler } from "../../../input/camera/cameraService";
-import { clarityChatConfigs } from "../../../config/Chat_config";
+} from "../../../backend/4_AI/AI_RunChatTurn";
+import { defaultCameraHandler } from "../../../backend/1_Input/Camera/Input_Camera";
+import { clarityChatConfigs } from "../../../config/Clarity";
 
 type Route = RouteProp<RootStackParamList, "ClarityChat">;
 
@@ -16,7 +16,7 @@ export function ClarityChat() {
   const route = useRoute<Route>();
   const scopeId = (route.params?.scopeId || "clarityGeneralChat") as ScopeId;
   const initialMessage = route.params?.initialMessage;
-  const scope = getScope(scopeId);
+  const scope = clarityScopes[scopeId];
   const cfg = clarityChatConfigs[scopeId];
 
   const handleProcessMessage = (payload: ChatSendPayload, history: ChatMessage[]) =>

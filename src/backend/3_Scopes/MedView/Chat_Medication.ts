@@ -1,5 +1,5 @@
-import { AIScope } from "../../core/types";
-import { buildSharedPrompt, buildSharedPhotoPrompt, MEDICAL_WARNING } from "../_shared";
+import { AIScope } from "../../4_AI/AI_Types";
+import { buildSharedPrompt, buildSharedPhotoPrompt } from "../_Common";
 
 const TOPIC = "explain your medications";
 
@@ -7,8 +7,6 @@ type Med = { name: string; dose: string; description: string };
 
 export const medviewMedicationChat: AIScope = {
   id: "medviewMedicationChat",
-  topic: TOPIC,
-  warning: MEDICAL_WARNING,
 
   buildPrompt: (text: string) =>
     buildSharedPrompt(

@@ -1,10 +1,10 @@
 import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
-import { addDebugEntry } from "../../ai/core/debug";
-import { runOCR } from "./ocrService";
-import { runVision } from "./runVision";
-import { CameraInputResult } from "../../components/ChatScreen";
+import { addDebugEntry } from "../../4_AI/AI_Debug";
+import { runOCR } from "./Input_OCR";
+import { runVision } from "./Input_Vision";
+import { CameraInputResult } from "../../../components/ChatScreen";
 
 export enum PhotoMode {
   Vision = "vision",

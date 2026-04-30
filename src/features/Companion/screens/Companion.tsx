@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
-import { conversationCards, storiesCards } from "../data/Companion.data";
+import { conversationCards, storiesCards } from "../../../config/Companion/_Companion_Config";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Companion">;
 

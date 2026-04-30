@@ -1,5 +1,5 @@
 import { OPENAI_API_KEY } from "@env";
-import { addDebugEntry } from "../../4_AI/AI_Debug";
+import { debugLog, debugPayload } from "../../_AI/AI_Debug";
 
 type WhisperTranscribeOptions = {
   model?: string;
@@ -14,12 +14,11 @@ export const whisperTranscribe = async (
 ) => {
   try {
     if (!uri) {
-      addDebugEntry("Speech", "error", "No audio file");
+      debugLog("Input_Whisper", "Error", "No audio file");
       return "Error: No audio file";
     }
 
-    addDebugEntry("Speech", "audio_uri", uri);
-    addDebugEntry("Speech", "options", options);
+    debugLog("Input_Whisper", "Request", "Sending audio");
 
     const formData = new FormData();
 
@@ -56,17 +55,15 @@ export const whisperTranscribe = async (
 
     if (!res.ok) {
       const errText = await res.text();
-      addDebugEntry("Speech", "error", errText || "Whisper API failed");
+      debugLog("Input_Whisper", "Error", "API failed", { status: res.status, message: errText });
       return "Error: Whisper API failed";
     }
 
     const data = await res.json();
-
-    addDebugEntry("Speech", "raw_response", data);
-
     const text = data?.text?.trim();
 
-    addDebugEntry("Speech", "transcript", text || "");
+    debugLog("Input_Whisper", "Response", "Transcribed", { chars: (text || "").length });
+    debugPayload("Input_Whisper", "transcript", text || "");
 
     if (!text) {
       return "Error: No speech detected";
@@ -74,7 +71,7 @@ export const whisperTranscribe = async (
 
     return text;
   } catch (err: any) {
-    addDebugEntry("Speech", "error", err?.message || "Whisper crashed");
+    debugLog("Input_Whisper", "Error", "Whisper crashed", { message: err?.message || "Whisper crashed" });
     return "Error: Whisper crashed";
   }
 };

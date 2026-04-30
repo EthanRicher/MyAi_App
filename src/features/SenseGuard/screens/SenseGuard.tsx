@@ -17,7 +17,7 @@ import { BackButton } from "../../../components/BackButton";
 import { colors } from "../../../theme";
 import { useSpeechInput } from "../../../backend/1_Input/Speech/Input_SpeechHook";
 import { whisperTranscribe } from "../../../backend/1_Input/Speech/Input_Whisper";
-import { runAI } from "../../../backend/4_AI/AI_Run";
+import { runAI } from "../../../backend/_AI/AI_Run";
 import { senseguardSymptomLog, SymptomLogOutput } from "../../../backend/3_Scopes/SenseGuard/Log_Symptom";
 
 interface Entry {

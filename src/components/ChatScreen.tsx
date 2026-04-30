@@ -17,18 +17,17 @@ import { AI_WARNING } from "../backend/3_Scopes/_Common/Scope_Common_Warnings";
 import { Camera, Send, Mic, X, Keyboard } from "lucide-react-native";
 import { BackButton } from "./BackButton";
 import { MessageReaderModal, ReaderMessage } from "./MessageReaderModal";
-import { renderMarkdownWith, parseInline } from "./render/markdown";
+import { renderMarkdownWith, parseInline } from "../backend/6_Present/Present_Markdown";
 import { scanKeywords } from "../backend/2_Checks/Text/B_Check_Keywords";
 import { runChecks } from "../backend/2_Checks";
 import { colors, warningColors, chatBubble, chatActionColors } from "../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSpeechInput } from "../backend/1_Input/Speech/Input_SpeechHook";
 import { whisperTranscribe } from "../backend/1_Input/Speech/Input_Whisper";
-import { addDebugEntry } from "../backend/4_AI/AI_Debug";
+import { debugLog, debugTurn, debugTurnEnd } from "../backend/_AI/AI_Debug";
 import { useDocs } from "../features/Docs/hooks/useDocs";
 import { useAlerts } from "../features/Docs/hooks/useAlerts";
 import { DocCategory } from "../features/Docs/models/Doc";
-import { AIDebugPanel } from "./AIDebugPanel";
 import { useAISettings } from "../hooks/useAISettings";
 
 export interface ChatMessage {
@@ -266,6 +265,8 @@ export function ChatScreen({
     setPendingAutoSend(false);
 
     (async () => {
+      debugTurn();
+      debugLog("ChatScreen", "Action", "Auto-prompt sent", { chars: autoPrompt.length });
       const existing = messagesRef.current;
       const userMessage: ChatMessage = { role: "user", text: autoPrompt, timestamp: now() };
       let base = [...existing, userMessage];
@@ -299,6 +300,7 @@ export function ChatScreen({
       }
       setTyping(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      debugTurnEnd();
     })();
   }, [pendingAutoSend]);
 
@@ -343,7 +345,7 @@ export function ChatScreen({
     } else {
       addDoc(payload);
     }
-    addDebugEntry("ChatScreen", "doc_saved", { category: saveCategory, title: saveTitle, storageKey });
+    debugLog("ChatScreen", "Result", "Doc saved", { category: saveCategory, title: saveTitle });
     setSaveTarget(null);
     setSaveTitle("");
   };
@@ -363,11 +365,10 @@ export function ChatScreen({
       return;
     }
 
-    addDebugEntry("ChatScreen", "user_payload", {
-      text: cleanText,
-      imageUri: payload.imageUri || "",
-      hiddenText: !!payload.hiddenText,
-      storageKey,
+    debugTurn();
+    debugLog("ChatScreen", "Action", "User submitted", {
+      chars: cleanText.length,
+      hasImage: !!payload.imageUri,
     });
 
     if (saveable && cleanText && detectSaveIntent(cleanText)) {
@@ -447,6 +448,8 @@ export function ChatScreen({
     const nextWithAi = [...nextWithUser, aiMessage];
     await persistMessages(nextWithAi);
     setTyping(false);
+    debugLog("ChatScreen", "Result", "Reply persisted");
+    debugTurnEnd();
 
     setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
@@ -466,7 +469,6 @@ export function ChatScreen({
         return "Error: Speech transcription not enabled";
       }),
     onTranscript: async (text) => {
-      addDebugEntry("ChatScreen", "transcript_message", text);
       await sendPayload({ text });
     },
   });
@@ -537,7 +539,7 @@ export function ChatScreen({
         hiddenText: true,
       });
     } catch (err: any) {
-      addDebugEntry("ChatScreen", "photo_press_error", err?.message || "Photo failed");
+      debugLog("ChatScreen", "Error", "Photo failed", { message: err?.message || "Photo failed" });
     }
   };
 
@@ -681,7 +683,6 @@ export function ChatScreen({
             </View>
           )}
 
-          <AIDebugPanel />
         </ScrollView>
 
 

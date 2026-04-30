@@ -1,6 +1,6 @@
 import { OPENAI_API_KEY } from "@env";
 import * as ImageManipulator from "expo-image-manipulator";
-import { addDebugEntry } from "../../4_AI/AI_Debug";
+import { debugLog, debugPayload } from "../../_AI/AI_Debug";
 
 const VISION_PROMPT = `Analyze this image thoroughly.
 
@@ -13,7 +13,7 @@ Be accurate and complete.`;
 
 export async function runVision(imageUri: string): Promise<string> {
   try {
-    addDebugEntry("runVision", "start", imageUri);
+    debugLog("Input_Vision", "Request", "Sending photo to vision API");
 
     const base64Result = await ImageManipulator.manipulateAsync(
       imageUri,
@@ -57,17 +57,18 @@ export async function runVision(imageUri: string): Promise<string> {
 
     if (!response.ok) {
       const err = await response.text();
-      addDebugEntry("runVision", "api_error", err);
+      debugLog("Input_Vision", "Error", "API failed", { status: response.status, message: err });
       throw new Error("Vision API request failed");
     }
 
     const data = await response.json();
     const text = data?.choices?.[0]?.message?.content?.trim() || "";
 
-    addDebugEntry("runVision", "result", text);
+    debugLog("Input_Vision", "Response", "Received", { chars: text.length });
+    debugPayload("Input_Vision", "raw_response", text);
     return text;
   } catch (err: any) {
-    addDebugEntry("runVision", "error", err?.message || "Vision failed");
+    debugLog("Input_Vision", "Error", "Vision failed", { message: err?.message || "Vision failed" });
     return "";
   }
 }

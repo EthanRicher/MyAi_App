@@ -5,7 +5,7 @@ import {
   runChatTurn,
   buildChatText,
   chatScreenPropsFromConfig,
-} from "../../../backend/4_AI/AI_RunChatTurn";
+} from "../../../backend/_AI/AI_RunChatTurn";
 import { defaultCameraHandler } from "../../../backend/1_Input/Camera/Input_Camera";
 import { medviewMedicationChat } from "../../../backend/3_Scopes/MedView/Chat_Medication";
 import { medviewChatConfig } from "../../../config/MedView";

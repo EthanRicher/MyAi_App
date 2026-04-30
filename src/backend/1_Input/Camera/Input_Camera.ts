@@ -1,7 +1,7 @@
 import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
-import { addDebugEntry } from "../../4_AI/AI_Debug";
+import { debugLog, debugTurn } from "../../_AI/AI_Debug";
 import { runOCR } from "./Input_OCR";
 import { runVision } from "./Input_Vision";
 import { CameraInputResult } from "../../../components/ChatScreen";
@@ -44,7 +44,8 @@ export async function openCameraAndScan(
     }
 
     const rawUri = result.assets[0].uri;
-    addDebugEntry("cameraService", "raw_uri", rawUri);
+    debugTurn();
+    debugLog("Input_Camera", "Action", "Photo taken", { mode });
 
     const manipulated = await ImageManipulator.manipulateAsync(
       rawUri,
@@ -53,14 +54,12 @@ export async function openCameraAndScan(
     );
 
     const imageUri = manipulated.uri;
-    addDebugEntry("cameraService", "compressed_uri", imageUri);
 
     // Show image in chat immediately before AI processing starts
     onImageReady?.(imageUri);
 
     if (mode === PhotoMode.OCR) {
       const ocrText = await runOCR(imageUri);
-      addDebugEntry("cameraService", "ocr_text", ocrText);
       return {
         imageUri,
         text: ocrText?.trim()
@@ -71,7 +70,6 @@ export async function openCameraAndScan(
 
     if (mode === PhotoMode.Vision) {
       const visionText = await runVision(imageUri);
-      addDebugEntry("cameraService", "vision_text", visionText);
       return {
         imageUri,
         text: visionText || "The photo could not be analysed. Please try again.",
@@ -80,13 +78,11 @@ export async function openCameraAndScan(
 
     const visionText = await runVision(imageUri);
     if (visionText) {
-      addDebugEntry("cameraService", "vision_text", visionText);
       return { imageUri, text: visionText };
     }
 
-    addDebugEntry("cameraService", "vision_empty_falling_back_to_ocr", true);
+    debugLog("Input_Camera", "Action", "Vision empty - falling back to OCR");
     const ocrText = await runOCR(imageUri);
-    addDebugEntry("cameraService", "ocr_text", ocrText);
     return {
       imageUri,
       text: ocrText?.trim()
@@ -94,7 +90,7 @@ export async function openCameraAndScan(
         : "The photo was hard to read. Ask the user to retake it more clearly.",
     };
   } catch (err: any) {
-    addDebugEntry("cameraService", "error", err?.message || "Camera failed");
+    debugLog("Input_Camera", "Error", "Camera failed", { message: err?.message || "Camera failed" });
     Alert.alert("Camera Error", err?.message || "Could not open camera. Please check your permissions in Settings.");
     return null;
   }

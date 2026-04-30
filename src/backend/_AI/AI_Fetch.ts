@@ -1,5 +1,5 @@
 import { OPENAI_API_KEY } from "@env";
-import { addDebugEntry } from "./AI_Debug";
+import { debugLog, debugPayload, formatTime } from "./AI_Debug";
 
 // Shared low-level OpenAI call for the small classifier-style scopes
 // (translate, ai-flag, save-offer, etc.). All of them use the same model,
@@ -25,6 +25,10 @@ export async function callOpenAIJson<T = any>(
     response_format: { type: "json_object" },
   };
 
+  debugLog(tag, "Request", "Sending");
+  debugPayload(tag, "prompt", prompt);
+
+  const startedAt = Date.now();
   try {
     const res = await fetch(ENDPOINT, {
       method: "POST",
@@ -35,18 +39,21 @@ export async function callOpenAIJson<T = any>(
       body: JSON.stringify(requestBody),
     });
 
+    const elapsed = Date.now() - startedAt;
+
     if (!res.ok) {
-      addDebugEntry(tag, "error", await res.text());
+      debugLog(tag, "Error", "API failed", { status: res.status, took: formatTime(elapsed) });
       return null;
     }
 
     const data = await res.json();
     const raw = data?.choices?.[0]?.message?.content || "";
     const parsed = JSON.parse(raw);
-    addDebugEntry(tag, "result", parsed);
+    debugLog(tag, "Response", "Received", { took: formatTime(elapsed) });
+    debugPayload(tag, "raw", parsed);
     return parsed as T;
   } catch (err) {
-    addDebugEntry(tag, "exception", String(err));
+    debugLog(tag, "Error", "Exception", { message: String(err) });
     return null;
   }
 }

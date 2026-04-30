@@ -1,4 +1,4 @@
-import { AIScope } from "../../4_AI/AI_Types";
+import { AIScope } from "../../_AI/AI_Types";
 import { buildSharedPrompt } from "../_Common";
 
 export const medviewMedicationScan: AIScope = {

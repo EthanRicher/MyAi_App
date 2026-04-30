@@ -1,6 +1,6 @@
 import { runAI } from "./AI_Run";
 import { extractAIText } from "../5_Output/Output_ExtractText";
-import { runSaveOfferPost } from "../6_PostScope/Post_SaveOffer";
+import { runSaveOfferPost } from "../4_Post_Scope/Post_SaveOffer";
 import { AIScope } from "./AI_Types";
 import { buildConversationContext } from "../3_Scopes/_Common/Scope_Common_Conversation";
 import { ChatConfig } from "../../config/_Common/ChatConfig_Type";

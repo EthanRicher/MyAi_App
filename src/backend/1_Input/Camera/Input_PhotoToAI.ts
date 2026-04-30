@@ -1,17 +1,14 @@
-import { AIScope, RunAIResult } from "../../4_AI/AI_Types";
-import { runAI } from "../../4_AI/AI_Run";
+import { AIScope, RunAIResult } from "../../_AI/AI_Types";
+import { runAI } from "../../_AI/AI_Run";
 import { runVision } from "./Input_Vision";
 import { runOCR } from "./Input_OCR";
 import { PhotoMode } from "./Input_Camera";
-import { addDebugEntry } from "../../4_AI/AI_Debug";
 
 export async function runAIOnPhoto(
   imageUri: string,
   scope: AIScope,
   mode: PhotoMode = PhotoMode.VisionWithFallback
 ): Promise<RunAIResult & { analysis: string }> {
-  addDebugEntry("runAIOnPhoto", "start", { scopeId: scope.id, mode });
-
   let analysis = "";
 
   if (mode === PhotoMode.OCR) {
@@ -21,12 +18,9 @@ export async function runAIOnPhoto(
   } else {
     analysis = await runVision(imageUri);
     if (!analysis) {
-      addDebugEntry("runAIOnPhoto", "vision_empty_falling_back_to_ocr", true);
       analysis = await runOCR(imageUri) || "";
     }
   }
-
-  addDebugEntry("runAIOnPhoto", "analysis", analysis);
 
   if (!analysis) {
     return {
@@ -42,8 +36,6 @@ export async function runAIOnPhoto(
   };
 
   const result = await runAI({ text: analysis, scope: scopeWithPhotoPrompt });
-
-  addDebugEntry("runAIOnPhoto", "result", result);
 
   return { ...result, analysis };
 }

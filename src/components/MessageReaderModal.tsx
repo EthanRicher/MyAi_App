@@ -3,7 +3,7 @@ import { LayoutChangeEvent, Modal, View, Text, TouchableOpacity, StyleSheet } fr
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import { colors, chatBubble, warningColors } from "../theme";
-import { renderMarkdownWith, parseInline } from "./render/markdown";
+import { renderMarkdownWith, parseInline } from "../backend/6_Present/Present_Markdown";
 
 export interface ReaderMessage {
   role: "user" | "ai";

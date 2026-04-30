@@ -20,8 +20,7 @@ import { useMedications } from "../hooks/useMedication";
 import { openCameraAndScan, PhotoMode } from "../../../backend/1_Input/Camera/Input_Camera";
 import { runAIOnPhoto } from "../../../backend/1_Input/Camera/Input_PhotoToAI";
 import { medviewMedicationScan } from "../../../backend/3_Scopes/MedView/Scan_Medication";
-import { addDebugEntry } from "../../../backend/4_AI/AI_Debug";
-import { AIDebugPanel } from "../../../components/AIDebugPanel";
+import { debugLog, debugPayload } from "../../../backend/_AI/AI_Debug";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedViewAdd">;
 type Route = RouteProp<RootStackParamList, "MedViewAdd">;
@@ -89,7 +88,7 @@ export function MedViewAdd() {
       }
 
       const uri = cameraResult.imageUri;
-      addDebugEntry("MedViewAdd", "scan_uri", uri);
+      debugLog("MedViewAdd", "Action", "Prescription scan started");
       setImage(uri);
 
       const aiResult = await runAIOnPhoto(uri, medviewMedicationScan, PhotoMode.VisionWithFallback);
@@ -99,7 +98,8 @@ export function MedViewAdd() {
         return;
       }
 
-      addDebugEntry("MedViewAdd", "scan_result", aiResult);
+      debugLog("MedViewAdd", "Result", "Scan parsed");
+      debugPayload("MedViewAdd", "scan_result", aiResult);
 
       const output = aiResult.output || {};
       const isInvalid =
@@ -200,7 +200,7 @@ export function MedViewAdd() {
       image,
     };
 
-    addDebugEntry("MedViewAdd", "save_payload", payload);
+    debugLog("MedViewAdd", "Action", "Saving medication", { name: payload.name, dose: payload.dose, dosesPerDay: payload.dosesPerDay });
 
     if (initialMed) {
       const nextTaken = finalTimes.map((_, index) => Boolean(initialMed.taken?.[index]));
@@ -269,8 +269,6 @@ export function MedViewAdd() {
         </TouchableOpacity>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        <AIDebugPanel title="Scan Debug" />
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />

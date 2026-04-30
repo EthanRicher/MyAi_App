@@ -13,7 +13,14 @@
       "PowerShell($p = Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c\", \"npx tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty false > tsc_out.txt 2>&1\" -WorkingDirectory \"c:\\\\dev\\\\MyAi_App\" -Wait -PassThru -NoNewWindow; \"ExitCode: $\\($p.ExitCode\\)\"; Get-Item \"c:\\\\dev\\\\MyAi_App\\\\tsc_out.txt\" | Select-Object Length)",
       "PowerShell($p = Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c\", \"npx tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty false > tsc_out.txt 2>&1\" -WorkingDirectory \"c:\\\\dev\\\\MyAi_App\" -Wait -PassThru -NoNewWindow; \"ExitCode: $\\($p.ExitCode\\)\"; \"Size: $\\(\\(Get-Item 'c:\\\\dev\\\\MyAi_App\\\\tsc_out.txt'\\).Length\\)\"; Get-Content \"c:\\\\dev\\\\MyAi_App\\\\tsc_out.txt\" -TotalCount 50)",
       "Bash(git rm *)",
-      "PowerShell(git rm src/config/Config_App.ts src/components/BackendRequiredModal.tsx src/backend/_Unused/Triage_Dashboard.ts)"
+      "PowerShell(git rm src/config/Config_App.ts src/components/BackendRequiredModal.tsx src/backend/_Unused/Triage_Dashboard.ts)",
+      "Bash(python -c ' *)",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"c:/dev/MyAi_App/src/backend/_AI/AI_Run.ts\"\\); $sub = $bytes[180..400]; \\($sub | ForEach-Object { '{0:X2}' -f $_ }\\) -join ' ')",
+      "Bash(node -e ' *)",
+      "Bash(node _tmp_write_airun.js)",
+      "Bash(node _tmp_fix_airun.js)",
+      "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"c:/dev/MyAi_App/src/backend/_AI/AI_Run.ts\"\\); $sub = $bytes[280..400]; \\($sub | ForEach-Object { '{0:X2}' -f $_ }\\) -join ' ')",
+      "Bash(npx --no-install tsc --noEmit --pretty false)"
     ]
   }
 }

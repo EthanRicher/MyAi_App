@@ -1,4 +1,5 @@
-import { callOpenAIJson } from "../../4_AI/AI_Fetch";
+import { callOpenAIJson } from "../../_AI/AI_Fetch";
+import { debugLog } from "../../_AI/AI_Debug";
 
 // Second-pass urgency check that catches paraphrased or contextual concerns
 // the hardcoded keyword list misses (e.g. "I'd be better off gone", "no point
@@ -39,7 +40,7 @@ export async function flagWithAI(text: string): Promise<AIFlagResult> {
   if (!trimmed) return { concerning: false };
 
   const parsed = await callOpenAIJson<{ concerning: boolean; reason: string }>(
-    "aiFlag",
+    "Check_AIFlag",
     PROMPT + trimmed
   );
   if (!parsed) return { concerning: false };
@@ -49,8 +50,15 @@ export async function flagWithAI(text: string): Promise<AIFlagResult> {
       ? parsed.reason.trim()
       : undefined;
 
-  return {
+  const result: AIFlagResult = {
     concerning: !!parsed.concerning,
     reason: parsed.concerning ? reason : undefined,
   };
+
+  debugLog("Check_AIFlag", "Result", "Judged", {
+    concerning: result.concerning,
+    reason: result.reason ?? "",
+  });
+
+  return result;
 }

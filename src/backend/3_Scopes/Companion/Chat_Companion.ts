@@ -1,4 +1,5 @@
 import { buildSharedPrompt } from "../_Common";
+import { debugPayload } from "../../_AI/AI_Debug";
 
 const contextGuides: Record<string, string> = {
   "Brain Games":
@@ -89,6 +90,10 @@ export const buildCompanionPrompt = (
           existing?.memory || []
         )
       : "";
+
+  debugPayload("Scope_Companion", "context_block", contextBlock);
+  if (familyBlock) debugPayload("Scope_Companion", "family_block", familyBlock);
+  if (memoryBlock) debugPayload("Scope_Companion", "memory_block", memoryBlock);
 
   const format = "auto";
 

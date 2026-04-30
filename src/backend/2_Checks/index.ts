@@ -8,6 +8,7 @@
 import { translateToEnglish, TranslateResult } from "./Text/A_Check_Translate";
 import { scanKeywords } from "./Text/B_Check_Keywords";
 import { flagWithAI } from "./Text/C_Check_AIFlag";
+import { debugLog } from "../_AI/AI_Debug";
 
 export type ChecksInput = {
   text?: string;
@@ -47,6 +48,11 @@ export async function runChecks(input: ChecksInput): Promise<ChecksResult> {
   const flaggedWords = Array.from(
     new Set([...collectFlagWords(sourceText), ...collectFlagWords(resolvedText)])
   );
+
+  debugLog("Check_Keywords", "Result", "Scanned", {
+    matches: flaggedWords.length,
+    words: flaggedWords,
+  });
 
   return {
     translation,

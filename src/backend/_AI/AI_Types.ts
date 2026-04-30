@@ -19,7 +19,7 @@ export type AIScope = {
   responseFormat?: AIResponseFormat;
 };
 
-import type { BreakdownLength } from "../../config/Config_Breakdown";
+import type { BreakdownLength } from "../../config/Config_General";
 
 export type RunAIArgs = {
   text: string;

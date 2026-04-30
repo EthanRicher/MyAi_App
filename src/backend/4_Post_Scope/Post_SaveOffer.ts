@@ -1,4 +1,5 @@
-import { callOpenAIJson } from "../4_AI/AI_Fetch";
+import { callOpenAIJson } from "../_AI/AI_Fetch";
+import { debugLog } from "../_AI/AI_Debug";
 
 // Post-scope step that runs AFTER a saveable chat scope produces its reply.
 // Judges whether the turn produced something worth saving (a complete letter
@@ -61,8 +62,11 @@ export async function runSaveOfferPost({
     shouldOffer: boolean;
     suggestedTitle: string;
     offerSentence: string;
-  }>("saveOffer", prompt);
-  if (!parsed || !parsed.shouldOffer) return { shouldOffer: false };
+  }>("Post_SaveOffer", prompt);
+  if (!parsed || !parsed.shouldOffer) {
+    debugLog("Post_SaveOffer", "Result", "Skipped - not save-worthy");
+    return { shouldOffer: false };
+  }
 
   const suggestedTitle =
     typeof parsed.suggestedTitle === "string" && parsed.suggestedTitle.trim()
@@ -73,7 +77,15 @@ export async function runSaveOfferPost({
       ? parsed.offerSentence.trim()
       : undefined;
 
-  if (!suggestedTitle || !offerSentence) return { shouldOffer: false };
+  if (!suggestedTitle || !offerSentence) {
+    debugLog("Post_SaveOffer", "Result", "Skipped - not save-worthy");
+    return { shouldOffer: false };
+  }
+
+  debugLog("Post_SaveOffer", "Result", "Decision", {
+    shouldOffer: true,
+    suggestedTitle,
+  });
 
   return { shouldOffer: true, suggestedTitle, offerSentence };
 }

@@ -1,4 +1,4 @@
-import type { AIScope } from "../../4_AI/AI_Types";
+import type { AIScope } from "../../_AI/AI_Types";
 import { buildSharedPrompt, buildSharedPhotoPrompt } from "./Scope_Common_Formats";
 
 type ScopeConfig = {

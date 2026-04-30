@@ -1,7 +1,7 @@
 import { OPENAI_API_KEY } from "@env";
-import { addDebugEntry } from "./AI_Debug";
+import { debugLog, debugPayload, formatTime } from "./AI_Debug";
 import { RunAIArgs, RunAIResult } from "./AI_Types";
-import { BREAKDOWN_CHAR_LIMITS, DEFAULT_BREAKDOWN_LENGTH } from "../../config/Config_Breakdown";
+import { BREAKDOWN_CHAR_LIMITS, DEFAULT_BREAKDOWN_LENGTH } from "../../config/Config_General";
 
 const sanitiseText = (value: any) => {
   if (typeof value !== "string") {
@@ -87,12 +87,8 @@ export const runAI = async ({
   const maxChars = BREAKDOWN_CHAR_LIMITS[breakdownLength ?? DEFAULT_BREAKDOWN_LENGTH];
   const prompt = sanitiseText(basePrompt + buildLengthRule(maxChars));
 
-  addDebugEntry("runAI", "input_text", safeText);
-  addDebugEntry("runAI", "scope", {
-    id: scope.id,
-    responseFormat: scope.responseFormat || "text",
-  });
-  addDebugEntry("runAI", "prompt", prompt);
+  debugLog("AI_Run", "Request", "Sending", { scope: scope.id, model: "gpt-4o-mini" });
+  debugPayload("AI_Run", "prompt", prompt);
 
   const requestBody: any = {
     model: "gpt-4o-mini",
@@ -111,8 +107,7 @@ export const runAI = async ({
 
   const requestJson = JSON.stringify(requestBody);
 
-  addDebugEntry("runAI", "request_json", requestJson);
-
+  const startedAt = Date.now();
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -130,7 +125,10 @@ export const runAI = async ({
       err = JSON.parse(errText);
     } catch {}
 
-    addDebugEntry("runAI", "error", err || "AI request failed");
+    debugLog("AI_Run", "Error", "API failed", {
+      status: response.status,
+      message: typeof err === "string" ? err : err?.error?.message || "AI request failed",
+    });
     return {
       error:
         typeof err === "string"
@@ -141,8 +139,10 @@ export const runAI = async ({
 
   const data = await response.json();
   const raw = sanitiseText(data?.choices?.[0]?.message?.content || "");
+  const elapsed = Date.now() - startedAt;
 
-  addDebugEntry("runAI", "raw_response", raw);
+  debugLog("AI_Run", "Response", "Received", { chars: raw.length, took: formatTime(elapsed) });
+  debugPayload("AI_Run", "raw_response", raw);
 
   let parsed: any = {};
 
@@ -153,17 +153,13 @@ export const runAI = async ({
       parsed = jsonParsed;
     } else {
       parsed = parseLegacyStructuredResponse(raw);
-      addDebugEntry("runAI", "json_parse_error", "Failed to parse JSON response");
+      debugLog("AI_Run", "Error", "Failed to parse JSON response");
     }
   } else {
     parsed = parseLegacyStructuredResponse(raw);
   }
 
-  addDebugEntry("runAI", "parsed", parsed);
-
   const output = scope.mapOutput ? scope.mapOutput(parsed) : parsed;
-
-  addDebugEntry("runAI", "output", output);
 
   return {
     raw,

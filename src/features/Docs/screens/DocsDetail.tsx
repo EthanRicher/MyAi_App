@@ -7,7 +7,7 @@ import { Trash2 } from "lucide-react-native";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
-import { renderMarkdownWith, parseInline } from "../../../components/render/markdown";
+import { renderMarkdownWith, parseInline } from "../../../backend/6_Present/Present_Markdown";
 import { useDocs } from "../hooks/useDocs";
 import { CATEGORY_LABELS } from "../models/Doc";
 

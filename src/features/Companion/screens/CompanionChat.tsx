@@ -6,9 +6,9 @@ import {
   runChatTurn,
   buildChatText,
   chatScreenPropsFromConfig,
-} from "../../../backend/4_AI/AI_RunChatTurn";
+} from "../../../backend/_AI/AI_RunChatTurn";
 import { buildCompanionPrompt } from "../../../backend/3_Scopes/Companion/Chat_Companion";
-import { AIScope } from "../../../backend/4_AI/AI_Types";
+import { AIScope } from "../../../backend/_AI/AI_Types";
 import { getCompanionChatConfig } from "../../../config/Companion";
 import { useDocs } from "../../Docs/hooks/useDocs";
 

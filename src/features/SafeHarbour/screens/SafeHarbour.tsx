@@ -17,7 +17,7 @@ import { colors } from "../../../theme";
 import { useSpeechInput } from "../../../backend/1_Input/Speech/Input_SpeechHook";
 import { whisperTranscribe } from "../../../backend/1_Input/Speech/Input_Whisper";
 import { openCameraAndScan, PhotoMode } from "../../../backend/1_Input/Camera/Input_Camera";
-import { runAI } from "../../../backend/4_AI/AI_Run";
+import { runAI } from "../../../backend/_AI/AI_Run";
 import { runAIOnPhoto } from "../../../backend/1_Input/Camera/Input_PhotoToAI";
 import { safeHarbourScamCheck, ScamCheckOutput, ScamLevel } from "../../../backend/3_Scopes/SafeHarbour/Check_Scam";
 

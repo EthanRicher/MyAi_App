@@ -1,4 +1,4 @@
-import type { BreakdownLength } from "../Config_Breakdown";
+import type { BreakdownLength } from "../Config_General";
 import type { DocCategory } from "../../features/Docs/models/Doc";
 
 export type ChatConfig = {

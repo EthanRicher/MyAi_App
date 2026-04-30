@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Audio } from "expo-av";
-import { addDebugEntry } from "../../4_AI/AI_Debug";
+import { debugLog, debugTurn } from "../../_AI/AI_Debug";
 
 type UseSpeechInputArgs = {
   transcribe: (uri: string) => Promise<string>;
@@ -22,10 +22,9 @@ export function useSpeechInput({
   const startRecording = async () => {
     try {
       clearSpeechError();
+      debugTurn();
 
       const permission = await Audio.requestPermissionsAsync();
-
-      addDebugEntry("SpeechHook", "permission", permission);
 
       if (permission.status !== "granted") {
         setSpeechError("Microphone permission denied");
@@ -44,10 +43,10 @@ export function useSpeechInput({
       setRecording(rec);
       setIsRecording(true);
 
-      addDebugEntry("SpeechHook", "recording_state", "started");
+      debugLog("Input_SpeechHook", "Action", "Recording started");
     } catch {
       setSpeechError("Could not start recording");
-      addDebugEntry("SpeechHook", "error", "Could not start recording");
+      debugLog("Input_SpeechHook", "Error", "Could not start recording");
     }
   };
 
@@ -63,8 +62,7 @@ export function useSpeechInput({
       setRecording(null);
       setIsRecording(false);
 
-      addDebugEntry("SpeechHook", "recording_state", "stopped");
-      addDebugEntry("SpeechHook", "recorded_uri", uri || "");
+      debugLog("Input_SpeechHook", "Action", "Recording stopped");
 
       if (!uri) {
         setSpeechError("No audio file found");
@@ -75,17 +73,16 @@ export function useSpeechInput({
 
       if (!text || text.startsWith("Error")) {
         setSpeechError(text || "Could not transcribe audio");
-        addDebugEntry("SpeechHook", "error", text || "Could not transcribe audio");
+        debugLog("Input_SpeechHook", "Error", "Transcription failed", { message: text || "Could not transcribe audio" });
         return;
       }
 
-      addDebugEntry("SpeechHook", "transcript", text);
       await onTranscript(text);
     } catch {
       setSpeechError("Could not stop recording");
       setRecording(null);
       setIsRecording(false);
-      addDebugEntry("SpeechHook", "error", "Could not stop recording");
+      debugLog("Input_SpeechHook", "Error", "Could not stop recording");
     }
   };
 

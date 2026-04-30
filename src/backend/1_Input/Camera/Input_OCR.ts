@@ -1,10 +1,8 @@
 import { OCR_API_KEY } from "@env";
-import { addDebugEntry } from "../../4_AI/AI_Debug";
+import { debugLog, debugPayload } from "../../_AI/AI_Debug";
 
 export const runOCR = async (imageUri: string) => {
   try {
-    addDebugEntry("OCR", "image_uri", imageUri);
-
     const formData = new FormData();
 
     formData.append("file", {
@@ -26,15 +24,14 @@ export const runOCR = async (imageUri: string) => {
 
     const data = await res.json();
 
-    addDebugEntry("OCR", "raw_response", data);
-
     const text = data?.ParsedResults?.[0]?.ParsedText?.trim() || "";
 
-    addDebugEntry("OCR", "text", text);
+    debugLog("Input_OCR", "Result", "Text extracted", { chars: text.length });
+    debugPayload("Input_OCR", "raw_text", text);
 
     return text;
   } catch (error: any) {
-    addDebugEntry("OCR", "error", error?.message || "OCR failed");
+    debugLog("Input_OCR", "Error", "OCR failed", { message: error?.message || "OCR failed" });
     return "";
   }
 };

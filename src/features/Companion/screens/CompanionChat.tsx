@@ -7,8 +7,8 @@ import {
   buildChatText,
   chatScreenPropsFromConfig,
 } from "../../../backend/_AI/AI_RunChatTurn";
-import { buildCompanionPrompt } from "../../../backend/3_Scopes/Companion/Chat_Companion";
-import { AIScope } from "../../../backend/_AI/AI_Types";
+import { getCompanionScope } from "../../../backend/3_Scopes/Companion";
+import { formatExistingDocs } from "../../../backend/3_Scopes/Companion/Scope_Common_Companion";
 import { getCompanionChatConfig } from "../../../config/Companion";
 import { useDocs } from "../../Docs/hooks/useDocs";
 
@@ -18,6 +18,7 @@ export function CompanionChat() {
   const route = useRoute<Route>();
   const { title } = route.params || {};
   const cfg = getCompanionChatConfig(title);
+  const scope = useMemo(() => getCompanionScope(title), [title]);
   const { docs } = useDocs();
 
   const familyEntries = useMemo(
@@ -29,14 +30,28 @@ export function CompanionChat() {
     [docs]
   );
 
-  const scope: AIScope = useMemo(() => ({
-    id: "companionChat",
-    buildPrompt: (input: string) =>
-      buildCompanionPrompt(input, title, { family: familyEntries, memory: memoryEntries }),
-  }), [title, familyEntries, memoryEntries]);
+  const handleProcessMessage = (payload: ChatSendPayload, history: ChatMessage[]) => {
+    const message = payload.text?.trim() || "";
 
-  const handleProcessMessage = (payload: ChatSendPayload, history: ChatMessage[]) =>
-    runChatTurn(cfg, scope, buildChatText(cfg, history, payload.text?.trim() || ""));
+    // Family Tree / Memory Book scopes need the user's existing records
+    // as context. Inject them into the input text so the scope can reason
+    // over them (the scope itself stays a pure (input) => prompt builder).
+    let contextPrefix = "";
+    if (title === "Family Tree") {
+      contextPrefix = formatExistingDocs(
+        "EXISTING FAMILY MEMBERS YOU'VE LEARNED ABOUT (use these to recognise people across turns):",
+        familyEntries
+      );
+    } else if (title === "Memory Book") {
+      contextPrefix = formatExistingDocs(
+        "EXISTING MEMORIES YOU'VE LEARNED ABOUT (use these to recognise the memory across turns):",
+        memoryEntries
+      );
+    }
+
+    const text = contextPrefix + buildChatText(cfg, history, message);
+    return runChatTurn(cfg, scope, text);
+  };
 
   return (
     <ChatScreen

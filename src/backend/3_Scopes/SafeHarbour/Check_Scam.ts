@@ -1,7 +1,7 @@
 import { AIScope } from "../../_AI/AI_Types";
 import { buildSharedPrompt, buildSharedPhotoPrompt } from "../_Common";
 
-export type ScamLevel = "low" | "med" | "high";
+export type ScamLevel = "low" | "med" | "high" | "unsure";
 
 export type ScamCheckOutput = {
   level: ScamLevel;
@@ -20,7 +20,7 @@ ${subject}
 Return ONLY valid JSON in this exact shape:
 
 {
-  "level": "<one of: low, med, high>",
+  "level": "<one of: low, med, high, unsure>",
   "verdict": "<short one-liner the user can read at a glance>",
   "redFlags": ["<observation 1>", "<observation 2>", ...],
   "explanation": "<plain English explanation, 1-3 short sentences>"
@@ -30,20 +30,29 @@ LEVEL rules:
 - "high" — clearly a scam: requests for money, PINs, account access, urgency threats, fake authority, prizes the user did not enter, asks to keep secret, suspicious or strange URLs, impersonation of bank / government / family / tech support.
 - "med" — has some suspicious traits but could still be legitimate; needs verification before acting.
 - "low" — looks normal or expected: a bill from a service the user actually uses, a message from someone they recognise, no money request, no urgency, no link/login asks.
+- "unsure" — the input is NOT something a scam check applies to, OR there is not enough information to make any judgement. Use this when:
+  - The text/photo is unrelated (a recipe, a personal note, a random snapshot, gibberish, empty content).
+  - The input is too short, vague, or off-topic to assess as a possible scam.
+  - You genuinely cannot tell — do NOT default to "med" just to fill an answer. Pick "unsure" instead.
 
-VERDICT examples:
-- high: "Likely a scam — do not respond"
-- med: "Be careful — verify before acting"
-- low: "Looks normal — but check if unsure"
+VERDICT (one short line, no longer than ~6 words):
+- high: "Likely a scam — don't respond"
+- med: "Be careful — verify first"
+- low: "Looks normal"
+- unsure: "Not enough to check"
 
-RED FLAGS:
-- 2 to 5 short bullets pointing to specific cues in the message.
-- For low-risk results, list reassuring observations instead (e.g. "Mentions an account you actually have", "No urgency or money request").
+RED FLAGS — KEEP TIGHT:
+- 2 to 3 bullets MAX. Each bullet 4-7 words.
+- Point to one specific cue per bullet. No padding, no full sentences.
+- For low-risk: list reassuring observations the same short way (e.g. "Real account you use", "No money or link asked").
+- For "unsure": list what's missing in 4-7 words (e.g. "Looks like a personal note", "Not enough text to judge").
 
-EXPLANATION:
-- Plain language. Don't lecture. State the reasoning briefly.
-- If high or med: tell them what NOT to do (click links, send money, share info).
-- If low: still suggest calling the organisation on a number they trust if anything feels off.
+EXPLANATION — KEEP TIGHT:
+- ONE short sentence. Max ~20 words.
+- Plain language. No lecturing. No restating the verdict.
+- If high or med: name the single most important thing NOT to do (e.g. "Don't click the link or share details").
+- If low: short reassurance.
+- If unsure: ask them to share the actual message or screenshot.
 `;
 
 export const safeHarbourScamCheck: AIScope = {
@@ -63,7 +72,7 @@ export const safeHarbourScamCheck: AIScope = {
     ),
 
   mapOutput: (parsed: any): ScamCheckOutput => ({
-    level: ["low", "med", "high"].includes(parsed?.level) ? parsed.level : "med",
+    level: ["low", "med", "high", "unsure"].includes(parsed?.level) ? parsed.level : "unsure",
     verdict: typeof parsed?.verdict === "string" ? parsed.verdict.trim() : "",
     redFlags: Array.isArray(parsed?.redFlags)
       ? parsed.redFlags.filter((s: any) => typeof s === "string").map((s: string) => s.trim()).filter(Boolean)

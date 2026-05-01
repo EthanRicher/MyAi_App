@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { View, Text, ActivityIndicator, StyleSheet, Image } from "react-native";
+import { View, ActivityIndicator, StyleSheet, Image } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -9,21 +10,38 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "Splash">;
 
 export function SplashScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    const t = setTimeout(() => navigation.replace("Landing"), 2500);
+    const t = setTimeout(() => navigation.replace("Login"), 2500);
     return () => clearTimeout(t);
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={require("../assets/Logo_Full.png")}
-        style={styles.logoFull}
-        resizeMode="contain"
-      />
-      <Text style={styles.subtitle}>Your Companion for Everyday Life</Text>
-      <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top + 32,
+          paddingBottom: insets.bottom + 16,
+        },
+      ]}
+    >
+      {/* Logo positioned identically to the LoginScreen: centered in the
+          top two-thirds of the screen, same size + same vertical nudge. */}
+      <View pointerEvents="none" style={styles.logoBackgroundWrap}>
+        <Image
+          source={require("../assets/Logo_Full.png")}
+          style={styles.logoBackground}
+          resizeMode="contain"
+        />
+      </View>
+
+      {/* Big spinner sits below the logo, in the bottom third where the
+          login card would normally be. */}
+      <View style={styles.spinnerZone}>
+        <ActivityIndicator size="large" color={colors.primary} style={styles.spinner} />
+      </View>
     </View>
   );
 }
@@ -32,19 +50,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    paddingHorizontal: 24,
+  },
+  logoBackgroundWrap: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "66.66%",
     alignItems: "center",
     justifyContent: "center",
-    gap: 24,
+    paddingTop: 56,
   },
-  logoFull: {
-    width: 280,
-    height: 120,
+  logoBackground: {
+    width: "92%",
+    maxWidth: 360,
+    aspectRatio: 1,
   },
-  subtitle: {
-    fontSize: 18,
-    color: colors.textMuted,
+  spinnerZone: {
+    position: "absolute",
+    top: "66.66%",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 80,
   },
+  // Scale the system ActivityIndicator up — RN's size prop only takes
+  // "small" / "large" cross-platform, so we apply a transform on top.
   spinner: {
-    marginTop: 32,
+    transform: [{ scale: 2.6 }],
   },
 });

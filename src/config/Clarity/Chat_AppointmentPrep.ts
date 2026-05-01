@@ -7,7 +7,13 @@ export const clarityAppointmentPrep: ChatConfig = {
   conversational: true,
   warning: MEDICAL_WARNING,
   title: "Appointment Prep",
-  disclaimer: "I'll help you prep for your appointment",
+  disclaimer: "I'll help you build a list of questions for your appointment",
   cameraEnabled: false,
-  starterPrompts: ["Help me prepare questions for my GP", "What should I ask about my blood test?", "I have a specialist appointment tomorrow"],
+  starterPrompts: [
+    "Help me prepare questions for my GP",
+    "What should I ask about my blood test?",
+    "I have a specialist appointment tomorrow",
+  ],
+  saveable: true,
+  saveCategory: "appointment",
 };

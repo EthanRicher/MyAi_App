@@ -2,41 +2,15 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-nati
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ChevronRight, FileText, Mail, CalendarDays, Users, Heart, BookOpen, AlertTriangle } from "lucide-react-native";
+import { ChevronRight, AlertTriangle } from "lucide-react-native";
 import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { useDocs } from "../hooks/useDocs";
 import { useAlerts } from "../hooks/useAlerts";
-import { CATEGORY_LABELS, CATEGORY_ORDER, Doc, DocCategory } from "../models/Doc";
+import { FEATURE_GROUPS } from "../models/FeatureGroup";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Docs">;
-
-const CATEGORY_ICONS: Record<DocCategory, any> = {
-  letter: Mail,
-  plan: CalendarDays,
-  family: Users,
-  memory: Heart,
-  summary: BookOpen,
-  general: FileText,
-};
-
-const CATEGORY_COLORS: Record<DocCategory, string> = {
-  letter: "#0dd9f7",
-  plan: "#FF9800",
-  family: "#BB86FC",
-  memory: "#F472B6",
-  summary: "#4CAF50",
-  general: colors.textMuted,
-};
-
-const formatDate = (iso: string) => {
-  try {
-    return new Date(iso).toLocaleDateString();
-  } catch {
-    return "";
-  }
-};
 
 export function DocsLanding() {
   const navigation = useNavigation<Nav>();
@@ -44,58 +18,58 @@ export function DocsLanding() {
   const { docs } = useDocs();
   const { alerts } = useAlerts();
 
-  const grouped: Record<DocCategory, Doc[]> = {
-    letter: [], plan: [], family: [], memory: [], summary: [], general: [],
-  };
-  for (const d of docs) grouped[d.category]?.push(d);
-
-  const hasAny = docs.length > 0;
-
   return (
     <View style={styles.container}>
       <BackButton label="Docs" to="Home" />
 
       <ScrollView contentContainerStyle={styles.content}>
-        {!hasAny && (
-          <View style={styles.emptyWrap}>
-            <FileText size={48} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No saved documents yet</Text>
-            <Text style={styles.emptyHint}>
-              When you finish a letter, plan, or memory in chat, tap "Save to Docs" on the AI's reply and it will appear here.
-            </Text>
-          </View>
-        )}
-
-        {CATEGORY_ORDER.map((cat) => {
-          const items = grouped[cat];
-          if (!items || items.length === 0) return null;
-          const Icon = CATEGORY_ICONS[cat];
-          const color = CATEGORY_COLORS[cat];
+        {FEATURE_GROUPS.map((group) => {
+          const Icon = group.icon;
+          const count = docs.filter((d) => group.categories.includes(d.category)).length;
+          const hasContent = group.categories.length > 0 && count > 0;
+          const tone = hasContent ? group.color : colors.textCaption;
+          const summary =
+            group.categories.length === 0
+              ? "Nothing to save here yet"
+              : count === 0
+                ? "Empty"
+                : `${count} saved`;
           return (
-            <View key={cat} style={styles.categoryBlock}>
-              <View style={styles.categoryHeader}>
-                <Icon size={18} color={color} />
-                <Text style={[styles.categoryTitle, { color }]}>{CATEGORY_LABELS[cat]}</Text>
-                <Text style={styles.categoryCount}>{items.length}</Text>
+            <TouchableOpacity
+              key={group.id}
+              onPress={() => navigation.navigate("DocsFeature", { featureId: group.id })}
+              style={[
+                styles.featureBtn,
+                hasContent
+                  ? { borderColor: group.color + "55", backgroundColor: colors.card }
+                  : styles.featureBtnEmpty,
+              ]}
+              activeOpacity={0.7}
+              accessibilityLabel={`Open ${group.label}`}
+            >
+              <View
+                style={[
+                  styles.featureIcon,
+                  {
+                    backgroundColor: hasContent ? group.color + "20" : "rgba(255,255,255,0.04)",
+                  },
+                ]}
+              >
+                <Icon size={26} color={tone} />
               </View>
-              {items.map((d) => (
-                <TouchableOpacity
-                  key={d.id}
-                  onPress={() => navigation.navigate("DocsDetail", { id: d.id })}
-                  style={[styles.docCard, { borderColor: color + "55" }]}
-                  accessibilityLabel={`Open ${d.title}`}
+              <View style={styles.featureMeta}>
+                <Text
+                  style={[
+                    styles.featureTitle,
+                    { color: hasContent ? colors.text : colors.textMuted },
+                  ]}
                 >
-                  <View style={[styles.docIcon, { backgroundColor: color + "20" }]}>
-                    <Icon size={22} color={color} />
-                  </View>
-                  <View style={styles.docMeta}>
-                    <Text style={styles.docTitle} numberOfLines={1}>{d.title}</Text>
-                    <Text style={styles.docDate}>{formatDate(d.updatedAt)}</Text>
-                  </View>
-                  <ChevronRight size={22} color={colors.border} />
-                </TouchableOpacity>
-              ))}
-            </View>
+                  {group.label}
+                </Text>
+                <Text style={styles.featureSummary}>{summary}</Text>
+              </View>
+              <ChevronRight size={22} color={hasContent ? colors.textMuted : colors.border} />
+            </TouchableOpacity>
           );
         })}
       </ScrollView>
@@ -119,74 +93,34 @@ export function DocsLanding() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 18 },
-  emptyWrap: {
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 60,
-    paddingHorizontal: 24,
-  },
-  emptyTitle: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  emptyHint: {
-    color: colors.textMuted,
-    fontSize: 15,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  categoryBlock: {
-    gap: 8,
-  },
-  categoryHeader: {
+  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 10 },
+
+  featureBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 4,
-    marginBottom: 2,
-  },
-  categoryTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  categoryCount: {
-    color: colors.textCaption,
-    fontSize: 13,
-  },
-  docCard: {
-    backgroundColor: colors.card,
-    borderRadius: 14,
+    gap: 14,
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderWidth: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "transparent",
   },
-  docIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
+  featureBtnEmpty: {
+    backgroundColor: "transparent",
+    borderColor: colors.border,
+    borderStyle: "dashed",
+  },
+  featureIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
-  docMeta: {
-    flex: 1,
-  },
-  docTitle: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  docDate: {
-    color: colors.textCaption,
-    fontSize: 13,
-    marginTop: 2,
-  },
+  featureMeta: { flex: 1 },
+  featureTitle: { fontSize: 19, fontWeight: "800" },
+  featureSummary: { color: colors.textCaption, fontSize: 14, marginTop: 3 },
+
   bottomBar: {
     paddingHorizontal: 16,
     paddingTop: 12,

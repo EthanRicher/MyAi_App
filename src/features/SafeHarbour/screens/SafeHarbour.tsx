@@ -8,9 +8,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  Modal,
   Keyboard as RNKeyboard,
 } from "react-native";
-import { Mic, Keyboard, Camera, Phone, Shield, AlertTriangle, CheckCircle2, Sparkles, X } from "lucide-react-native";
+import { Mic, Keyboard, Camera, Phone, Shield, AlertTriangle, CheckCircle2, Sparkles, X, Search, HelpCircle, Info } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton } from "../../../components/BackButton";
 import { colors } from "../../../theme";
@@ -25,6 +26,7 @@ const LEVEL_META: Record<ScamLevel, { label: string; color: string; icon: any }>
   low: { label: "Low Risk", color: colors.green, icon: CheckCircle2 },
   med: { label: "Medium Risk", color: colors.orange, icon: AlertTriangle },
   high: { label: "High Risk", color: colors.destructive, icon: AlertTriangle },
+  unsure: { label: "Unsure", color: colors.textMuted, icon: HelpCircle },
 };
 
 export function SafeHarbour() {
@@ -35,6 +37,7 @@ export function SafeHarbour() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<ScamCheckOutput | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [showInputModal, setShowInputModal] = useState(false);
 
   const handleTranscript = (text: string) => {
     if (!text.trim()) return;
@@ -50,9 +53,13 @@ export function SafeHarbour() {
     if (!speechError) return;
     setError("Couldn't hear that. Please try again.");
     clearSpeechError();
+  }, [speechError]);
+
+  useEffect(() => {
+    if (!error) return;
     const t = setTimeout(() => setError(""), 4000);
     return () => clearTimeout(t);
-  }, [speechError]);
+  }, [error]);
 
   const runTextCheck = async (text: string) => {
     setError("");
@@ -71,6 +78,9 @@ export function SafeHarbour() {
         return;
       }
       setResult(output);
+      setShowInputModal(false);
+      setShowText(false);
+      setDraft("");
     } finally {
       setProcessing(false);
     }
@@ -117,9 +127,20 @@ export function SafeHarbour() {
         return;
       }
       setResult(output);
+      setShowInputModal(false);
+      setShowText(false);
+      setDraft("");
     } finally {
       setProcessing(false);
     }
+  };
+
+  const closeInputModal = () => {
+    if (isRecording) return;
+    setShowInputModal(false);
+    setShowText(false);
+    setDraft("");
+    setError("");
   };
 
   const clearResult = () => {
@@ -136,77 +157,15 @@ export function SafeHarbour() {
       <BackButton label="Safe Harbour" to="Home" />
 
       <View style={styles.inputZone}>
-        <View style={styles.card}>
-          <Text style={styles.cardHeading}>Check Something for a Scam</Text>
-          <Text style={styles.cardSub}>
-            Read it out, type it, or take a photo of the message — I'll tell you whether it looks safe.
-          </Text>
-
-          <TouchableOpacity
-            onPress={handleMicPress}
-            disabled={processing}
-            style={[
-              styles.recordBtn,
-              isRecording && styles.recordBtnActive,
-              processing && styles.btnDisabled,
-            ]}
-            accessibilityLabel={isRecording ? "Stop recording" : "Record a message to check"}
-          >
-            {processing && !isRecording ? (
-              <ActivityIndicator color={colors.text} />
-            ) : (
-              <Mic size={28} color={isRecording ? colors.text : colors.background} />
-            )}
-            <Text style={[styles.recordBtnText, isRecording && { color: colors.text }]}>
-              {processing && !isRecording ? "Checking..." : isRecording ? "Tap to stop" : "Tap to record"}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.altRow}>
-            <TouchableOpacity
-              onPress={() => setShowText((s) => !s)}
-              disabled={processing}
-              style={[styles.altBtn, processing && styles.btnDisabled]}
-            >
-              <Keyboard size={18} color={colors.text} />
-              <Text style={styles.altBtnText}>Type</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handlePhoto}
-              disabled={processing}
-              style={[styles.altBtn, processing && styles.btnDisabled]}
-            >
-              <Camera size={18} color={colors.text} />
-              <Text style={styles.altBtnText}>Photo</Text>
-            </TouchableOpacity>
-          </View>
-
-          {showText && (
-            <View style={styles.typeWrap}>
-              <TextInput
-                value={draft}
-                onChangeText={setDraft}
-                placeholder="Paste or type the message..."
-                placeholderTextColor={colors.textCaption}
-                style={styles.input}
-                multiline
-                accessibilityLabel="Type a message to check"
-              />
-              <TouchableOpacity
-                onPress={handleProcessTyped}
-                disabled={processing || !draft.trim()}
-                style={[styles.processBtn, (!draft.trim() || processing) && styles.btnDisabled]}
-              >
-                <Sparkles size={18} color={colors.background} />
-                <Text style={styles.processBtnText}>
-                  {processing ? "Checking..." : "Check this"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-        </View>
+        <TouchableOpacity
+          onPress={() => setShowInputModal(true)}
+          style={styles.checkBtn}
+          activeOpacity={0.8}
+          accessibilityLabel="Check for scam"
+        >
+          <Search size={24} color={colors.background} />
+          <Text style={styles.checkBtnText}>Check for Scam</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -255,14 +214,23 @@ export function SafeHarbour() {
               {!!result.explanation && (
                 <Text style={styles.explanation}>{result.explanation}</Text>
               )}
+
+              <View style={styles.resultFooter}>
+                <View style={styles.disclaimerRow}>
+                  <Info size={16} color={colors.orange} />
+                  <Text style={styles.disclaimerText}>
+                    AI can be wrong — double-check before acting.
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={clearResult} style={styles.clearBtn} accessibilityLabel="Clear result">
+                  <Text style={styles.clearBtnText}>Clear</Text>
+                </TouchableOpacity>
+              </View>
             </>
           ) : (
             <View style={styles.placeholder}>
-              <AlertTriangle size={28} color={colors.textCaption} />
-              <Text style={styles.placeholderTitle}>Scam breakdown will appear here</Text>
-              <Text style={styles.placeholderHint}>
-                Record, type, or take a photo above and the analysis will show in this box.
-              </Text>
+              <AlertTriangle size={48} color={colors.textCaption} />
+              <Text style={styles.placeholderTitle}>Scam Report will appear here</Text>
             </View>
           )}
         </View>
@@ -287,6 +255,96 @@ export function SafeHarbour() {
           </View>
         </View>
       </View>
+
+      <Modal
+        visible={showInputModal}
+        transparent
+        animationType="fade"
+        onRequestClose={closeInputModal}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.inputModalCard}>
+            <Text
+              style={[styles.modalHeading, error && styles.modalHeadingError]}
+              numberOfLines={2}
+            >
+              {error || "How would you like to check?"}
+            </Text>
+
+            <TouchableOpacity
+              onPress={handleMicPress}
+              disabled={processing}
+              style={[
+                styles.recordBtn,
+                isRecording && styles.recordBtnActive,
+                processing && styles.btnDisabled,
+              ]}
+              accessibilityLabel={isRecording ? "Stop recording" : "Start recording"}
+            >
+              {processing && !isRecording ? (
+                <ActivityIndicator color={colors.text} />
+              ) : (
+                <Mic size={32} color={isRecording ? colors.text : colors.background} />
+              )}
+              <Text style={[styles.recordBtnText, isRecording && { color: colors.text }]}>
+                {processing && !isRecording ? "Checking..." : isRecording ? "Tap to stop" : "Tap to record"}
+              </Text>
+            </TouchableOpacity>
+
+            {!showText ? (
+              <TouchableOpacity
+                onPress={() => setShowText(true)}
+                style={styles.typeBtn}
+                disabled={processing || isRecording}
+              >
+                <Keyboard size={18} color={colors.destructive} />
+                <Text style={styles.typeBtnText}>Type</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.typeWrap}>
+                <TextInput
+                  value={draft}
+                  onChangeText={setDraft}
+                  placeholder="Paste or type the message..."
+                  placeholderTextColor={colors.textCaption}
+                  style={styles.input}
+                  multiline
+                  autoFocus
+                  accessibilityLabel="Type a message to check"
+                />
+                <TouchableOpacity
+                  onPress={handleProcessTyped}
+                  disabled={processing || !draft.trim()}
+                  style={[styles.processBtn, (!draft.trim() || processing) && styles.btnDisabled]}
+                >
+                  <Sparkles size={18} color={colors.background} />
+                  <Text style={styles.processBtnText}>
+                    {processing ? "Checking..." : "Check this"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <TouchableOpacity
+              onPress={handlePhoto}
+              style={styles.photoBtn}
+              disabled={processing || isRecording}
+            >
+              <Camera size={18} color={colors.destructive} />
+              <Text style={styles.photoBtnText}>Photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={closeInputModal}
+              style={styles.inputCloseBtn}
+              disabled={isRecording}
+              accessibilityLabel="Close"
+            >
+              <Text style={[styles.inputCloseBtnText, isRecording && { opacity: 0.4 }]}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -304,9 +362,82 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
 
-  card: { backgroundColor: colors.card, borderRadius: 14, padding: 16, gap: 10 },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    padding: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.primary + "44",
+  },
   cardHeading: { color: colors.text, fontSize: 19, fontWeight: "700" },
-  cardSub: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
+
+  checkBtn: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 18,
+    borderRadius: 14,
+    backgroundColor: colors.destructive,
+  },
+  checkBtnText: { color: colors.background, fontSize: 19, fontWeight: "800" },
+
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  inputModalCard: {
+    width: "100%",
+    maxWidth: 400,
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 20,
+    gap: 12,
+  },
+  modalHeading: { color: colors.text, fontSize: 20, fontWeight: "700", textAlign: "center" },
+  modalHeadingError: { color: colors.destructive },
+
+  typeBtn: {
+    alignSelf: "stretch",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.destructive,
+    backgroundColor: "transparent",
+  },
+  typeBtnText: { color: colors.destructive, fontSize: 15, fontWeight: "700" },
+  photoBtn: {
+    alignSelf: "stretch",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.destructive,
+    backgroundColor: "transparent",
+  },
+  photoBtnText: { color: colors.destructive, fontSize: 15, fontWeight: "700" },
+  inputCloseBtn: {
+    alignSelf: "stretch",
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  inputCloseBtnText: { color: colors.textMuted, fontSize: 16, fontWeight: "600" },
 
   recordBtn: {
     flexDirection: "row",
@@ -319,21 +450,6 @@ const styles = StyleSheet.create({
   },
   recordBtnActive: { backgroundColor: "#7a1d1d" },
   recordBtnText: { color: colors.background, fontSize: 18, fontWeight: "700" },
-
-  altRow: { flexDirection: "row", gap: 10 },
-  altBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  altBtnText: { color: colors.text, fontSize: 15, fontWeight: "600" },
 
   btnDisabled: { opacity: 0.5 },
 
@@ -378,20 +494,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 14,
     paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   placeholderTitle: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "700",
-  },
-  placeholderHint: {
-    color: colors.textMuted,
-    fontSize: 13,
     textAlign: "center",
-    lineHeight: 18,
-    paddingHorizontal: 16,
   },
   resultHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   levelPill: {
@@ -404,14 +515,42 @@ const styles = StyleSheet.create({
   },
   levelPillText: { color: colors.background, fontSize: 14, fontWeight: "800" },
   closeBtn: { paddingHorizontal: 6, paddingVertical: 4 },
-  verdict: { fontSize: 19, fontWeight: "700" },
+  verdict: { fontSize: 22, fontWeight: "700" },
   thumb: { width: "100%", height: 160, borderRadius: 10 },
-  flagsWrap: { gap: 6 },
-  flagsHeading: { color: colors.textMuted, fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
-  flagRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  flagBullet: { width: 8, height: 8, borderRadius: 4, marginTop: 7 },
-  flagText: { flex: 1, color: colors.text, fontSize: 15, lineHeight: 22 },
-  explanation: { color: colors.textMuted, fontSize: 15, lineHeight: 22 },
+  flagsWrap: { gap: 8 },
+  flagsHeading: { color: colors.textMuted, fontSize: 14, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
+  flagRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  flagBullet: { width: 9, height: 9, borderRadius: 4.5, marginTop: 8 },
+  flagText: { flex: 1, color: colors.text, fontSize: 17, lineHeight: 24 },
+  explanation: { color: colors.textMuted, fontSize: 17, lineHeight: 24 },
+  resultFooter: { marginTop: "auto", gap: 8 },
+  disclaimerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.orange,
+    backgroundColor: "rgba(255,152,0,0.15)",
+  },
+  disclaimerText: {
+    flex: 1,
+    color: colors.orange,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  clearBtn: {
+    alignSelf: "stretch",
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.destructive,
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  clearBtnText: { color: colors.destructive, fontSize: 16, fontWeight: "700" },
 
   contactList: { gap: 8 },
   contactRow: { flexDirection: "row", alignItems: "center", gap: 8 },

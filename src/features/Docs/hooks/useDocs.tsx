@@ -13,8 +13,8 @@ type DocsContextType = {
 
 const DocsContext = createContext<DocsContextType>({
   docs: [],
-  addDoc: () => ({ id: "", title: "", category: "general", content: "", createdAt: "", updatedAt: "" }),
-  upsertDocByTitle: () => ({ id: "", title: "", category: "general", content: "", createdAt: "", updatedAt: "" }),
+  addDoc: () => ({ id: "", title: "", category: "letter", content: "", createdAt: "", updatedAt: "" }),
+  upsertDocByTitle: () => ({ id: "", title: "", category: "letter", content: "", createdAt: "", updatedAt: "" }),
   updateDoc: () => {},
   deleteDoc: () => {},
   getDoc: () => undefined,

@@ -6,6 +6,4 @@ export const companionCreativeCorner: ChatConfig = {
   title: "Creative Corner",
   disclaimer: "Poems, stories and creative activities",
   starterPrompts: ["Write me a short poem", "Let's make up a short story", "Give me a fun creative activity"],
-  saveable: true,
-  saveCategory: "general",
 };

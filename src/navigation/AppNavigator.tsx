@@ -17,8 +17,12 @@ import { Companion } from "../features/Companion/screens/Companion";
 import { CompanionChat } from "../features/Companion/screens/CompanionChat";
 import { SafeHarbour } from "../features/SafeHarbour/screens/SafeHarbour";
 import { DocsLanding } from "../features/Docs/screens/DocsLanding";
+import { DocsFeature } from "../features/Docs/screens/DocsFeature";
+import { DocsCategory } from "../features/Docs/screens/DocsCategory";
 import { DocsDetail } from "../features/Docs/screens/DocsDetail";
 import { AlertsLog } from "../features/Docs/screens/AlertsLog";
+import { DocCategory } from "../features/Docs/models/Doc";
+import { FeatureGroupId } from "../features/Docs/models/FeatureGroup";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { Medication } from "../features/Medview/models/Medication";
 export type RootStackParamList = {
@@ -42,6 +46,8 @@ export type RootStackParamList = {
   CompanionChat: { title?: string; initialMessage?: string };
   SafeHarbour: undefined;
   Docs: undefined;
+  DocsFeature: { featureId: FeatureGroupId };
+  DocsCategory: { category: DocCategory };
   DocsDetail: { id: string };
   AlertsLog: undefined;
   Settings: undefined;
@@ -52,7 +58,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export function AppNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Main"
+      initialRouteName="Login"
       screenOptions={{ headerShown: false, animation: "none" }}
     >
       <Stack.Screen name="Splash" component={SplashScreen} />
@@ -73,6 +79,8 @@ export function AppNavigator() {
       <Stack.Screen name="CompanionChat" component={CompanionChat} />
       <Stack.Screen name="SafeHarbour" component={SafeHarbour} />
       <Stack.Screen name="Docs" component={DocsLanding} />
+      <Stack.Screen name="DocsFeature" component={DocsFeature} />
+      <Stack.Screen name="DocsCategory" component={DocsCategory} />
       <Stack.Screen name="DocsDetail" component={DocsDetail} />
       <Stack.Screen name="AlertsLog" component={AlertsLog} />
       <Stack.Screen name="Settings" component={SettingsScreen} />

@@ -7,12 +7,11 @@ import {
   Animated,
   ActivityIndicator,
   useWindowDimensions,
-  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Mic, Settings, LogOut, LayoutGrid, ArrowRight } from "lucide-react-native";
+import { Mic, Settings, LogOut, LayoutGrid, ArrowRight, Stethoscope } from "lucide-react-native";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { colors } from "../theme";
 import { useUserProfile } from "../profile/hooks/useUserProfile";
@@ -22,11 +21,14 @@ import { whisperTranscribe } from "../backend/1_Input/Speech/Input_Whisper";
 type Nav = NativeStackNavigationProp<RootStackParamList, "Main">;
 
 const BTN_SIZE = 170;
+// Same accent as the Sign In button on the login screen, so the brand
+// tone carries through from the login flow into the dashboard.
+const ACCENT = colors.primary;
 
 export function MainDashboard() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const fs = (size: number) => Math.round(size * Math.max(Math.min(width / 390, 1), 0.78));
   const { profile } = useUserProfile();
   const firstName = profile.name.trim().split(" ")[0] || "there";
@@ -91,94 +93,97 @@ export function MainDashboard() {
   const statusText = error
     ? error
     : isProcessing
-    ? "Processing your request..."
+    ? "Working on it..."
     : isRecording
-    ? "Listening... tap to stop"
-    : "Tap the button to speak with your doctor assistant";
+    ? "Listening — tap to stop"
+    : "Tap the mic to record what your doctor said";
+
+  const buttonsDisabled = isRecording || isProcessing;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 12 }]}>
-
+    <View style={[styles.container, { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 12 }]}>
       <View style={styles.topBar}>
         <TouchableOpacity
           onPress={() => navigation.replace("Splash")}
           style={styles.topBtn}
           accessibilityLabel="Logout"
         >
-          <LogOut size={24} color="#F44336" />
-          <Text style={[styles.topBtnText, { color: "#F44336", fontSize: fs(18) }]}>Logout</Text>
+          <LogOut size={22} color={colors.destructive} />
+          <Text style={[styles.topBtnText, { color: colors.destructive, fontSize: fs(17) }]}>Logout</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => navigation.navigate("Settings")}
           style={styles.topBtn}
           accessibilityLabel="Settings"
         >
-          <Settings size={24} color={colors.textMuted} />
-          <Text style={[styles.topBtnText, { color: colors.textMuted, fontSize: fs(18) }]}>Settings</Text>
+          <Settings size={22} color={colors.textMuted} />
+          <Text style={[styles.topBtnText, { color: colors.textMuted, fontSize: fs(17) }]}>Settings</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.greetingZone}>
-        <Text style={[styles.greeting, { fontSize: fs(36) }]}>Hello, {firstName}</Text>
-        <Text style={[error ? styles.errorText : styles.sub, { fontSize: fs(20) }]}>
-          {statusText}
-        </Text>
+        <Text style={[styles.greeting, { fontSize: fs(34) }]}>Hello, {firstName}!</Text>
       </View>
 
-      {(() => {
-        const logoSize = width * 1.3;
-        const downOffset = 30;
-        return (
-          <Image
-            source={require("../assets/Logo_Empty.png")}
-            style={[
-              styles.logoBackdrop,
-              {
-                width: logoSize,
-                height: logoSize,
-                top: height / 2 - logoSize / 2 + downOffset,
-              },
-            ]}
-            resizeMode="contain"
-          />
-        );
-      })()}
+      <View style={styles.heroCard}>
+        <View style={styles.heroHeader}>
+          <View style={styles.heroIcon}>
+            <Stethoscope size={22} color={ACCENT} />
+          </View>
+          <View style={styles.heroHeaderText}>
+            <Text style={[styles.heroTitle, { fontSize: fs(20) }]}>Doctor Explained</Text>
+            <Text style={[styles.heroSubtitle, { fontSize: fs(14) }]}>
+              Record your doctor — get a plain-English version
+            </Text>
+          </View>
+        </View>
 
-      <View style={[styles.centerZone, { top: height / 2 - BTN_SIZE / 2 }]} pointerEvents="box-none">
-        <Animated.View style={{ transform: [{ scale: pulseAnim }, { translateY: -10 }] }}>
-          <TouchableOpacity
-            onPress={handlePress}
-            disabled={isProcessing}
+        <View style={styles.heroCenter}>
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <TouchableOpacity
+              onPress={handlePress}
+              disabled={isProcessing}
+              style={[
+                styles.recordCircle,
+                isRecording && styles.recordCircleActive,
+                isProcessing && styles.recordCircleProcessing,
+              ]}
+              activeOpacity={0.85}
+              accessibilityLabel={isRecording ? "Stop recording" : "Start recording"}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="large" color="#fff" />
+              ) : (
+                <Mic size={64} color="#fff" strokeWidth={2} />
+              )}
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+
+        <View style={styles.heroStatus}>
+          <Text
             style={[
-              styles.recordCircle,
-              isRecording && styles.recordCircleActive,
-              isProcessing && styles.recordCircleProcessing,
+              error ? styles.statusError : styles.statusText,
+              { fontSize: fs(16) },
             ]}
-            activeOpacity={0.8}
-            accessibilityLabel={isRecording ? "Stop recording" : "Start recording"}
           >
-            {isProcessing ? (
-              <ActivityIndicator size="large" color="#fff" />
-            ) : (
-              <Mic size={64} color="#fff" strokeWidth={2} />
-            )}
-          </TouchableOpacity>
-        </Animated.View>
+            {statusText}
+          </Text>
+        </View>
       </View>
 
       <TouchableOpacity
         onPress={() => navigation.navigate("Home")}
-        disabled={isRecording || isProcessing}
-        style={[styles.exploreBtn, (isRecording || isProcessing) && styles.exploreBtnDisabled]}
+        disabled={buttonsDisabled}
+        style={[styles.exploreBtn, buttonsDisabled && styles.exploreBtnDisabled]}
         accessibilityLabel="Explore features"
       >
-        <LayoutGrid size={20} color={(isRecording || isProcessing) ? colors.textCaption : colors.primary} strokeWidth={2} />
-        <Text style={[styles.exploreBtnText, (isRecording || isProcessing) && styles.exploreBtnTextDisabled, { fontSize: fs(28) }]}>
+        <LayoutGrid size={22} color={buttonsDisabled ? colors.textCaption : ACCENT} strokeWidth={2} />
+        <Text style={[styles.exploreBtnText, buttonsDisabled && styles.exploreBtnTextDisabled, { fontSize: fs(20) }]}>
           Explore Features
         </Text>
-        <ArrowRight size={18} color={(isRecording || isProcessing) ? colors.textCaption : colors.primary} strokeWidth={2.5} />
+        <ArrowRight size={20} color={buttonsDisabled ? colors.textCaption : ACCENT} strokeWidth={2.5} />
       </TouchableOpacity>
-
     </View>
   );
 }
@@ -187,15 +192,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
 
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingVertical: 8,
   },
   topBtn: {
     flexDirection: "row",
@@ -203,10 +207,10 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: ACCENT + "44",
     borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   topBtnText: {
     fontWeight: "600",
@@ -214,48 +218,91 @@ const styles = StyleSheet.create({
 
   greetingZone: {
     alignItems: "center",
-    paddingTop: 0,
-    gap: 8,
-    paddingHorizontal: 16,
-  },
-  logoBackdrop: {
-    position: "absolute",
-    alignSelf: "center",
-  },
-  centerZone: {
-    position: "absolute",
-    left: -24,
-    right: -24,
-    alignItems: "center",
-    gap: 24,
+    paddingTop: 18,
+    paddingBottom: 16,
+    gap: 6,
   },
   greeting: {
     color: colors.text,
-    fontWeight: "700",
+    fontWeight: "800",
     textAlign: "center",
+    letterSpacing: 0.2,
   },
-  sub: {
+
+  // Hero card holds the entire recording experience: title, mic, status.
+  // flex:1 makes it absorb the remaining vertical space so the page never
+  // has unused dead area.
+  heroCard: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: ACCENT + "44",
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 22,
+    gap: 12,
+    overflow: "hidden",
+  },
+  heroHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  heroIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: ACCENT + "1F",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  heroTitle: {
+    color: colors.text,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+  },
+  heroSubtitle: {
+    color: colors.textMuted,
+    lineHeight: 19,
+  },
+  heroCenter: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroStatus: {
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  statusText: {
     color: colors.textMuted,
     textAlign: "center",
-    lineHeight: 28,
+    lineHeight: 22,
   },
-  errorText: {
-    color: "#E53935",
+  statusError: {
+    color: colors.destructive,
     textAlign: "center",
-    lineHeight: 28,
-    fontWeight: "600",
+    lineHeight: 22,
+    fontWeight: "700",
   },
 
   recordCircle: {
     width: BTN_SIZE,
     height: BTN_SIZE,
     borderRadius: BTN_SIZE / 2,
-    backgroundColor: "#E53935",
+    backgroundColor: colors.destructive,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#E53935",
+    shadowColor: colors.destructive,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.55,
     shadowRadius: 24,
     elevation: 14,
   },
@@ -270,32 +317,25 @@ const styles = StyleSheet.create({
   },
 
   exploreBtn: {
-    position: "absolute",
-    bottom: 60,
-    left: 0,
-    right: 0,
-    paddingVertical: 28,
-    borderRadius: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    borderRadius: 16,
     backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: ACCENT + "44",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
     marginTop: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   exploreBtnText: {
-    color: colors.primary,
-    fontWeight: "700",
+    color: ACCENT,
+    fontWeight: "800",
     letterSpacing: 0.4,
   },
   exploreBtnDisabled: {
-    shadowOpacity: 0,
-    elevation: 0,
+    borderColor: colors.border,
   },
   exploreBtnTextDisabled: {
     color: colors.textCaption,

@@ -30,7 +30,21 @@ export function MedViewChat() {
       return runChatTurn(cfg, scope, scope.buildInitialPrompt(med));
     }
 
-    const medHeader = med ? `Medication context: ${med.name}, ${med.dose}\n\n` : "";
+    // Send the full medication context on every turn so the AI can answer
+    // broad questions ("is it safe?", "is it good for me?", etc.) about
+    // THIS specific med, not just whatever was in the chat history.
+    const medHeader = med
+      ? [
+          "Medication context (the user is asking about this specific medication):",
+          `- Name: ${med.name}`,
+          `- Dose: ${med.dose}`,
+          med.description ? `- Description / notes: ${med.description}` : null,
+          med.times?.length ? `- Times per day: ${med.times.length} (${med.times.join(", ")})` : null,
+          "",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : "";
     return runChatTurn(cfg, scope, medHeader + buildChatText(cfg, history, message));
   };
 

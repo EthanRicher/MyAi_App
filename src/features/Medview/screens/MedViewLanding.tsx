@@ -41,12 +41,16 @@ export function MedViewLanding() {
       <BackButton label="MedView" to="Home" />
 
       <View style={styles.top}>
-        <View style={styles.scheduleCard}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("MedViewSchedule")}
+          style={styles.scheduleCard}
+          activeOpacity={0.8}
+          accessibilityLabel="Open today's schedule"
+          accessibilityRole="button"
+        >
           <View style={styles.scheduleHeader}>
             <Text style={styles.scheduleTitle}>Today's Schedule</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("MedViewSchedule")}>
-              <Text style={styles.viewAll}>View All</Text>
-            </TouchableOpacity>
+            <Text style={styles.viewAll}>View All</Text>
           </View>
 
           <Text style={styles.scheduleCount}>
@@ -56,8 +60,7 @@ export function MedViewLanding() {
           <View style={styles.progressBg}>
             <View style={[styles.progressFill, { width: `${pct}%` }]} />
           </View>
-        </View>
-
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -202,11 +205,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderWidth: 2,
-    borderColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.primary + "44",
   },
 
   medRowHighlighted: {
+    borderWidth: 2,
     borderColor: colors.green,
     backgroundColor: colors.card,
   },
@@ -265,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.primary + "44",
   },
 
   explainBtnDisabled: {

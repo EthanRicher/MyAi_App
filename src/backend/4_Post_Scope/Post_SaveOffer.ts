@@ -1,70 +1,63 @@
 import { callOpenAIJson } from "../_AI/AI_Fetch";
 import { debugLog } from "../_AI/AI_Debug";
+import { DocCategory } from "../../features/Docs/models/Doc";
+import { buildSaveOfferPrompt, SaveOfferResult, SaveOfferTypeConfig } from "./SaveOffer/_Shared";
+import { letterSaveOffer } from "./SaveOffer/Letter";
+import { planSaveOffer } from "./SaveOffer/Plan";
+import { familySaveOffer } from "./SaveOffer/Family";
+import { memorySaveOffer } from "./SaveOffer/Memory";
+import { summarySaveOffer } from "./SaveOffer/Summary";
+import { doctorSaveOffer } from "./SaveOffer/Doctor";
+import { appointmentSaveOffer } from "./SaveOffer/Appointment";
 
 // Post-scope step that runs AFTER a saveable chat scope produces its reply.
-// Judges whether the turn produced something worth saving (a complete letter
-// draft, a finished plan, a family-member record, a memory record, a poem,
-// a story, a structured note). When yes, returns a one-sentence save offer
-// to append to the reply and a suggested title for the save modal.
+// Routes to a per-doc-type judge under SaveOffer/ based on the chat's
+// saveCategory, so each category can have its own "what counts as save-worthy"
+// rules and example titles. The shared prompt frame lives in SaveOffer/_Shared.
 //
-// Lives in stage 6 because it consumes the main reply, not the user input.
-// Scopes themselves stay pure conversational generators — they don't carry
-// any save-flow logic anymore.
+// Lives in stage 4 because it consumes the main reply, not the user input.
+// Scopes themselves stay pure conversational generators.
 
-export type SaveOfferResult = {
-  shouldOffer: boolean;
-  suggestedTitle?: string;
-  offerSentence?: string;
+export type { SaveOfferResult } from "./SaveOffer/_Shared";
+
+const TYPE_CONFIGS: Record<DocCategory, SaveOfferTypeConfig> = {
+  letter: letterSaveOffer,
+  plan: planSaveOffer,
+  family: familySaveOffer,
+  memory: memorySaveOffer,
+  summary: summarySaveOffer,
+  doctor: doctorSaveOffer,
+  appointment: appointmentSaveOffer,
 };
-
-const PROMPT_HEADER = `You are a save-offer judge for an elderly user's chat assistant.
-Read the user's last message and the AI reply below, then decide whether the
-reply contains something worth saving as a re-readable record.
-
-OFFER SAVE for: a complete letter draft, a finished daily plan, a family
-member record, a memory record, a poem, a story, a structured note, or any
-other complete artefact the user could come back to later.
-
-DO NOT OFFER SAVE for:
-- Greetings, small talk, or generic chat
-- Mid-draft brainstorms, clarifying questions, partial answers
-- Single-sentence replies, expressions of feeling without an artefact
-- Lists of options where the user has not yet picked one
-
-If you decide to offer save, write a warm one-sentence offer that frames TWO
-options (save now OR keep going) — never imply saving is the only path.
-Examples: "Would you like to save this letter, or keep editing it?",
-"Should I save these family notes, or do you want to add more?".
-
-Return ONLY valid JSON in this exact shape. Empty strings if shouldOffer is false.
-{
-  "shouldOffer": <boolean>,
-  "suggestedTitle": "<short title, max 60 chars, no quotes>",
-  "offerSentence": "<one warm sentence offering save vs continue>"
-}
-`;
 
 export async function runSaveOfferPost({
   userMessage,
   aiReply,
+  category,
 }: {
   userMessage: string;
   aiReply: string;
+  category?: DocCategory;
 }): Promise<SaveOfferResult> {
   if (!aiReply.trim()) return { shouldOffer: false };
 
-  const prompt =
-    PROMPT_HEADER +
-    `\nUSER'S LAST MESSAGE:\n"""\n${userMessage.replace(/"""/g, '"')}\n"""\n` +
-    `\nAI REPLY (judge this):\n"""\n${aiReply.replace(/"""/g, '"')}\n"""\n`;
+  // No category = chat is saveable but misconfigured. Skip the offer
+  // rather than guess at a doc shape — the bug surfaces cleanly.
+  const cfg = category ? TYPE_CONFIGS[category] : undefined;
+  if (!cfg) {
+    debugLog("Post_SaveOffer", "Result", "Skipped - no category", { category });
+    return { shouldOffer: false };
+  }
+  const prompt = buildSaveOfferPrompt(cfg, userMessage, aiReply);
 
   const parsed = await callOpenAIJson<{
     shouldOffer: boolean;
     suggestedTitle: string;
     offerSentence: string;
+    cleanContent: string;
   }>("Post_SaveOffer", prompt);
   if (!parsed || !parsed.shouldOffer) {
-    debugLog("Post_SaveOffer", "Result", "Skipped - not save-worthy");
+    debugLog("Post_SaveOffer", "Result", "Skipped - not save-worthy", { category });
     return { shouldOffer: false };
   }
 
@@ -76,16 +69,22 @@ export async function runSaveOfferPost({
     typeof parsed.offerSentence === "string" && parsed.offerSentence.trim()
       ? parsed.offerSentence.trim()
       : undefined;
+  const cleanContent =
+    typeof parsed.cleanContent === "string" && parsed.cleanContent.trim()
+      ? parsed.cleanContent.trim()
+      : undefined;
 
   if (!suggestedTitle || !offerSentence) {
-    debugLog("Post_SaveOffer", "Result", "Skipped - not save-worthy");
+    debugLog("Post_SaveOffer", "Result", "Skipped - not save-worthy", { category });
     return { shouldOffer: false };
   }
 
   debugLog("Post_SaveOffer", "Result", "Decision", {
     shouldOffer: true,
+    category,
     suggestedTitle,
+    cleanContentChars: cleanContent?.length ?? 0,
   });
 
-  return { shouldOffer: true, suggestedTitle, offerSentence };
+  return { shouldOffer: true, suggestedTitle, offerSentence, cleanContent };
 }

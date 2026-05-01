@@ -7,6 +7,7 @@ import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
+import { formatScheduleTime } from "../utils/formatTime";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedViewDetail">;
 type Route = RouteProp<RootStackParamList, "MedViewDetail">;
@@ -66,7 +67,7 @@ export function MedViewDetail() {
           <View style={styles.scheduleRow}>
             {(med.times || []).map((t, i) => (
               <View key={i} style={[styles.timeChip, styles.timeChipActive]}>
-                <Text style={styles.timeLabel}>{t}</Text>
+                <Text style={styles.timeLabel}>{formatScheduleTime(t)}</Text>
               </View>
             ))}
           </View>
@@ -153,6 +154,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 20,
+    borderWidth: 1,
+    borderColor: colors.primary + "44",
   },
 
   cardHeading: {

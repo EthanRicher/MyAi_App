@@ -11,7 +11,9 @@ import {
   Platform,
   Image,
   Modal,
+  Animated,
 } from "react-native";
+import { usePulseLoop } from "../hooks/usePulseLoop";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AI_WARNING } from "../backend/3_Scopes/_Common/Scope_Common_Warnings";
 import { Camera, Send, Mic, X, Keyboard } from "lucide-react-native";
@@ -25,7 +27,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSpeechInput } from "../backend/1_Input/Speech/Input_SpeechHook";
 import { whisperTranscribe } from "../backend/1_Input/Speech/Input_Whisper";
 import { debugLog, debugTurn, debugTurnEnd } from "../backend/_AI/AI_Debug";
-import { useDocs } from "../features/Docs/hooks/useDocs";
+import { useSaveFlow } from "../hooks/useSaveFlow";
 import { useAlerts } from "../features/Docs/hooks/useAlerts";
 import { DocCategory } from "../features/Docs/models/Doc";
 import { useAISettings } from "../hooks/useAISettings";
@@ -38,6 +40,13 @@ export interface ChatMessage {
   warningText?: string;
   timestamp?: string;
   isTranslation?: boolean;
+  // Set when the AI second-pass safety check flags the message but the
+  // hardcoded keyword scan did NOT match. Used to paint the bubble with
+  // a softer (orange) flag so carers can see both signals visually.
+  aiFlagged?: boolean;
+  // When set, this AI message is the save-offer card. The bubble renders
+  // the `sentence` plus a Tap to Save button that uses `title` + `content`.
+  saveOffer?: { title: string; content: string; sentence: string };
 }
 
 export interface ChatSendPayload {
@@ -54,7 +63,14 @@ export interface CameraInputResult {
 export interface ProcessResult {
   aiText: string;
   isError?: boolean;
-  saveOffer?: { suggestedTitle: string; cleanContent: string };
+  saveOffer?: {
+    suggestedTitle: string;
+    cleanContent: string;
+    /** Set when the offer should appear as its own bubble with a Tap to Save button. */
+    offerSentence?: string;
+    /** Set for passive categories (Family, Memory) — upsert silently in background. */
+    autoSave?: boolean;
+  };
 }
 
 const renderInline = (text: string) =>
@@ -145,15 +161,22 @@ export function ChatScreen({
   starterPrompts,
   conversational = false,
   saveable = false,
-  saveCategory = "general",
+  saveCategory,
 }: Props) {
   const { profile } = useUserProfile();
   const userFirstName = profile.name.trim().split(" ")[0] || "You";
-  const { addDoc, upsertDocByTitle } = useDocs();
   const { addAlert } = useAlerts();
-  const [saveTarget, setSaveTarget] = useState<{ text: string; suggestedTitle: string } | null>(null);
-  const [saveTitle, setSaveTitle] = useState("");
-  const pendingOfferRef = useRef<{ title: string; content: string } | null>(null);
+  const {
+    saveTarget,
+    saveTitle,
+    setSaveTitle,
+    pendingOfferRef,
+    openSaveModal,
+    cancelSave,
+    confirmSave,
+    passiveUpsert,
+    detectSaveIntent,
+  } = useSaveFlow(saveCategory);
 
   const resolveWarning = (text: string, scopeWarning?: string): string | undefined => {
     const t = text.trimStart().toLowerCase();
@@ -304,51 +327,6 @@ export function ChatScreen({
     })();
   }, [pendingAutoSend]);
 
-  const buildSuggestedTitle = (text: string): string => {
-    const titleMatch = text.match(/^\*\*([^*\n]+)\*\*\s*$/m);
-    if (titleMatch) return titleMatch[1].trim();
-    const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l.length > 0) || "";
-    return firstLine.replace(/[*#:_-]/g, "").slice(0, 60).trim() || "Untitled";
-  };
-
-  const openSaveModal = (text: string, suggested?: string) => {
-    const title = suggested || buildSuggestedTitle(text);
-    setSaveTitle(title);
-    setSaveTarget({ text, suggestedTitle: title });
-  };
-
-  const SAVE_AFFIRMATIVE = /^(yes|yeah|yep|yup|ok|okay|sure|please|please save|do it|do save|save it|save this|save that|save them|save those|save these|save please)\b/i;
-  const SAVE_COMMAND = /\bsave (it|this|that|them|those|these)\b/i;
-  const detectSaveIntent = (text: string): boolean => {
-    const t = text.trim();
-    if (!t) return false;
-    if (pendingOfferRef.current && SAVE_AFFIRMATIVE.test(t)) return true;
-    return SAVE_COMMAND.test(t) || /^(save|please save)\b/i.test(t);
-  };
-
-  const cancelSave = () => {
-    setSaveTarget(null);
-    setSaveTitle("");
-  };
-
-  const confirmSave = () => {
-    if (!saveTarget) return;
-    const payload = {
-      title: saveTitle.trim() || saveTarget.suggestedTitle,
-      category: saveCategory,
-      content: saveTarget.text,
-    };
-    // Family + memory entries upsert by title so the AI's full updated record
-    // replaces the previous version instead of creating duplicates.
-    if (saveCategory === "family" || saveCategory === "memory") {
-      upsertDocByTitle(payload);
-    } else {
-      addDoc(payload);
-    }
-    debugLog("ChatScreen", "Result", "Doc saved", { category: saveCategory, title: saveTitle });
-    setSaveTarget(null);
-    setSaveTitle("");
-  };
 
   const persistMessages = async (nextMessages: ChatMessage[]) => {
     setMessages(nextMessages);
@@ -371,13 +349,18 @@ export function ChatScreen({
       hasImage: !!payload.imageUri,
     });
 
+    let saveIntentHandled = false;
     if (saveable && cleanText && detectSaveIntent(cleanText)) {
       const offer = pendingOfferRef.current;
       if (offer) {
         openSaveModal(offer.content, offer.title);
+        saveIntentHandled = true;
       } else {
         const lastAi = [...messages].reverse().find((m) => m.role === "ai" && m.text && !m.isError);
-        if (lastAi?.text) openSaveModal(lastAi.text);
+        if (lastAi?.text) {
+          openSaveModal(lastAi.text);
+          saveIntentHandled = true;
+        }
       }
       pendingOfferRef.current = null;
     }
@@ -393,6 +376,26 @@ export function ChatScreen({
     await persistMessages(nextWithUser);
 
     setInput("");
+
+    // Save-affirmative shortcut: skip the AI call entirely. The save modal
+    // is already open, so the assistant just acknowledges and asks if there's
+    // anything else, instead of producing another full chat reply.
+    if (saveIntentHandled) {
+      const aiMessage: ChatMessage = {
+        role: "ai",
+        text: "Was there anything else?",
+        timestamp: now(),
+      };
+      const nextWithAi = [...nextWithUser, aiMessage];
+      await persistMessages(nextWithAi);
+      debugLog("ChatScreen", "Result", "Save-intent reply persisted");
+      debugTurnEnd();
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+      return;
+    }
+
     setTyping(true);
 
     let textForAI = cleanText;
@@ -414,6 +417,17 @@ export function ChatScreen({
         });
       }
 
+      // AI-only flag (no hardcoded keyword match) → paint the user bubble
+      // with the softer orange treatment so the carer can see the AI
+      // caught something the word list didn't.
+      const aiOnlyFlag = !!checks.flaggedReason && checks.flaggedWords.length === 0;
+      if (aiOnlyFlag) {
+        nextWithUser = nextWithUser.map((m) =>
+          m === userMessage ? { ...userMessage, aiFlagged: true } : m
+        );
+        await persistMessages(nextWithUser);
+      }
+
       const tr = checks.translation;
       if (tr.needed && tr.translated) {
         const translatedMessage: ChatMessage = {
@@ -433,8 +447,26 @@ export function ChatScreen({
       text: textForAI,
     }, settings.useHistory ? messages : []);
 
+    let offerForChat: NonNullable<ChatMessage["saveOffer"]> | null = null;
     if (saveable && result.saveOffer && !result.isError) {
-      pendingOfferRef.current = { title: result.saveOffer.suggestedTitle, content: result.saveOffer.cleanContent };
+      const so = result.saveOffer;
+      // Passive flow: silently upsert in the background and DON'T add an
+      // offer card to the chat. Used for Family Tree / Memory Book where the
+      // record refines on every turn instead of asking each time.
+      if (so.autoSave && saveCategory) {
+        passiveUpsert(so.suggestedTitle, so.cleanContent);
+        pendingOfferRef.current = null;
+      } else if (so.offerSentence) {
+        // Offer flow: set pendingOfferRef so a "yes save" affirmative still
+        // works AND prepare a separate save-offer message bubble with a
+        // Tap to Save button.
+        pendingOfferRef.current = { title: so.suggestedTitle, content: so.cleanContent };
+        offerForChat = {
+          title: so.suggestedTitle,
+          content: so.cleanContent,
+          sentence: so.offerSentence,
+        };
+      }
     }
 
     const aiMessage: ChatMessage = {
@@ -445,7 +477,17 @@ export function ChatScreen({
       timestamp: now(),
     };
 
-    const nextWithAi = [...nextWithUser, aiMessage];
+    let nextWithAi = [...nextWithUser, aiMessage];
+    if (offerForChat) {
+      nextWithAi = [
+        ...nextWithAi,
+        {
+          role: "ai",
+          saveOffer: offerForChat,
+          timestamp: now(),
+        },
+      ];
+    }
     await persistMessages(nextWithAi);
     setTyping(false);
     debugLog("ChatScreen", "Result", "Reply persisted");
@@ -472,6 +514,9 @@ export function ChatScreen({
       await sendPayload({ text });
     },
   });
+
+  // Soft red breathing pulse on the chat record button while recording.
+  const recordPulse = usePulseLoop(isRecording);
 
   useEffect(() => {
     if (!speechError) return;
@@ -595,7 +640,21 @@ export function ChatScreen({
           )}
 
           {messages.map((m, i) =>
-            m.role === "ai" ? (
+            m.saveOffer ? (
+              <View key={i} style={styles.aiBubbleWrap}>
+                <View style={[styles.saveOfferCard, { borderColor: accentColor + "66", backgroundColor: accentColor + "16" }]}>
+                  <Text style={[styles.aiLabel, { color: accentColor }]}>{aiLabel}</Text>
+                  <Text style={styles.saveOfferText}>{m.saveOffer.sentence}</Text>
+                  <TouchableOpacity
+                    onPress={() => openSaveModal(m.saveOffer!.content, m.saveOffer!.title)}
+                    style={[styles.saveOfferBtn, { backgroundColor: accentColor }]}
+                    accessibilityLabel="Tap here to save"
+                  >
+                    <Text style={[styles.saveOfferBtnText, { color: colors.background }]}>Tap here to save</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : m.role === "ai" ? (
               <View key={i} style={styles.aiBubbleWrap}>
                 <TouchableOpacity
                   activeOpacity={m.text && !m.isError ? 0.8 : 1}
@@ -636,13 +695,22 @@ export function ChatScreen({
                   activeOpacity={m.text ? 0.8 : 1}
                   onPress={() => openReader(i)}
                   onLongPress={() => openReader(i)}
-                  style={[styles.userBubble, m.imageUri && !m.text ? styles.photoBubble : undefined]}
+                  style={[
+                    styles.userBubble,
+                    m.imageUri && !m.text ? styles.photoBubble : undefined,
+                    m.aiFlagged ? styles.userBubbleAiFlagged : undefined,
+                  ]}
                   accessibilityHint={m.text ? "Tap to read in full screen" : undefined}
                 >
                   <View style={styles.bubbleLabelRow}>
                     <Text style={styles.userLabel}>
                       {m.isTranslation ? `${userFirstName} · Translated to English` : userFirstName}
                     </Text>
+                    {m.aiFlagged && (
+                      <View style={styles.aiFlagPill}>
+                        <Text style={styles.aiFlagPillText}>AI flag</Text>
+                      </View>
+                    )}
                     {!!m.timestamp && <Text style={styles.timestamp}>{m.timestamp}</Text>}
                   </View>
                   {!!m.imageUri && (
@@ -721,6 +789,12 @@ export function ChatScreen({
                 onPress={handleMicPress}
                 style={[styles.singleBtn, { borderColor: isRecording ? chatActionColors.recordActive : chatActionColors.record, backgroundColor: (isRecording ? chatActionColors.recordActive : chatActionColors.record) + "18" }]}
               >
+                {isRecording && (
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[styles.recordPulseOverlay, { opacity: recordPulse, backgroundColor: chatActionColors.record }]}
+                  />
+                )}
                 <Mic size={22} color={isRecording ? chatActionColors.recordActive : chatActionColors.record} />
                 <Text style={[styles.actionText, { color: isRecording ? chatActionColors.recordActive : chatActionColors.record }]}>
                   {isRecording ? "Stop" : "Record"}
@@ -745,15 +819,17 @@ export function ChatScreen({
                     </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    onPress={handlePhotoPress}
-                    style={[styles.actionBtn, { borderColor: chatActionColors.photo, backgroundColor: chatActionColors.photo + "18" }]}
-                  >
-                    <Camera size={22} color={chatActionColors.photo} />
-                    <Text style={[styles.actionText, { color: chatActionColors.photo }]}>
-                      Photo
-                    </Text>
-                  </TouchableOpacity>
+                  {!!onCameraPress && (
+                    <TouchableOpacity
+                      onPress={handlePhotoPress}
+                      style={[styles.actionBtn, { borderColor: chatActionColors.photo, backgroundColor: chatActionColors.photo + "18" }]}
+                    >
+                      <Camera size={22} color={chatActionColors.photo} />
+                      <Text style={[styles.actionText, { color: chatActionColors.photo }]}>
+                        Photo
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </View>
@@ -784,6 +860,10 @@ export function ChatScreen({
                 placeholderTextColor={colors.textCaption}
                 style={styles.saveInput}
                 autoFocus
+                multiline
+                blurOnSubmit
+                returnKeyType="done"
+                onSubmitEditing={confirmSave}
               />
               <View style={styles.saveBtnRow}>
                 <TouchableOpacity onPress={cancelSave} style={styles.saveCancelBtn}>
@@ -816,6 +896,34 @@ const styles = StyleSheet.create({
 
   aiBubbleWrap: {
     alignItems: "flex-start",
+  },
+  // Inline save-offer card — its own AI bubble with a tap-to-save action,
+  // shown after the assistant produces something save-worthy. Tinted with
+  // the chat's accent color so it visually belongs to the AI side.
+  saveOfferCard: {
+    alignSelf: "stretch",
+    borderRadius: 16,
+    borderWidth: 1.5,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 10,
+    marginVertical: 4,
+  },
+  saveOfferText: {
+    color: colors.text,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  saveOfferBtn: {
+    alignSelf: "stretch",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  saveOfferBtnText: {
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
 
   userBubbleWrap: {
@@ -860,6 +968,26 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: "700",
+  },
+  // AI-only safety flag (orange) — left border on the bubble + a small
+  // "AI flag" pill in the label row so the signal is visible without
+  // changing how individual flagged keywords (red pills) render in-text.
+  userBubbleAiFlagged: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.orange,
+  },
+  aiFlagPill: {
+    backgroundColor: colors.orange,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 6,
+  },
+  aiFlagPillText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.4,
   },
 
   errorBubbleText: {
@@ -936,6 +1064,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     color: colors.text,
     fontSize: 16,
+    minHeight: 48,
+    maxHeight: 140,
+    textAlignVertical: "top",
+    lineHeight: 22,
   },
   saveBtnRow: {
     flexDirection: "row",
@@ -1122,6 +1254,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    overflow: "hidden",
+  },
+  recordPulseOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
 
   actionText: {

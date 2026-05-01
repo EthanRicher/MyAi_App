@@ -1,6 +1,7 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Image, Text } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { colors } from "../theme";
 
@@ -8,29 +9,29 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "Landing">;
 
 export function LandingPage() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.titleRow}>
+    <View
+      style={[
+        styles.container,
+        { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 },
+      ]}
+    >
+      <View style={styles.logoWrap}>
         <Image
-          source={require("../assets/Logo_No_Text.png")}
+          source={require("../assets/Logo_Full.png")}
           style={styles.logo}
           resizeMode="contain"
+          accessibilityLabel="MySafe"
         />
-        <Text style={styles.title}>MySafe</Text>
       </View>
-      <Text style={styles.subtitle}>
-        A friendly companion to help you understand medical information, manage medications, and feel supported every day.
-      </Text>
       <TouchableOpacity
         style={styles.signInBtn}
         onPress={() => navigation.navigate("Login")}
         accessibilityLabel="Sign In"
       >
         <Text style={styles.signInText}>Sign In</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.learnBtn} accessibilityLabel="Learn More">
-        <Text style={styles.learnText}>Learn More</Text>
       </TouchableOpacity>
     </View>
   );
@@ -40,31 +41,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    paddingHorizontal: 32,
+    alignItems: "center",
+  },
+  logoWrap: {
+    flex: 1,
+    alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32,
-    gap: 24,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
   },
   logo: {
-    width: 64,
-    height: 64,
-  },
-  title: {
-    fontSize: 44,
-    fontWeight: "700",
-    color: colors.primary,
-  },
-  subtitle: {
-    fontSize: 18,
-    lineHeight: 29,
-    color: colors.textMuted,
-    textAlign: "center",
-    maxWidth: 320,
+    width: "100%",
+    maxWidth: 360,
+    aspectRatio: 1,
   },
   signInBtn: {
     width: "100%",
@@ -74,18 +63,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
   },
   signInText: {
     fontSize: 20,
     fontWeight: "700",
     color: colors.background,
-  },
-  learnBtn: {
-    marginTop: 8,
-  },
-  learnText: {
-    fontSize: 16,
-    color: colors.primary,
   },
 });

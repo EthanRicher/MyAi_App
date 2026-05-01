@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
-import { ChevronDown, ChevronUp, User, Lock, Shield, Eye, Bell, Clock, Phone, HelpCircle, Trash2, Bot, Plus, X, Globe } from "lucide-react-native";
+import { ChevronDown, ChevronUp, User, Lock, Shield, Eye, Bell, Clock, Phone, HelpCircle, Trash2, Plus, X } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BackButton } from "../components/BackButton";
 import { colors } from "../theme";
-import { useAISettings } from "../hooks/useAISettings";
 import { useMedications } from "../features/Medview/hooks/useMedication";
 import { useUserProfile } from "../profile/hooks/useUserProfile";
 import { Carer } from "../profile/models/UserProfile";
@@ -25,7 +24,6 @@ function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => vo
 
 export function SettingsScreen() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ Accessibility: true, "Emergency Access": true });
-  const { settings: aiSettings, update: updateAI } = useAISettings();
   const { clearMeds } = useMedications();
   const { profile, updateProfile, clearProfile } = useUserProfile();
   const [fontSize, setFontSize] = useState<"Normal" | "Large" | "Extra Large">("Normal");
@@ -223,68 +221,6 @@ export function SettingsScreen() {
           <Text style={styles.warningText}>Access is always logged and visible to you.</Text>
           <View style={styles.accessLog}>
             <Text style={styles.accessLogText}>Last access: 15 Mar 2026 by daughter@email.com</Text>
-          </View>
-        </View>
-      ),
-    },
-    {
-      title: "AI & Chat", icon: Bot,
-      content: (
-        <View style={styles.sectionContent}>
-          <View style={styles.row}>
-            <View style={styles.settingLabelGroup}>
-              <Text style={styles.settingLabel}>Default Language</Text>
-              <Text style={styles.settingCaption}>Other languages will be auto-translated. More languages coming soon.</Text>
-            </View>
-            <View style={styles.lockedPill}>
-              <Globe size={14} color={colors.textMuted} />
-              <Text style={styles.lockedPillText}>{aiSettings.defaultLanguage}</Text>
-              <Lock size={12} color={colors.textCaption} />
-            </View>
-          </View>
-          <View style={styles.row}>
-            <View style={styles.settingLabelGroup}>
-              <Text style={styles.settingLabel}>Starter Prompts</Text>
-              <Text style={styles.settingCaption}>Show suggestion buttons when a chat is empty</Text>
-            </View>
-            <ToggleSwitch
-              on={aiSettings.showStarterPrompts}
-              onToggle={() => updateAI({ showStarterPrompts: !aiSettings.showStarterPrompts })}
-              label="Starter prompts toggle"
-            />
-          </View>
-          <View style={styles.row}>
-            <View style={styles.settingLabelGroup}>
-              <Text style={styles.settingLabel}>Save Chat History</Text>
-              <Text style={styles.settingCaption}>Remember conversations between sessions</Text>
-            </View>
-            <ToggleSwitch
-              on={aiSettings.saveChatHistory}
-              onToggle={() => updateAI({ saveChatHistory: !aiSettings.saveChatHistory })}
-              label="Save chat history toggle"
-            />
-          </View>
-          <View style={styles.row}>
-            <View style={styles.settingLabelGroup}>
-              <Text style={styles.settingLabel}>Use Conversation History</Text>
-              <Text style={styles.settingCaption}>Send prior messages as context to the AI</Text>
-            </View>
-            <ToggleSwitch
-              on={aiSettings.useHistory}
-              onToggle={() => updateAI({ useHistory: !aiSettings.useHistory })}
-              label="Use history toggle"
-            />
-          </View>
-          <View style={styles.row}>
-            <View style={styles.settingLabelGroup}>
-              <Text style={styles.settingLabel}>Clear Chats on Exit</Text>
-              <Text style={styles.settingCaption}>Wipe each chat when you leave the screen</Text>
-            </View>
-            <ToggleSwitch
-              on={aiSettings.clearOnExit}
-              onToggle={() => updateAI({ clearOnExit: !aiSettings.clearOnExit })}
-              label="Clear on exit toggle"
-            />
           </View>
         </View>
       ),

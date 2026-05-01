@@ -56,6 +56,8 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     paddingBottom: 6,
     backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary + "44",
   },
   exitBtn: {
     borderRadius: 8,

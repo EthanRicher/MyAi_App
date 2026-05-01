@@ -45,37 +45,48 @@ export function AlertsLog() {
           <Text style={styles.headerTitle}>Flagged Messages</Text>
         </View>
         <Text style={styles.headerSub}>
-          Chat messages get logged here when they match a red-flag keyword or when the AI judges them concerning, so you can review them later.
+          Messages tagged <Text style={{ color: colors.destructive, fontWeight: "700" }}>RED</Text> matched a hard keyword.{" "}
+          Messages tagged <Text style={{ color: colors.orange, fontWeight: "700" }}>ORANGE</Text> were caught by the AI's phrase-level review.
         </Text>
 
         {alerts.length === 0 && (
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyTitle}>Nothing flagged yet</Text>
-            <Text style={styles.emptyHint}>
-              Messages that mention urgent terms like "chest pain" or "emergency", or that the AI judges as concerning (distress, abuse, possible scam), will appear here.
-            </Text>
           </View>
         )}
 
-        {alerts.map((a) => (
-          <View key={a.id} style={styles.alertCard}>
-            <Text style={styles.alertWhen}>{formatWhen(a.timestamp)}</Text>
-            <Text style={styles.alertMessage}>{a.message}</Text>
-            {a.keywords.length > 0 && (
-              <View style={styles.keywordRow}>
-                {a.keywords.map((k, i) => (
-                  <View key={i} style={styles.keywordPill}>
-                    <Text style={styles.keywordText}>{k}</Text>
-                  </View>
-                ))}
+        {alerts.map((a) => {
+          const tone = a.severity === "high" ? colors.destructive : colors.orange;
+          return (
+            <View
+              key={a.id}
+              style={[styles.alertCard, { borderLeftColor: tone }]}
+            >
+              <View style={styles.alertHeader}>
+                <View style={[styles.severityPill, { backgroundColor: tone }]}>
+                  <Text style={styles.severityPillText}>
+                    {a.severity === "high" ? "RED" : "ORANGE"}
+                  </Text>
+                </View>
+                <Text style={styles.alertWhen}>{formatWhen(a.timestamp)}</Text>
               </View>
-            )}
-            {a.reason && (
-              <Text style={styles.alertReason}>AI flag: {a.reason}</Text>
-            )}
-            <Text style={styles.alertChat}>{a.storageKey}</Text>
-          </View>
-        ))}
+              <Text style={styles.alertMessage}>{a.message}</Text>
+              {a.keywords.length > 0 && (
+                <View style={styles.keywordRow}>
+                  {a.keywords.map((k, i) => (
+                    <View key={i} style={[styles.keywordPill, { backgroundColor: tone }]}>
+                      <Text style={styles.keywordText}>{k}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+              {a.reason && (
+                <Text style={[styles.alertReason, { color: tone }]}>AI flag: {a.reason}</Text>
+              )}
+              <Text style={styles.alertChat}>{a.storageKey}</Text>
+            </View>
+          );
+        })}
       </ScrollView>
 
       <Modal visible={confirming} transparent animationType="fade" onRequestClose={() => setConfirming(false)}>
@@ -107,6 +118,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     paddingHorizontal: 4,
   },
@@ -114,12 +126,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 22,
     fontWeight: "700",
+    textAlign: "center",
   },
   headerSub: {
     color: colors.textMuted,
     fontSize: 14,
     lineHeight: 20,
     paddingHorizontal: 4,
+    textAlign: "center",
   },
 
   emptyWrap: {
@@ -133,21 +147,21 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
   },
-  emptyHint: {
-    color: colors.textMuted,
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
 
   alertCard: {
     backgroundColor: colors.card,
     borderLeftWidth: 4,
-    borderLeftColor: colors.destructive,
     borderRadius: 12,
     padding: 14,
     gap: 8,
   },
+  alertHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  severityPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  severityPillText: { color: colors.text, fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
   alertWhen: { color: colors.textCaption, fontSize: 13 },
   alertMessage: { color: colors.text, fontSize: 16, lineHeight: 22 },
   keywordRow: {
@@ -157,7 +171,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   keywordPill: {
-    backgroundColor: colors.destructive,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -168,7 +181,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   alertReason: {
-    color: colors.destructive,
     fontSize: 14,
     fontStyle: "italic",
     lineHeight: 19,

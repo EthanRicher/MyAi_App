@@ -4,7 +4,8 @@ export type DocCategory =
   | "family"
   | "memory"
   | "summary"
-  | "general";
+  | "doctor"
+  | "appointment";
 
 export type Doc = {
   id: string;
@@ -21,14 +22,18 @@ export const CATEGORY_LABELS: Record<DocCategory, string> = {
   family: "Family",
   memory: "Memories",
   summary: "Summaries",
-  general: "Notes",
+  doctor: "Doctor Explained",
+  appointment: "Appointment Prep",
 };
 
+// Order matches the Companion + Clarity landing menus so anywhere a flat
+// category list is shown reads in the same sequence as the source feature.
 export const CATEGORY_ORDER: DocCategory[] = [
-  "letter",
   "plan",
   "family",
+  "letter",
   "memory",
+  "doctor",
   "summary",
-  "general",
+  "appointment",
 ];

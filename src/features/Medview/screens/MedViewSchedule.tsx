@@ -3,6 +3,7 @@ import { Check, Clock } from "lucide-react-native";
 import { BackButton } from "../../../components/BackButton";
 import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
+import { formatScheduleTime } from "../utils/formatTime";
 
 export function MedViewSchedule() {
   const { medications, toggleTaken } = useMedications();
@@ -50,6 +51,8 @@ export function MedViewSchedule() {
           </View>
         </View>
 
+        <Text style={styles.tickHint}>Tap to tick off once you've taken it</Text>
+
         <View style={styles.medList}>
           {groups.map((group) =>
             group.items.length === 1 ? (
@@ -60,7 +63,7 @@ export function MedViewSchedule() {
               />
             ) : (
               <View key={group.time} style={styles.timeGroup}>
-                <Text style={styles.timeGroupLabel}>{group.time}</Text>
+                <Text style={styles.timeGroupLabel}>{formatScheduleTime(group.time)}</Text>
                 {group.items.map((item) => (
                   <MedRow
                     key={`${item.medId}-${item.index}`}
@@ -122,7 +125,7 @@ function MedRow({
           {item.name}
         </Text>
         <Text style={styles.medDose}>
-          {item.dose}{hideTime ? "" : ` · ${item.time}`}
+          {item.dose}{hideTime ? "" : ` · ${formatScheduleTime(item.time)}`}
         </Text>
       </View>
     </TouchableOpacity>
@@ -133,12 +136,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, gap: 16 },
 
-  heading: { color: colors.text, fontSize: 26, fontWeight: "700" },
+  heading: { color: colors.text, fontSize: 26, fontWeight: "700", textAlign: "center" },
+  tickHint: { color: colors.textMuted, fontSize: 16, fontWeight: "700", textAlign: "center", marginTop: 4 },
 
   progressCard: {
     backgroundColor: colors.card,
     padding: 16,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + "44",
   },
 
   progressLabel: { color: colors.textMuted, marginBottom: 8 },
@@ -159,7 +165,7 @@ const styles = StyleSheet.create({
 
   timeGroup: {
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
+    borderColor: colors.primary + "44",
     backgroundColor: "rgba(255,255,255,0.06)",
     borderRadius: 14,
     padding: 10,
@@ -181,6 +187,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.primary + "44",
   },
 
   checkCircle: {

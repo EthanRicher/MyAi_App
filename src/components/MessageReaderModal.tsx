@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LayoutChangeEvent, Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { LayoutChangeEvent, Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import { colors, chatBubble, warningColors } from "../theme";
@@ -19,7 +19,11 @@ interface Props {
   onClose: () => void;
 }
 
-const MIN_SCALE = 0.15;
+// Auto-fit floor: text is allowed to shrink for fit, but the floor is high
+// enough to stay readable. At MIN_SCALE the body lands at fontSize 36 * 0.5
+// = 18px. If content still overflows at this scale the ScrollView takes
+// over instead of going smaller.
+const MIN_SCALE = 0.5;
 const MAX_SCALE = 0.7;
 
 const BASE = {
@@ -180,9 +184,19 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
   }, [containerH, contentH, ready]);
 
   const onContainerLayout = (e: LayoutChangeEvent) => setContainerH(e.nativeEvent.layout.height);
-  const onContentLayout = (e: LayoutChangeEvent) => {
-    if (!ready) setContentH(e.nativeEvent.layout.height);
+  // ScrollView feeds us the content height via onContentSizeChange; we keep
+  // taking measurements while the auto-fit loop is still settling. Once
+  // `ready` is true the height is locked in and any further size change just
+  // governs whether scrolling is needed.
+  const onScrollContentSizeChange = (_w: number, h: number) => {
+    if (!ready) setContentH(h);
   };
+
+  // When the auto-fit loop has bottomed out (typically at MIN_SCALE) but the
+  // content is still taller than the viewport, fall back to scrolling rather
+  // than clipping. This keeps the reader always-readable regardless of the
+  // message length.
+  const needsScroll = ready && contentH > containerH;
 
   const singleBgOverride =
     isSingle && { backgroundColor: messages[0].role === "ai" ? chatBubble.ai : chatBubble.user };
@@ -198,9 +212,15 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
     >
       <View style={[styles.container, { paddingTop: insets.top }, singleBgOverride]}>
         <View style={styles.bodyWrap} onLayout={onContainerLayout}>
-          <View
-            style={[styles.content, { opacity: ready ? 1 : 0, gap: BASE.blockGap * fontScale }]}
-            onLayout={onContentLayout}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={[
+              styles.content,
+              { opacity: ready ? 1 : 0, gap: BASE.blockGap * fontScale },
+            ]}
+            onContentSizeChange={onScrollContentSizeChange}
+            scrollEnabled={needsScroll}
+            showsVerticalScrollIndicator={needsScroll}
           >
             {messages.map((m, idx) => (
               <MessageBlock
@@ -212,7 +232,7 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
                 showLabel={isPair}
               />
             ))}
-          </View>
+          </ScrollView>
         </View>
 
         {!!pinnedWarning && (
@@ -325,6 +345,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     justifyContent: "flex-start",
     overflow: "hidden",
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
     width: "100%",

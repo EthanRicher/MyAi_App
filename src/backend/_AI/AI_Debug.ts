@@ -1,5 +1,16 @@
 import { DEBUG, DEBUG_FULL } from "../../config/Config_General";
 
+// Single-row separator marking the start of a user-initiated pipeline turn.
+export function debugTurn(): void {
+  if (!DEBUG && !DEBUG_FULL) return;
+  console.log("─── Turn ───");
+}
+
+// End-of-turn marker. No-op for now — kept so call sites (ChatScreen,
+// Input_Camera, Input_SpeechHook) have a stable hook for future additions
+// like total-turn timing without having to re-thread imports everywhere.
+export function debugTurnEnd(): void {}
+
 // Short, single-line pipeline event. Prints when DEBUG is on.
 export function debugLog(
   module: string,
@@ -16,21 +27,20 @@ export function debugLog(
   console.log(`${module}_${eventType}: ${message}${fieldStr}`);
 }
 
-// Payload logger. With DEBUG only: truncated preview + length tail.
-// With DEBUG_FULL: prints the full value on its own block.
+// Payload logger. Both DEBUG modes print on a SINGLE line so the console
+// stays scannable — newlines inside the value are escaped as `\n`.
+//   DEBUG only:   60-char truncated preview + length tail.
+//   DEBUG_FULL:   full value flattened onto one line.
 export function debugPayload(module: string, key: string, value: any): void {
   if (!DEBUG && !DEBUG_FULL) return;
   const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  const flat = text.replace(/\n/g, "\\n");
 
   if (DEBUG_FULL) {
-    console.log(`${module}_${key}:`);
-    console.log(text);
-    console.log("");
+    console.log(`${module}_${key}: "${flat}"`);
     return;
   }
 
-  // DEBUG-only mode: 60-char truncated preview + length tail.
-  const flat = text.replace(/\n/g, "\\n");
   const PREVIEW = 60;
   if (flat.length <= PREVIEW) {
     console.log(`${module}_${key}: "${flat}"`);

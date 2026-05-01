@@ -11,7 +11,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "Home">;
 
 const modules = [
   { name: "Docs", desc: "Saved letters, plans, memories and notes", icon: FileText, color: "#FF9800", screen: "Docs", dashed: true },
-  { name: "Clarity Layer", desc: "Understand complex medical information clearly", icon: Search, color: "#0dd9f7", screen: "Clarity", dashed: false },
+  { name: "Clarity Layer", desc: "Make medical info simple", icon: Search, color: "#0dd9f7", screen: "Clarity", dashed: false },
   { name: "MedView", desc: "Manage your medications", icon: Pill, color: "#4CAF50", screen: "MedView", dashed: false },
   { name: "Companion", desc: "Chat, stories and daily support", icon: Brain, color: "#BB86FC", screen: "Companion", dashed: false },
   { name: "SenseGuard", desc: "Log symptoms and track your wellbeing", icon: Heart, color: "#F472B6", screen: "SenseGuard", dashed: false },

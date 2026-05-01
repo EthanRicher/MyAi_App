@@ -8,7 +8,9 @@ import {
   StyleSheet,
   Platform,
   Modal,
+  Animated,
 } from "react-native";
+import { usePulseLoop } from "../../../hooks/usePulseLoop";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -17,6 +19,7 @@ import { BackButton } from "../../../components/BackButton";
 import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
+import { formatScheduleTime } from "../utils/formatTime";
 import { openCameraAndScan, PhotoMode } from "../../../backend/1_Input/Camera/Input_Camera";
 import { runAIOnPhoto } from "../../../backend/1_Input/Camera/Input_PhotoToAI";
 import { medviewMedicationScan } from "../../../backend/3_Scopes/MedView/Scan_Medication";
@@ -47,18 +50,16 @@ export function MedViewAdd() {
   const [showPickerIndex, setShowPickerIndex] = useState<number | null>(null);
   const [pickerDate, setPickerDate] = useState(new Date());
   const [isScanning, setIsScanning] = useState(false);
+
+  // Cyan breathing pulse over the Scan Prescription button while a scan
+  // is in flight — gives a smooth "thinking..." feel.
+  const scanPulse = usePulseLoop(isScanning);
   const [dividerMessage, setDividerMessage] = useState("");
 
   const visibleCount = Math.max(0, Math.min(10, Number(amount) || 0));
   const times = Array.from({ length: visibleCount }, (_, i) => allTimes[i] || "");
 
-  const formatAmPm = (time: string) => {
-    if (!time) return "";
-    const [h, m] = time.split(":").map(Number);
-    const period = h >= 12 ? "PM" : "AM";
-    const hour = h % 12 || 12;
-    return `${hour}:${m.toString().padStart(2, "0")} ${period}`;
-  };
+  const formatAmPm = (time: string) => formatScheduleTime(time);
 
   const normaliseTime = (value: string) => {
     const trimmed = value.trim();
@@ -262,6 +263,12 @@ export function MedViewAdd() {
           disabled={isScanning}
           style={[styles.photoBtn, isScanning && styles.photoBtnScanning]}
         >
+          {isScanning && (
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.photoBtnPulse, { opacity: scanPulse }]}
+            />
+          )}
           <Camera size={20} color={colors.text} />
           <Text style={styles.photoBtnText}>
             {isScanning ? "Scanning..." : "Scan Prescription"}
@@ -418,10 +425,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     gap: 10,
+    overflow: "hidden",
   },
 
   photoBtnScanning: {
     backgroundColor: colors.border,
+  },
+
+  // Cyan glow overlay shown only while scanning. Sits behind the icon and
+  // text via absolute fill; opacity is driven by `scanPulse` for a smooth
+  // breath-in/out effect.
+  photoBtnPulse: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.primary,
   },
 
   photoBtnText: {

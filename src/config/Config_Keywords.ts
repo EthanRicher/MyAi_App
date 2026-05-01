@@ -36,7 +36,6 @@ export const RED_FLAG_KEYWORDS: string[] = [
   "took too much",
   "double dose",
   "dosage",
-  "medication",
 
   // Open-ended urgency
   "what should I do",

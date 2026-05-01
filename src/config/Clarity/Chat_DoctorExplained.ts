@@ -8,4 +8,6 @@ export const clarityDoctorExplained: ChatConfig = {
   warning: MEDICAL_WARNING,
   title: "Doctor Explained",
   disclaimer: "I'll explain what your doctor said simply",
+  saveable: true,
+  saveCategory: "doctor",
 };

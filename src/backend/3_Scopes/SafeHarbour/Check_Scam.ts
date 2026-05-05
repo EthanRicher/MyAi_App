@@ -1,17 +1,26 @@
 import { AIScope } from "../../_AI/AI_Types";
 import { buildSharedPrompt, buildSharedPhotoPrompt } from "../_Common";
 
+/**
+ * SafeHarbour scam check scope. Reads a message, email, or photo of
+ * something the user wants checked, then returns a level (low / med
+ * / high / unsure), a one-line verdict, a few short red-flag bullets
+ * and a plain-English explanation.
+ */
+
 export type ScamLevel = "low" | "med" | "high" | "unsure";
 
+// Result shape used by the SafeHarbour screen.
 export type ScamCheckOutput = {
-  level: ScamLevel;
-  verdict: string;
-  redFlags: string[];
-  explanation: string;
+  level: ScamLevel;        // Risk band the AI assigned.
+  verdict: string;         // Short headline ("Likely a scam — don't respond" etc.).
+  redFlags: string[];      // Up to 3 short bullets calling out specific cues.
+  explanation: string;     // One-sentence plain-English explanation.
 };
 
 const TOPIC = "check whether something looks like a scam";
 
+// Shared prompt body. The text-vs-photo wrappers slot a different "subject" block in.
 const PROMPT_BODY = (subject: string) => `
 You are a scam-detection assistant for an elderly person. Read what the user has provided below and decide how likely it is to be a scam.
 
@@ -71,6 +80,7 @@ export const safeHarbourScamCheck: AIScope = {
       TOPIC
     ),
 
+  // Normalise the JSON shape the model returns into ScamCheckOutput, defaulting bad data to "unsure".
   mapOutput: (parsed: any): ScamCheckOutput => ({
     level: ["low", "med", "high", "unsure"].includes(parsed?.level) ? parsed.level : "unsure",
     verdict: typeof parsed?.verdict === "string" ? parsed.verdict.trim() : "",

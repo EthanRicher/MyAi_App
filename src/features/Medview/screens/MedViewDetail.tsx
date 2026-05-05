@@ -9,6 +9,12 @@ import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
 import { formatScheduleTime } from "../utils/formatTime";
 
+/**
+ * MedView detail screen. Shows the full record for one medication
+ * (name, dose, schedule, photo, plain-English notes) and exposes
+ * Edit + Delete actions. Delete goes through a confirmation modal.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedViewDetail">;
 type Route = RouteProp<RootStackParamList, "MedViewDetail">;
 

@@ -2,6 +2,13 @@ import { OPENAI_API_KEY } from "@env";
 import * as ImageManipulator from "expo-image-manipulator";
 import { debugLog, debugPayload } from "../../_AI/AI_Debug";
 
+/**
+ * GPT-4o vision pass for a photo. Sends the base64-encoded image
+ * along with a single instruction prompt and asks the model to
+ * extract text or describe what it sees. Returns the description /
+ * extraction as plain text, or empty string on failure.
+ */
+
 const VISION_PROMPT = `Analyze this image thoroughly.
 
 If it contains text (labels, documents, prescriptions, letters): extract all text exactly as written.
@@ -15,6 +22,7 @@ export async function runVision(imageUri: string): Promise<string> {
   try {
     debugLog("Input_Vision", "Request", "Sending photo to vision API");
 
+    // Re-encode as a smaller JPEG and grab base64 in one pass for the data URL.
     const base64Result = await ImageManipulator.manipulateAsync(
       imageUri,
       [],

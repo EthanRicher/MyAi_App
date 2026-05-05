@@ -1,14 +1,17 @@
 import { callOpenAIJson } from "../../_AI/AI_Fetch";
 import { debugLog } from "../../_AI/AI_Debug";
 
-// Second-pass urgency check that catches paraphrased or contextual concerns
-// the hardcoded keyword list misses (e.g. "I'd be better off gone", "no point
-// in waking up", an obvious scam pattern, a likely overdose). Returns a
-// short, carer-readable reason when the message warrants a flag.
+/**
+ * Second-pass urgency check that catches paraphrased or contextual
+ * concerns the hardcoded keyword list misses (e.g. "I'd be better off
+ * gone", "no point in waking up", an obvious scam pattern, a likely
+ * overdose). Returns a short, carer-readable reason when the message
+ * warrants a flag.
+ */
 
 type AIFlagResult = {
-  concerning: boolean;
-  reason?: string;
+  concerning: boolean; // True when the AI thinks the message warrants attention.
+  reason?: string;     // Short carer-readable reason for the flag.
 };
 
 const PROMPT = `You are a safety classifier for an elderly user's chat assistant.
@@ -76,6 +79,7 @@ export async function flagWithAI(text: string): Promise<AIFlagResult> {
   const trimmed = (text || "").trim();
   if (!trimmed) return { concerning: false };
 
+  // Send the message + safety prompt to the classifier and read back JSON.
   const parsed = await callOpenAIJson<{ concerning: boolean; reason: string }>(
     "Check_AIFlag",
     PROMPT + trimmed

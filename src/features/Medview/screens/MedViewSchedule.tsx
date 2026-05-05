@@ -5,6 +5,12 @@ import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
 import { formatScheduleTime } from "../utils/formatTime";
 
+/**
+ * Today's medication schedule. Flattens every medication into one
+ * dose-per-row list, groups doses by time, and lets the user tick
+ * each one off as taken.
+ */
+
 export function MedViewSchedule() {
   const { medications, toggleTaken } = useMedications();
 

@@ -1,8 +1,15 @@
 import { OCR_API_KEY } from "@env";
 import { debugLog, debugPayload } from "../../_AI/AI_Debug";
 
+/**
+ * Plain text extraction from an image using ocr.space. Cheap and
+ * reliable for clear printed text, used as the fallback when the
+ * Vision model returns nothing useful.
+ */
+
 export const runOCR = async (imageUri: string) => {
   try {
+    // Build the multipart form. ocr.space wants the image as a file blob.
     const formData = new FormData();
 
     formData.append("file", {

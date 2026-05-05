@@ -1,5 +1,6 @@
 import { createScope, MEDICAL_WARNING } from "../_Common";
 
+// Clarity "Explain Medication" scope. Plain-English overview of what a medication is and how it works.
 export const clarityExplainMedication = createScope({
   id: "clarityExplainMedication",
   topic: "explain medications in simple terms",

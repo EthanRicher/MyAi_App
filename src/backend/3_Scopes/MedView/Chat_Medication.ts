@@ -1,6 +1,13 @@
 import { AIScope } from "../../_AI/AI_Types";
 import { buildSharedPrompt, buildSharedPhotoPrompt } from "../_Common";
 
+/**
+ * MedView "Medication chat" scope. Sits inside MedViewChat. Handles
+ * three entry points: a normal text message, the initial open-the-
+ * screen prompt seeded with a specific medication record, and a
+ * photo (label or prescription) the user has snapped.
+ */
+
 const TOPIC = "explain your medications";
 
 type Med = { name: string; dose: string; description: string };
@@ -8,6 +15,7 @@ type Med = { name: string; dose: string; description: string };
 export const medviewMedicationChat: AIScope = {
   id: "medviewMedicationChat",
 
+  // Normal turn. Stays focused on the medication that was used to seed the chat.
   buildPrompt: (text: string) =>
     buildSharedPrompt(
       `
@@ -48,6 +56,7 @@ ${text}
       TOPIC
     ),
 
+  // Auto-prompt fired when the screen opens. Seeded with the chosen medication record.
   buildInitialPrompt: (med: Med) =>
     buildSharedPrompt(
       `
@@ -61,6 +70,7 @@ Explain this medication. Cover what it is for, how it is taken, and key things t
       TOPIC
     ),
 
+  // Photo turn. Used when the user snaps a label or document mid-conversation.
   buildPhotoPrompt: (analysis: string) =>
     buildSharedPhotoPrompt(
       `

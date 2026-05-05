@@ -3,6 +3,15 @@ import { debugLog, debugPayload, formatTime } from "./AI_Debug";
 import { RunAIArgs, RunAIResult } from "./AI_Types";
 import { BREAKDOWN_CHAR_LIMITS, DEFAULT_BREAKDOWN_LENGTH } from "../../config/Config_General";
 
+/**
+ * Main AI runner. Takes a scope (prompt builder, response format,
+ * etc.) and the user text, talks to OpenAI, then runs the result
+ * through the scope's mapOutput. Handles JSON parsing, length
+ * limits, and a legacy structured-text fallback for old prompts
+ * that didn't return strict JSON.
+ */
+
+// Strip null and control characters so weird input doesn't crash JSON parsing.
 const sanitiseText = (value: any) => {
   if (typeof value !== "string") {
     return "";
@@ -14,6 +23,7 @@ const sanitiseText = (value: any) => {
     .trim();
 };
 
+// Pull out the first { ... } and / or [ ... ] blocks as JSON candidates.
 const extractJsonBlock = (raw: string) => {
   const candidates: string[] = [];
 
@@ -34,6 +44,7 @@ const extractJsonBlock = (raw: string) => {
   return candidates;
 };
 
+// Try parsing the raw text and each extracted block, returning the first one that parses.
 const parseJsonSafely = (raw: string) => {
   const attempts = [raw, ...extractJsonBlock(raw)];
 
@@ -46,6 +57,7 @@ const parseJsonSafely = (raw: string) => {
   return null;
 };
 
+// Legacy fallback. Some scopes used to return EXPLANATION / STATUS / MEDICATIONS plain text.
 const parseLegacyStructuredResponse = (raw: string) => {
   const explanationMatch = raw.match(/EXPLANATION:\s*([\s\S]*?)(?:\n\s*STATUS:|$)/i);
   const statusMatch = raw.match(/STATUS:\s*(Valid|Invalid)/i);
@@ -70,6 +82,7 @@ const parseLegacyStructuredResponse = (raw: string) => {
   };
 };
 
+// Length cap appended to every prompt so replies stay scannable.
 const buildLengthRule = (maxChars: number) => `
 
 LENGTH LIMIT (critical):
@@ -82,6 +95,7 @@ export const runAI = async ({
   scope,
   breakdownLength,
 }: RunAIArgs): Promise<RunAIResult> => {
+  // Build the prompt. Scope-specific text plus the shared length rule.
   const safeText = sanitiseText(text);
   const basePrompt = scope.buildPrompt(safeText);
   const maxChars = BREAKDOWN_CHAR_LIMITS[breakdownLength ?? DEFAULT_BREAKDOWN_LENGTH];
@@ -107,6 +121,7 @@ export const runAI = async ({
 
   const requestJson = JSON.stringify(requestBody);
 
+  // Network call.
   const startedAt = Date.now();
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -117,6 +132,7 @@ export const runAI = async ({
     body: requestJson,
   });
 
+  // Error path. Try to pull a useful message out of the error body.
   if (!response.ok) {
     const errText = await response.text();
     let err: any = errText;
@@ -144,6 +160,7 @@ export const runAI = async ({
   debugLog("AI_Run", "Response", "Received", { chars: raw.length, took: formatTime(elapsed) });
   debugPayload("AI_Run", "raw_response", raw);
 
+  // Parse depending on the requested format. JSON scopes try strict JSON first, then the legacy fallback.
   let parsed: any = {};
 
   if (scope.responseFormat === "json") {

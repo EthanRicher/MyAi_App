@@ -1,11 +1,18 @@
 import { OPENAI_API_KEY } from "@env";
 import { debugLog, debugPayload } from "../../_AI/AI_Debug";
 
+/**
+ * Whisper transcription. Takes a recorded audio file URI, ships it
+ * to OpenAI's transcription endpoint, and returns the spoken text.
+ * On any failure path returns an "Error: ..." string so the caller
+ * (the speech hook) can surface a friendly chat error.
+ */
+
 type WhisperTranscribeOptions = {
-  model?: string;
-  language?: string;
-  prompt?: string;
-  temperature?: number;
+  model?: string;       // Optional model override; defaults to gpt-4o-mini-transcribe.
+  language?: string;    // Hint for the language being spoken.
+  prompt?: string;      // Style / vocabulary hint passed straight to Whisper.
+  temperature?: number; // Sampling temperature (lower is more literal).
 };
 
 export const whisperTranscribe = async (
@@ -20,6 +27,7 @@ export const whisperTranscribe = async (
 
     debugLog("Input_Whisper", "Request", "Sending audio");
 
+    // Build the multipart form. Whisper wants the audio as a file blob plus a model field.
     const formData = new FormData();
 
     formData.append(

@@ -1,7 +1,11 @@
-// Shared scaffolding for every Companion mode scope. Each per-mode file
-// (Chat_PlanMyDay, Chat_FamilyTree, etc.) imports the BASE block and
-// appends its mode-specific behaviour on top.
+/**
+ * Shared scaffolding for every Companion mode scope. Each per-mode
+ * file (Chat_PlanMyDay, Chat_FamilyTree, etc.) imports the BASE
+ * block and appends its mode-specific behaviour on top. Keeps the
+ * tone consistent across the whole Companion feature.
+ */
 
+// Universal Companion task block. Defines tone, allowed topics, and what to deflect from.
 export const COMPANION_BASE_TASK = `
 You are a warm, caring AI companion for an elderly person.
 
@@ -29,13 +33,16 @@ GENERAL TONE:
 - Never make the user feel dismissed, judged, or alone
 `.trim();
 
-// Format a list of saved docs (family members or memories) as context that
-// the scope can reason over. CompanionChat prepends the result onto the
-// user input text before calling buildPrompt — keeps the scope contract
-// simple (still just `(input: string) => prompt`) while giving the model
-// the data it needs.
+// Single saved doc passed in as Companion context (a family member, a memory, etc.).
 export type CompanionDocEntry = { title: string; content: string };
 
+/**
+ * Format a list of saved docs (family members or memories) as
+ * context that the scope can reason over. CompanionChat prepends
+ * the result onto the user input text before calling buildPrompt,
+ * keeping the scope contract simple (still just (input: string) =>
+ * prompt) while giving the model the data it needs.
+ */
 export function formatExistingDocs(
   heading: string,
   entries: CompanionDocEntry[] | undefined

@@ -2,6 +2,7 @@ import type { ChatConfig } from "../_Common/ChatConfig_Type";
 import { CLARITY_DEFAULTS } from "./_Clarity_Config";
 import { MEDICAL_WARNING } from "../../backend/3_Scopes/_Common/Scope_Common_Warnings";
 
+// Clarity "Explain Medication" chat config.
 export const clarityExplainMedication: ChatConfig = {
   ...CLARITY_DEFAULTS,
   conversational: false,

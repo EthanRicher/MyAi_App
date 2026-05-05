@@ -2,6 +2,7 @@ import type { ChatConfig } from "../_Common/ChatConfig_Type";
 import { MEDICAL_WARNING } from "../../backend/3_Scopes/_Common/Scope_Common_Warnings";
 import { colors } from "../../theme";
 
+// MedView chat config. Drives the chat UI when the user taps "Talk about this medication".
 export const medviewChatConfig: ChatConfig = {
   conversational: true,
   warning: MEDICAL_WARNING,

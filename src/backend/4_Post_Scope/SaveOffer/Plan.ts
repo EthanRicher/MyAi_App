@@ -1,5 +1,6 @@
 import { SaveOfferTypeConfig } from "./_Shared";
 
+// Save-offer rules for the "plan" category. Triggers on a finished daily plan with concrete time slots.
 export const planSaveOffer: SaveOfferTypeConfig = {
   noun: "a daily plan",
   offerCriteria: `

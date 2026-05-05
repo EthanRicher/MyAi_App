@@ -6,14 +6,26 @@ import { runOCR } from "./Input_OCR";
 import { runVision } from "./Input_Vision";
 import { CameraInputResult } from "../../../components/ChatScreen";
 
+/**
+ * Camera entry point. Asks for permission, opens the system camera,
+ * resizes / compresses the photo, then runs it through Vision and / or
+ * OCR depending on the chosen mode. Returns the image URI plus the
+ * extracted text so the calling chat can attach the photo and fire
+ * a normal AI turn with the analysis.
+ */
+
+// Which way we read the photo. Vision is the LLM image model; OCR is plain text extraction.
 export enum PhotoMode {
-  Vision = "vision",
-  OCR = "ocr",
-  VisionWithFallback = "vision_with_fallback",
+  Vision = "vision",                          // Use Vision only.
+  OCR = "ocr",                                // Use OCR only.
+  VisionWithFallback = "vision_with_fallback",// Try Vision first, fall back to OCR.
 }
 
-// Default camera handler used by chat screens — opens camera in
-// VisionWithFallback mode. Pass directly as ChatScreen's onCameraPress.
+/**
+ * Default camera handler used by chat screens. Opens the camera in
+ * VisionWithFallback mode. Pass directly as ChatScreen's
+ * onCameraPress.
+ */
 export const defaultCameraHandler = (onImageReady: (uri: string) => void) =>
   openCameraAndScan(PhotoMode.VisionWithFallback, onImageReady);
 
@@ -22,6 +34,7 @@ export async function openCameraAndScan(
   onImageReady?: (imageUri: string) => void
 ): Promise<CameraInputResult | null> {
   try {
+    // Permission gate. Bail with a guidance alert if the user hasn't granted access.
     const permission = await ImagePicker.requestCameraPermissionsAsync();
 
     if (!permission.granted) {
@@ -47,6 +60,7 @@ export async function openCameraAndScan(
     debugTurn();
     debugLog("Input_Camera", "Action", "Photo taken", { mode });
 
+    // Resize and compress so we're not shipping a giant phone-resolution image to the API.
     const manipulated = await ImageManipulator.manipulateAsync(
       rawUri,
       [{ resize: { width: 1200 } }],
@@ -55,9 +69,10 @@ export async function openCameraAndScan(
 
     const imageUri = manipulated.uri;
 
-    // Show image in chat immediately before AI processing starts
+    // Show image in chat immediately before AI processing starts.
     onImageReady?.(imageUri);
 
+    // OCR-only path. Plain text extraction from the photo.
     if (mode === PhotoMode.OCR) {
       const ocrText = await runOCR(imageUri);
       return {
@@ -68,6 +83,7 @@ export async function openCameraAndScan(
       };
     }
 
+    // Vision-only path. Use the Vision model directly without OCR fallback.
     if (mode === PhotoMode.Vision) {
       const visionText = await runVision(imageUri);
       return {
@@ -76,6 +92,7 @@ export async function openCameraAndScan(
       };
     }
 
+    // Vision-with-fallback. Try Vision first; if it returns nothing, fall back to OCR.
     const visionText = await runVision(imageUri);
     if (visionText) {
       return { imageUri, text: visionText };

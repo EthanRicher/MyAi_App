@@ -11,9 +11,17 @@ import { renderMarkdownWith, parseInline } from "../../../backend/6_Present/Pres
 import { useDocs } from "../hooks/useDocs";
 import { CATEGORY_LABELS } from "../models/Doc";
 
+/**
+ * Detail view for a single saved doc. Shows the title, category,
+ * last-updated time and the full content (rendered as markdown so
+ * AI-generated breakdowns paint with proper title chips and
+ * bullets). Includes a delete confirmation modal.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "DocsDetail">;
 type Route = RouteProp<RootStackParamList, "DocsDetail">;
 
+// Inline bold renderer for paragraphs and bullets.
 const renderInline = (text: string) =>
   parseInline(text).map((seg, j) =>
     seg.kind === "bold"

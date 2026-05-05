@@ -1,6 +1,7 @@
 import type { ChatConfig } from "../_Common/ChatConfig_Type";
 import { COMPANION_DEFAULTS } from "./_Companion_Config";
 
+// Companion "Memory Book" chat config. Saveable category: passively upserts each memory.
 export const companionMemoryBook: ChatConfig = {
   ...COMPANION_DEFAULTS,
   title: "Memory Book",

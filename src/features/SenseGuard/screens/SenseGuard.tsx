@@ -26,6 +26,13 @@ import { whisperTranscribe } from "../../../backend/1_Input/Speech/Input_Whisper
 import { runAI } from "../../../backend/_AI/AI_Run";
 import { senseguardSymptomLog, SymptomLogOutput } from "../../../backend/3_Scopes/SenseGuard/Log_Symptom";
 
+/**
+ * SenseGuard symptom-log screen. The user describes how they're
+ * feeling (typed or recorded), the AI rewrites it as a tidy first-
+ * person log entry with severity and the screen stores it locally.
+ * Past entries can be browsed, edited, or sent on as a snapshot.
+ */
+
 interface Entry {
   id: string;
   title: string;

@@ -1,5 +1,6 @@
 import { SaveOfferTypeConfig } from "./_Shared";
 
+// Save-offer rules for the "summary" category. Triggers on a finished plain-English document summary.
 export const summarySaveOffer: SaveOfferTypeConfig = {
   noun: "a document summary",
   offerCriteria: `

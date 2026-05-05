@@ -1,27 +1,27 @@
-// ─── General config ──────────────────────────────────────────────────────────
-// Cross-cutting settings used throughout the pipeline. Anything that's not
-// feature-specific lives here.
+/**
+ * Cross-cutting settings used throughout the pipeline. Anything
+ * that's not feature-specific lives here. Debug flags, breakdown
+ * length caps, and the default length.
+ */
 
-// ── Debug ─────────────────────────────────────────────────────────────────
-// DEBUG: prints high-level pipeline steps to the console, with truncated
-// previews of large payloads (first 60 chars + length tail). Reads cleanly,
-// good default for development.
-// DEBUG_FULL: also prints FULL payloads — prompts, raw responses, translated
-// text. Verbose; turn on when investigating a specific issue.
-// The two flags are independent — DEBUG_FULL can fire without DEBUG.
-
+/**
+ * Debug flags.
+ *   DEBUG       — high-level pipeline steps with truncated payload previews. Good default.
+ *   DEBUG_FULL  — full payloads (prompts, raw responses). Verbose; turn on while debugging.
+ * The two flags are independent: DEBUG_FULL can fire without DEBUG.
+ */
 export const DEBUG = true;
 export const DEBUG_FULL = false;
 
-// ── Breakdown ─────────────────────────────────────────────────────────────
-// Character caps for breakdown-format AI replies. Used by AI_Run.
-
+// Length cap key used by AI_Run to clamp breakdown-format replies.
 export type BreakdownLength = "short" | "medium" | "long";
 
+// Character cap per length. Tunes how chatty the AI is allowed to get in breakdown mode.
 export const BREAKDOWN_CHAR_LIMITS: Record<BreakdownLength, number> = {
   short: 800,
   medium: 1500,
   long: 2500,
 };
 
+// Default length when a chat config doesn't specify one.
 export const DEFAULT_BREAKDOWN_LENGTH: BreakdownLength = "medium";

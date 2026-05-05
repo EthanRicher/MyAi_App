@@ -1,14 +1,16 @@
-// 2_Checks — sub-pipeline that runs *before* the main AI scope.
-// Photo input → Image checks → text → Text checks → ready for scope.
-// Pure text input → straight into Text checks.
-//
-// Today only the text branch is live; the image branch is reserved for
-// future image-side checks (e.g. classification, gating).
-
 import { translateToEnglish, TranslateResult } from "./Text/A_Check_Translate";
 import { scanKeywords } from "./Text/B_Check_Keywords";
 import { flagWithAI } from "./Text/C_Check_AIFlag";
 import { debugLog } from "../_AI/AI_Debug";
+
+/**
+ * 2_Checks. Sub-pipeline that runs BEFORE the main AI scope. Photo
+ * input goes through Image checks then becomes text and goes through
+ * Text checks; pure text input goes straight into Text checks.
+ *
+ * Today only the text branch is live; the image branch is reserved
+ * for future image-side checks (e.g. classification, gating).
+ */
 
 export type ChecksInput = {
   text?: string;
@@ -16,11 +18,12 @@ export type ChecksInput = {
 };
 
 export type ChecksResult = {
-  translation: TranslateResult;  // raw translate result so callers can show the original
-  flaggedWords: string[];        // hardcoded keyword matches, deduped across original + translated
-  flaggedReason?: string;        // AI second-pass reason when the message looks concerning
+  translation: TranslateResult; // Raw translate result so callers can show the original.
+  flaggedWords: string[];       // Hardcoded keyword matches, deduped across original + translated.
+  flaggedReason?: string;       // AI second-pass reason when the message looks concerning.
 };
 
+// Pull just the matched red-flag words out of a keyword scan.
 const collectFlagWords = (text: string): string[] =>
   scanKeywords(text)
     .filter((s) => s.kind === "flag")
@@ -32,8 +35,11 @@ export async function runChecks(input: ChecksInput): Promise<ChecksResult> {
   // Image checks would run here when input.image is set, then feed their
   // extracted text into the text-check stage below.
 
-  // Translate and AI flag run in parallel — both are network calls, no
-  // dependency between them, so we don't pay for them sequentially.
+  /**
+   * Translate and AI flag run in parallel. Both are network calls
+   * with no dependency between them, so we don't pay for them
+   * sequentially.
+   */
   const [translation, aiFlag] = await Promise.all([
     translateToEnglish(sourceText),
     flagWithAI(sourceText),
@@ -42,9 +48,11 @@ export async function runChecks(input: ChecksInput): Promise<ChecksResult> {
   const resolvedText =
     translation.needed && translation.translated ? translation.translated : sourceText;
 
-  // Scan both the original and the translated text so a translate failure
-  // can't swallow a flag, and a phrase only urgent in the source language
-  // (or only urgent once translated) still surfaces.
+  /**
+   * Scan both the original and the translated text so a translate
+   * failure can't swallow a flag, and a phrase only urgent in the
+   * source language (or only urgent once translated) still surfaces.
+   */
   const flaggedWords = Array.from(
     new Set([...collectFlagWords(sourceText), ...collectFlagWords(resolvedText)])
   );

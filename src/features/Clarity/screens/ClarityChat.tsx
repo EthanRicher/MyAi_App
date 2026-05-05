@@ -10,6 +10,12 @@ import {
 import { defaultCameraHandler } from "../../../backend/1_Input/Camera/Input_Camera";
 import { clarityChatConfigs } from "../../../config/Clarity";
 
+/**
+ * Clarity chat screen. Picks the scope and config by the scopeId
+ * route param, then mounts ChatScreen. Supports an optional
+ * initialMessage that fires as the auto-prompt.
+ */
+
 type Route = RouteProp<RootStackParamList, "ClarityChat">;
 
 export function ClarityChat() {

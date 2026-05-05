@@ -19,6 +19,12 @@ import { Eye, EyeOff } from "lucide-react-native";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { colors } from "../theme";
 
+/**
+ * Login screen. Email + password entry with show / hide password
+ * toggle, animated focus transitions and a route to the lockout
+ * screen after too many failed attempts.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "Login">;
 
 // Enable LayoutAnimation on Android (it's iOS-only by default).

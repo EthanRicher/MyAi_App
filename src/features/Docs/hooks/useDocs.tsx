@@ -2,6 +2,12 @@ import React, { useState, useContext, createContext, useEffect, ReactNode } from
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Doc, DocCategory } from "../models/Doc";
 
+/**
+ * Docs context. Backs the Docs library: add / update / delete / read
+ * docs, plus an upsert-by-title path for the passive Family + Memory
+ * flows where the AI re-emits the full updated record each time.
+ */
+
 type DocsContextType = {
   docs: Doc[];
   addDoc: (d: { title: string; category: DocCategory; content: string }) => Doc;
@@ -26,6 +32,7 @@ export function DocsProvider({ children }: { children: ReactNode }) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loaded, setLoaded] = useState(false);
 
+  // Load saved docs from disk.
   useEffect(() => {
     (async () => {
       try {
@@ -36,11 +43,13 @@ export function DocsProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
+  // Write through whenever the doc list changes. Skipped until the initial load has settled.
   useEffect(() => {
     if (!loaded) return;
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
   }, [docs, loaded]);
 
+  // Add a new doc to the front of the list.
   const addDoc: DocsContextType["addDoc"] = ({ title, category, content }) => {
     const now = new Date().toISOString();
     const doc: Doc = {
@@ -55,9 +64,11 @@ export function DocsProvider({ children }: { children: ReactNode }) {
     return doc;
   };
 
-  // Replaces the doc when a same-title (case-insensitive) doc already exists
-  // in the same category — used for family-tree saves where the AI re-emits
-  // the full updated person record each time.
+  /**
+   * Replaces the doc when a same-title (case-insensitive) doc
+   * already exists in the same category. Used for family-tree saves
+   * where the AI re-emits the full updated person record each time.
+   */
   const upsertDocByTitle: DocsContextType["upsertDocByTitle"] = ({ title, category, content }) => {
     const normalised = title.trim();
     const key = normalised.toLowerCase();
@@ -73,6 +84,7 @@ export function DocsProvider({ children }: { children: ReactNode }) {
     return addDoc({ title: normalised, category, content });
   };
 
+  // Patch an existing doc and bump its updatedAt.
   const updateDoc = (updated: Doc) => {
     setDocs((prev) =>
       prev.map((d) => (d.id === updated.id ? { ...updated, updatedAt: new Date().toISOString() } : d))

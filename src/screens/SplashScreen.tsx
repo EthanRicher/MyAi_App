@@ -6,6 +6,12 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { colors } from "../theme";
 
+/**
+ * Splash screen. Shows the logo briefly then auto-navigates to
+ * Login. The 2.5 second delay is a deliberate beat to let the brand
+ * settle before the login flow starts.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "Splash">;
 
 export function SplashScreen() {

@@ -2,10 +2,13 @@ import { Mic, FileText, Pill, Calendar, Globe } from "lucide-react-native";
 import { ScopeId } from "../../backend/3_Scopes";
 import { colors } from "../../theme";
 
-// ─── Shared Defaults ──────────────────────────────────────────────────────────
-// Common copy/behaviour spread into every Clarity chat config. Override only
-// the fields that differ in each Chat_*.ts file.
+/**
+ * Shared scaffolding for every Clarity chat config plus the
+ * landing-page card list. Each Chat_*.ts under config/Clarity/
+ * spreads CLARITY_DEFAULTS and overrides only what differs.
+ */
 
+// Defaults every Clarity chat inherits.
 export const CLARITY_DEFAULTS = {
   accentColor: colors.primary,
   aiLabel: "Clarity AI",
@@ -20,16 +23,15 @@ export const CLARITY_DEFAULTS = {
   speechErrorMessage: "I couldn't hear you. Please try again.",
 };
 
-// ─── Landing-page cards ───────────────────────────────────────────────────────
-// Cards shown on the Clarity landing screen — each routes to a chat scope.
-
+// One Clarity landing card. Tapping it opens ClarityChat with the matching scope.
 export interface ClarityLandingCard {
-  title: string;
-  desc: string;
-  icon: any;
-  scopeId: ScopeId;
+  title: string;     // Card heading.
+  desc: string;      // One-line description.
+  icon: any;         // Lucide icon component.
+  scopeId: ScopeId;  // Scope key that ClarityChat dispatches by.
 }
 
+// Cards shown on the Clarity landing screen, in order.
 export const clarityLandingCards: ClarityLandingCard[] = [
   {
     title: "Doctor Explained",

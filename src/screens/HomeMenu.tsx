@@ -7,8 +7,15 @@ import { BackButton } from "../components/BackButton";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { colors } from "../theme";
 
+/**
+ * Home menu screen. The grid of feature tiles (Docs, Clarity,
+ * MedView, Companion, SenseGuard, SafeHarbour) the user lands on
+ * after the dashboard. Tapping a tile routes into that feature.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "Home">;
 
+// One tile per top-level feature, in display order.
 const modules = [
   { name: "Docs", desc: "Saved letters, plans, memories and notes", icon: FileText, color: "#FF9800", screen: "Docs", dashed: true },
   { name: "Clarity Layer", desc: "Make medical info simple", icon: Search, color: "#0dd9f7", screen: "Clarity", dashed: false },

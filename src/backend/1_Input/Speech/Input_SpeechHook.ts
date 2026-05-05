@@ -2,9 +2,17 @@ import { useState } from "react";
 import { Audio } from "expo-av";
 import { debugLog, debugTurn } from "../../_AI/AI_Debug";
 
+/**
+ * Reusable speech-input hook. Wraps the platform mic permissions,
+ * recording, and transcription handoff. The chat plugs in its own
+ * transcribe function (Whisper by default) and onTranscript handler,
+ * and gets back a tiny start / stop API plus a recording flag for
+ * the UI.
+ */
+
 type UseSpeechInputArgs = {
-  transcribe: (uri: string) => Promise<string>;
-  onTranscript: (text: string) => void | Promise<void>;
+  transcribe: (uri: string) => Promise<string>;             // How to turn audio into text.
+  onTranscript: (text: string) => void | Promise<void>;     // What to do with the resulting text.
 };
 
 export function useSpeechInput({
@@ -19,6 +27,7 @@ export function useSpeechInput({
     setSpeechError("");
   };
 
+  // Ask for mic permission, configure the audio session, then start a high-quality recording.
   const startRecording = async () => {
     try {
       clearSpeechError();
@@ -50,6 +59,12 @@ export function useSpeechInput({
     }
   };
 
+  /**
+   * Stop the recording, fish out the file URI, hand it to the
+   * caller's transcribe function, then forward the resulting text
+   * to onTranscript. Surfaces friendly errors for missing audio or
+   * transcription failures.
+   */
   const stopRecording = async () => {
     if (!recording) {
       return;

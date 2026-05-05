@@ -1,6 +1,12 @@
 import { createScope } from "../_Common";
 import { COMPANION_BASE_TASK } from "./Scope_Common_Companion";
 
+/**
+ * Companion "Family Tree" mode. Warm, roaming conversation about
+ * family. Each person's record gets upserted in the background by
+ * the save flow, so this scope only has to keep the chat moving and
+ * pull in cross-references from saved entries when they fit.
+ */
 export const companionFamilyTree = createScope({
   id: "companionFamilyTree",
   topic: "chat about your family and the people in your life",

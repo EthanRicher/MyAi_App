@@ -2,6 +2,7 @@ import type { ChatConfig } from "../_Common/ChatConfig_Type";
 import { CLARITY_DEFAULTS } from "./_Clarity_Config";
 import { AI_WARNING } from "../../backend/3_Scopes/_Common/Scope_Common_Warnings";
 
+// Clarity "General Chat" config. Catch-all health Q&A.
 export const clarityGeneralChat: ChatConfig = {
   ...CLARITY_DEFAULTS,
   conversational: true,

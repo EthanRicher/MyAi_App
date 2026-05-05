@@ -1,22 +1,33 @@
 import { DEBUG, DEBUG_FULL } from "../../config/Config_General";
 
+/**
+ * Debug logging helpers used by the whole AI pipeline. Prints tidy
+ * one-line entries when the DEBUG flags in Config_General are on,
+ * and stays silent otherwise. Every step in the pipeline (input,
+ * checks, scopes, output) calls into these so the console reads as
+ * a turn-by-turn timeline.
+ */
+
 // Single-row separator marking the start of a user-initiated pipeline turn.
 export function debugTurn(): void {
   if (!DEBUG && !DEBUG_FULL) return;
   console.log("─── Turn ───");
 }
 
-// End-of-turn marker. No-op for now — kept so call sites (ChatScreen,
-// Input_Camera, Input_SpeechHook) have a stable hook for future additions
-// like total-turn timing without having to re-thread imports everywhere.
+/**
+ * End-of-turn marker. No-op for now. Kept so call sites (ChatScreen,
+ * Input_Camera, Input_SpeechHook) have a stable hook for future
+ * additions like total-turn timing without having to re-thread
+ * imports everywhere.
+ */
 export function debugTurnEnd(): void {}
 
 // Short, single-line pipeline event. Prints when DEBUG is on.
 export function debugLog(
-  module: string,
-  eventType: string,
-  message: string,
-  fields?: Record<string, any>
+  module: string,                  // Source module label.
+  eventType: string,               // "Request" / "Response" / "Action" / "Result" / "Error".
+  message: string,                 // Short human-readable summary.
+  fields?: Record<string, any>     // Optional extra context, printed as key: value pairs.
 ): void {
   if (!DEBUG) return;
   const fieldStr = fields && Object.keys(fields).length > 0
@@ -27,10 +38,13 @@ export function debugLog(
   console.log(`${module}_${eventType}: ${message}${fieldStr}`);
 }
 
-// Payload logger. Both DEBUG modes print on a SINGLE line so the console
-// stays scannable — newlines inside the value are escaped as `\n`.
-//   DEBUG only:   60-char truncated preview + length tail.
-//   DEBUG_FULL:   full value flattened onto one line.
+/**
+ * Payload logger. Both DEBUG modes print on a SINGLE line so the
+ * console stays scannable. Newlines inside the value are escaped
+ * as \n.
+ *   DEBUG only:  60-char truncated preview + length tail.
+ *   DEBUG_FULL:  full value flattened onto one line.
+ */
 export function debugPayload(module: string, key: string, value: any): void {
   if (!DEBUG && !DEBUG_FULL) return;
   const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
@@ -49,14 +63,14 @@ export function debugPayload(module: string, key: string, value: any): void {
   }
 }
 
-// Compact time format for pipeline timing fields.
+// Compact time format for pipeline timing fields ("1.2s" or "300ms").
 export const formatTime = (ms: number): string =>
   ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
 
-// Computed values like times ("1.2s", "300ms") print bare; user-supplied
-// strings stay quoted so their boundaries are visible.
+// Computed values like times ("1.2s", "300ms") print bare; user-supplied strings stay quoted.
 const DURATION_RE = /^\d+(\.\d+)?(ms|s)$/;
 
+// Pretty-print a single field value for the debugLog "key: value" output.
 function formatField(v: any): string {
   if (v === null || v === undefined) return String(v);
   if (typeof v === "string") {

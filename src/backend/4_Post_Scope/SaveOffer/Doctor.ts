@@ -1,5 +1,6 @@
 import { SaveOfferTypeConfig } from "./_Shared";
 
+// Save-offer rules for the "doctor" category. Triggers on a finished plain-English explanation of a doctor visit.
 export const doctorSaveOffer: SaveOfferTypeConfig = {
   noun: "a plain-English explanation of what the doctor said",
   offerCriteria: `

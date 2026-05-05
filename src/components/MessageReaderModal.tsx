@@ -5,27 +5,38 @@ import { X } from "lucide-react-native";
 import { colors, chatBubble, warningColors } from "../theme";
 import { renderMarkdownWith, parseInline } from "../backend/6_Present/Present_Markdown";
 
+/**
+ * Full-screen "reader" modal opened when the user taps a chat
+ * bubble. Shows one bubble blown up in big readable text, or a
+ * paired user + AI exchange. Auto-fits the font scale so short
+ * replies fill the screen and long ones still stay legible
+ * (falling back to scrolling when the floor is hit).
+ */
+
 export interface ReaderMessage {
   role: "user" | "ai";
   text: string;
   label: string;
-  warningText?: string;
+  warningText?: string; // Disclaimer pinned below the message when present.
 }
 
 interface Props {
-  visible: boolean;
-  messages: ReaderMessage[];
-  accentColor?: string;
+  visible: boolean;             // Whether the modal is shown.
+  messages: ReaderMessage[];    // One message, or a user / AI pair.
+  accentColor?: string;         // Theme tint for headings + close button.
   onClose: () => void;
 }
 
-// Auto-fit floor: text is allowed to shrink for fit, but the floor is high
-// enough to stay readable. At MIN_SCALE the body lands at fontSize 36 * 0.5
-// = 18px. If content still overflows at this scale the ScrollView takes
-// over instead of going smaller.
+/**
+ * Auto-fit floor. Text is allowed to shrink for fit, but the floor
+ * is high enough to stay readable. At MIN_SCALE the body lands at
+ * fontSize 36 * 0.5 = 18px. If content still overflows at this
+ * scale the ScrollView takes over instead of going smaller.
+ */
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 0.7;
 
+// Base font sizes / paddings for the largest scale. Multiplied by `s` at render time.
 const BASE = {
   body: 36,
   bodyLine: 50,
@@ -47,6 +58,7 @@ const BASE = {
   bubblePad: 20,
 };
 
+// Inline bold renderer. Uses a heavier weight than the chat bubble so it pops at large size.
 const renderInline = (text: string) =>
   parseInline(text).map((seg, j) =>
     seg.kind === "bold"
@@ -54,8 +66,11 @@ const renderInline = (text: string) =>
       : seg.text
   );
 
-// Render parsed markdown tokens at a given scale. All size-dependent values
-// are inline (need `s`); static layout lives in `contentStyles` below.
+/**
+ * Render parsed markdown tokens at a given scale. All size-
+ * dependent values are inline (need `s`); static layout lives in
+ * `contentStyles` below.
+ */
 function renderReader(text: string, accentColor: string, s: number) {
   return renderMarkdownWith(text, {
     mainTitle: (token, i) => (
@@ -141,6 +156,8 @@ function renderReader(text: string, accentColor: string, s: number) {
 
 export function MessageReaderModal({ visible, messages, accentColor = colors.primary, onClose }: Props) {
   const insets = useSafeAreaInsets();
+
+  // Auto-fit state. fontScale is the live scale; ready flips on once we've settled.
   const [fontScale, setFontScale] = useState(1);
   const [ready, setReady] = useState(false);
   const [containerH, setContainerH] = useState(0);
@@ -154,6 +171,7 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
   const isPair = messages.length > 1;
   const isSingle = messages.length === 1;
 
+  // Reset auto-fit each time the modal opens or the message changes.
   useEffect(() => {
     if (visible) {
       setFontScale(1);
@@ -163,6 +181,12 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
     }
   }, [visible, messagesKey]);
 
+  /**
+   * Auto-fit loop. Adjusts fontScale until the rendered content
+   * fills ~90-103% of the container height, or we hit the iteration
+   * cap, or movement gets too small to bother. Once `ready` flips
+   * on the scale is locked in.
+   */
   useEffect(() => {
     if (ready || !containerH || !contentH) return;
     const target = containerH - 6;
@@ -184,20 +208,25 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
   }, [containerH, contentH, ready]);
 
   const onContainerLayout = (e: LayoutChangeEvent) => setContainerH(e.nativeEvent.layout.height);
-  // ScrollView feeds us the content height via onContentSizeChange; we keep
-  // taking measurements while the auto-fit loop is still settling. Once
-  // `ready` is true the height is locked in and any further size change just
-  // governs whether scrolling is needed.
+  /**
+   * ScrollView feeds us the content height via onContentSizeChange;
+   * we keep taking measurements while the auto-fit loop is still
+   * settling. Once `ready` is true the height is locked in and any
+   * further size change just governs whether scrolling is needed.
+   */
   const onScrollContentSizeChange = (_w: number, h: number) => {
     if (!ready) setContentH(h);
   };
 
-  // When the auto-fit loop has bottomed out (typically at MIN_SCALE) but the
-  // content is still taller than the viewport, fall back to scrolling rather
-  // than clipping. This keeps the reader always-readable regardless of the
-  // message length.
+  /**
+   * When the auto-fit loop has bottomed out (typically at MIN_SCALE)
+   * but the content is still taller than the viewport, fall back to
+   * scrolling rather than clipping. Keeps the reader always-readable
+   * regardless of message length.
+   */
   const needsScroll = ready && contentH > containerH;
 
+  // Single-message mode tints the whole background to match the bubble's role.
   const singleBgOverride =
     isSingle && { backgroundColor: messages[0].role === "ai" ? chatBubble.ai : chatBubble.user };
 
@@ -211,6 +240,7 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
       navigationBarTranslucent
     >
       <View style={[styles.container, { paddingTop: insets.top }, singleBgOverride]}>
+        {/* Body. Hidden until the auto-fit loop has settled to avoid a flash of resize. */}
         <View style={styles.bodyWrap} onLayout={onContainerLayout}>
           <ScrollView
             style={styles.scroll}
@@ -235,6 +265,7 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
           </ScrollView>
         </View>
 
+        {/* Pinned warning banner. Survives across paired exchanges, not just inline with one bubble. */}
         {!!pinnedWarning && (
           <View style={[styles.warningBanner, { marginTop: BASE.blockGap * fontScale }]}>
             <Text style={styles.warningIcon}>⚠️</Text>
@@ -257,14 +288,14 @@ export function MessageReaderModal({ visible, messages, accentColor = colors.pri
   );
 }
 
-// ── Sub-components ───────────────────────────────────────────────────────────
+// One scaled message block. Pair view wraps each in its own bubble; single view skips the wrap.
 
 interface MessageBlockProps {
   message: ReaderMessage;
   accentColor: string;
   scale: number;
-  wrapInBubble: boolean;
-  showLabel: boolean;
+  wrapInBubble: boolean;  // True in paired exchanges so each side gets its own card.
+  showLabel: boolean;     // True in paired exchanges; the role label is redundant for a single bubble.
 }
 
 function MessageBlock({ message, accentColor, scale, wrapInBubble, showLabel }: MessageBlockProps) {
@@ -299,10 +330,7 @@ function MessageBlock({ message, accentColor, scale, wrapInBubble, showLabel }: 
   );
 }
 
-// ── StyleSheets ──────────────────────────────────────────────────────────────
-
-// Content styles: static layout properties for tokens. Size-dependent props
-// (fontSize, padding*scale) stay inline in renderReader.
+// Static layout for tokens. Anything that depends on the live scale stays inline in renderReader.
 const contentStyles = StyleSheet.create({
   mainTitleChip: {
     alignSelf: "stretch",

@@ -9,9 +9,17 @@ import { useDocs } from "../hooks/useDocs";
 import { CATEGORY_LABELS, Doc, DocCategory } from "../models/Doc";
 import { getFeatureGroup } from "../models/FeatureGroup";
 
+/**
+ * Feature-level Docs screen. Shows the categories that belong to a
+ * single feature (e.g. Companion → Plans / Family / Letters /
+ * Memories) along with a per-category count, and routes the user
+ * down into the category list when they tap one.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "DocsFeature">;
 type Rt = RouteProp<RootStackParamList, "DocsFeature">;
 
+// Per-category icon + colour. Same lookup is used in DocsCategory.
 const CATEGORY_ICONS: Record<DocCategory, any> = {
   letter: Mail,
   plan: CalendarDays,
@@ -39,6 +47,7 @@ export function DocsFeature() {
   const group = getFeatureGroup(featureId);
   const { docs } = useDocs();
 
+  // Defensive guard. Should never hit unless the route param is bad.
   if (!group) {
     return (
       <View style={styles.container}>
@@ -47,6 +56,7 @@ export function DocsFeature() {
     );
   }
 
+  // Bucket docs by category so the per-category count is just an array length.
   const grouped: Record<DocCategory, Doc[]> = {
     letter: [], plan: [], family: [], memory: [], summary: [], doctor: [], appointment: [],
   };
@@ -74,6 +84,7 @@ export function DocsFeature() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {group.categories.length === 0 ? (
+          // Empty state. Feature exists but doesn't save any docs yet.
           <View style={styles.emptyBox}>
             <FeatureIcon size={40} color={colors.textCaption} />
             <Text style={styles.emptyTitle}>Nothing saves here yet</Text>
@@ -82,6 +93,7 @@ export function DocsFeature() {
             </Text>
           </View>
         ) : (
+          // One row per category, with empty categories rendered in dashed-border style.
           group.categories.map((cat) => {
             const items = grouped[cat] || [];
             const Icon = CATEGORY_ICONS[cat];

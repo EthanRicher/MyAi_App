@@ -1,6 +1,7 @@
 import type { ChatConfig } from "../_Common/ChatConfig_Type";
 import { COMPANION_DEFAULTS } from "./_Companion_Config";
 
+// Companion "Family Tree" chat config. Saveable category: passively upserts each family member.
 export const companionFamilyTree: ChatConfig = {
   ...COMPANION_DEFAULTS,
   title: "Family Tree",

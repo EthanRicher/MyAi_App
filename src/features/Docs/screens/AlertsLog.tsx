@@ -6,6 +6,13 @@ import { BackButton } from "../../../components/BackButton";
 import { colors } from "../../../theme";
 import { useAlerts } from "../hooks/useAlerts";
 
+/**
+ * Flagged messages log. Lists every alert the safety pipeline has
+ * raised, colour-coded by severity (RED for hard keyword matches,
+ * ORANGE for AI-only phrasing flags). Carers can tap the trash icon
+ * to clear the whole log.
+ */
+
 const formatWhen = (iso: string) => {
   try {
     const d = new Date(iso);

@@ -1,5 +1,6 @@
 import { createScope, AI_WARNING } from "../_Common";
 
+// Clarity "General Chat" scope. Catch-all friendly assistant for health-adjacent questions.
 export const clarityGeneralChat = createScope({
   id: "clarityGeneralChat",
   topic: "help you understand health and medical topics",

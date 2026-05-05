@@ -25,6 +25,15 @@ import { DocCategory } from "../features/Docs/models/Doc";
 import { FeatureGroupId } from "../features/Docs/models/FeatureGroup";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { Medication } from "../features/Medview/models/Medication";
+
+/**
+ * Root navigation stack. RootStackParamList is the source of truth
+ * for every screen + its route params; every navigation call in the
+ * app types against this. AppNavigator wires those screens up under
+ * a single native-stack with no headers (each screen handles its
+ * own back button).
+ */
+
 export type RootStackParamList = {
   Splash: undefined;
   Landing: undefined;

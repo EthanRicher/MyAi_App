@@ -1,5 +1,6 @@
 import { SaveOfferTypeConfig } from "./_Shared";
 
+// Save-offer rules for the "appointment" category. Triggers on a finished prep checklist.
 export const appointmentSaveOffer: SaveOfferTypeConfig = {
   noun: "an appointment prep checklist",
   offerCriteria: `

@@ -10,6 +10,12 @@ import { useDocs } from "../hooks/useDocs";
 import { useAlerts } from "../hooks/useAlerts";
 import { FEATURE_GROUPS } from "../models/FeatureGroup";
 
+/**
+ * Docs landing screen. One tile per feature (Companion, Clarity,
+ * MedView, etc.) showing how many docs each currently holds, plus
+ * a bottom button into the Alerts log.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "Docs">;
 
 export function DocsLanding() {
@@ -23,6 +29,7 @@ export function DocsLanding() {
       <BackButton label="Docs" to="Home" />
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* One tile per feature group. Empty groups render in dashed-border style. */}
         {FEATURE_GROUPS.map((group) => {
           const Icon = group.icon;
           const count = docs.filter((d) => group.categories.includes(d.category)).length;
@@ -74,6 +81,7 @@ export function DocsLanding() {
         })}
       </ScrollView>
 
+      {/* Bottom bar. Always-on shortcut into the flagged-messages log. */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity
           onPress={() => navigation.navigate("AlertsLog")}

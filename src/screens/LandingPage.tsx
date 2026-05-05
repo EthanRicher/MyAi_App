@@ -5,6 +5,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { colors } from "../theme";
 
+/**
+ * Landing page. Sits between the splash and the login flow with a
+ * single Sign In button so first-time users have a clear entry
+ * point.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "Landing">;
 
 export function LandingPage() {

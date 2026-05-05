@@ -10,6 +10,14 @@ import { defaultCameraHandler } from "../../../backend/1_Input/Camera/Input_Came
 import { medviewMedicationChat } from "../../../backend/3_Scopes/MedView/Chat_Medication";
 import { medviewChatConfig } from "../../../config/MedView";
 
+/**
+ * MedView chat screen. Hosts ChatScreen with the MedView config and
+ * the "talk about this medication" scope. When the user opens it
+ * with a specific med, the first turn fires the scope's initial
+ * prompt (medication overview) and every subsequent turn includes
+ * the medication context so questions stay grounded in that drug.
+ */
+
 type Route = RouteProp<RootStackParamList, "MedViewChat">;
 
 export function MedViewChat() {

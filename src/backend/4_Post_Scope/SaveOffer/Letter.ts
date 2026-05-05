@@ -1,5 +1,6 @@
 import { SaveOfferTypeConfig } from "./_Shared";
 
+// Save-offer rules for the "letter" category. Triggers on a complete letter draft (greeting + body + sign-off).
 export const letterSaveOffer: SaveOfferTypeConfig = {
   noun: "a letter",
   offerCriteria: `

@@ -1,13 +1,22 @@
 import { AIScope } from "../../_AI/AI_Types";
 import { buildSharedPrompt } from "../_Common";
 
+/**
+ * SenseGuard symptom log scope. Takes a free-form description of how
+ * the user is feeling and produces a structured first-person log
+ * entry (title, bullet summary, severity 1 to 6) the symptom-log
+ * screen can save. Also decides whether the message even counts as
+ * a symptom in the first place — pure activity ("I went for a walk")
+ * doesn't.
+ */
+
 const TOPIC = "log a symptom";
 
 export type SymptomLogOutput = {
-  title: string;
-  summary: string;
-  severity: number;
-  isSymptom: boolean;
+  title: string;       // Short label for the log entry.
+  summary: string;     // First-person "- " bullet list.
+  severity: number;    // 1 to 6, or 0 when isSymptom is false.
+  isSymptom: boolean;  // False for non-symptom messages so the UI can skip logging.
 };
 
 export const senseguardSymptomLog: AIScope = {
@@ -107,6 +116,7 @@ SEVERITY rules (best estimate from the words used):
       TOPIC
     ),
 
+  // Normalise the parsed JSON. Severity gets clamped to 0-6 and rounded.
   mapOutput: (parsed: any): SymptomLogOutput => ({
     isSymptom: !!parsed?.isSymptom,
     title: typeof parsed?.title === "string" ? parsed.title.trim() : "",

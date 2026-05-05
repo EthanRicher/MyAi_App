@@ -1,6 +1,7 @@
 import type { ChatConfig } from "../_Common/ChatConfig_Type";
 import { COMPANION_DEFAULTS } from "./_Companion_Config";
 
+// Companion "Share Stories" chat config.
 export const companionShareStories: ChatConfig = {
   ...COMPANION_DEFAULTS,
   title: "Share Stories",

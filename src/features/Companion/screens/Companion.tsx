@@ -9,6 +9,12 @@ import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { conversationCards, storiesCards } from "../../../config/Companion/_Companion_Config";
 
+/**
+ * Companion landing screen. Two tabs (Conversation / Stories) of
+ * cards. Tapping a card opens CompanionChat with that mode and
+ * fires the card's seed message as the auto-prompt.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "Companion">;
 
 export function Companion() {

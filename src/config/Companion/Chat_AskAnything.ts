@@ -1,6 +1,7 @@
 import type { ChatConfig } from "../_Common/ChatConfig_Type";
 import { COMPANION_DEFAULTS } from "./_Companion_Config";
 
+// Companion "Ask Anything" chat config.
 export const companionAskAnything: ChatConfig = {
   ...COMPANION_DEFAULTS,
   title: "Ask Anything",

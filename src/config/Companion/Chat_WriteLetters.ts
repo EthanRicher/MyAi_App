@@ -1,6 +1,7 @@
 import type { ChatConfig } from "../_Common/ChatConfig_Type";
 import { COMPANION_DEFAULTS } from "./_Companion_Config";
 
+// Companion "Write Letters" chat config. Saveable category: stores the finished letter in Docs.
 export const companionWriteLetters: ChatConfig = {
   ...COMPANION_DEFAULTS,
   title: "Write Letters",

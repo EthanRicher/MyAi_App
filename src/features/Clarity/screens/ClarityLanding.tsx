@@ -8,6 +8,12 @@ import { RootStackParamList } from "../../../navigation/AppNavigator";
 import { colors } from "../../../theme";
 import { clarityLandingCards as cards } from "../../../config/Clarity/_Clarity_Config";
 
+/**
+ * Clarity landing screen. One tile per scope (Doctor Explained,
+ * Summarise Document, etc.). Tapping a tile opens ClarityChat with
+ * the matching scopeId.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "Clarity">;
 
 export function ClarityLanding() {

@@ -1,14 +1,17 @@
 import { callOpenAIJson } from "../../_AI/AI_Fetch";
 import { debugLog, debugPayload } from "../../_AI/AI_Debug";
 
-// Detects whether a user message is in English; if not, returns its English
-// translation. Used by ChatScreen so foreign-language input gets surfaced as
-// a translated bubble before being passed to the main scope prompt.
+/**
+ * Detects whether a user message is in English; if not, returns its
+ * English translation. Used by ChatScreen so foreign-language input
+ * gets surfaced as a translated bubble before being passed to the
+ * main scope prompt.
+ */
 
 export type TranslateResult = {
-  needed: boolean;
-  translated?: string;
-  language?: string;
+  needed: boolean;       // True when the message had to be translated.
+  translated?: string;   // The English translation when needed is true.
+  language?: string;     // Detected source language code (e.g. "en", "es").
 };
 
 const PROMPT = `You are a language detector and translator.
@@ -35,6 +38,7 @@ export async function translateToEnglish(text: string): Promise<TranslateResult>
   const trimmed = (text || "").trim();
   if (!trimmed) return { needed: false };
 
+  // Single OpenAI JSON call. The classifier returns language + needed + translated in one go.
   const parsed = await callOpenAIJson<{ needed: boolean; translated: string; language: string }>(
     "Check_Translate",
     PROMPT + trimmed
@@ -44,10 +48,13 @@ export async function translateToEnglish(text: string): Promise<TranslateResult>
   const translated =
     typeof parsed.translated === "string" ? parsed.translated.trim() : "";
 
-  // Defensive guard: drop the translation when the model declares it
-  // "needed" but returns either nothing, the original text, or English-tagged
-  // output. Stops single charged English words ("suicide", "emergency") from
-  // showing a redundant translated bubble below the user's message.
+  /**
+   * Defensive guard. Drop the translation when the model declares it
+   * "needed" but returns either nothing, the original text, or
+   * English-tagged output. Stops single charged English words
+   * ("suicide", "emergency") from showing a redundant translated
+   * bubble below the user's message.
+   */
   const language = parsed.language?.toLowerCase();
   const sameAsOriginal = translated.toLowerCase() === trimmed.toLowerCase();
   const meaningfulTranslation =

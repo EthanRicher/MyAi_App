@@ -1,5 +1,6 @@
 import { SaveOfferTypeConfig } from "./_Shared";
 
+// Save-offer rules for the "memory" category. Triggers on a complete written-up memory.
 export const memorySaveOffer: SaveOfferTypeConfig = {
   noun: "a memory record",
   offerCriteria: `

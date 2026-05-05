@@ -25,6 +25,13 @@ import { runAIOnPhoto } from "../../../backend/1_Input/Camera/Input_PhotoToAI";
 import { medviewMedicationScan } from "../../../backend/3_Scopes/MedView/Scan_Medication";
 import { debugLog, debugPayload } from "../../../backend/_AI/AI_Debug";
 
+/**
+ * Add / edit screen for one medication. Either start blank, fill in
+ * with the existing record (edit mode), or auto-fill from a photo
+ * scan of the prescription label. Handles the time pickers, the
+ * camera scan flow and the breathing pulse on the scan button.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedViewAdd">;
 type Route = RouteProp<RootStackParamList, "MedViewAdd">;
 

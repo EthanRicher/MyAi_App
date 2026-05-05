@@ -22,6 +22,14 @@ import { runAI } from "../../../backend/_AI/AI_Run";
 import { runAIOnPhoto } from "../../../backend/1_Input/Camera/Input_PhotoToAI";
 import { safeHarbourScamCheck, ScamCheckOutput, ScamLevel } from "../../../backend/3_Scopes/SafeHarbour/Check_Scam";
 
+/**
+ * SafeHarbour scam-check screen. The user can type a message,
+ * record one, or snap a photo of something they want checked
+ * (suspicious email, screenshot, letter), and the AI returns a
+ * risk level with a short verdict, red flags and explanation.
+ */
+
+// Visual mapping for each risk level (label, colour and icon for the result card).
 const LEVEL_META: Record<ScamLevel, { label: string; color: string; icon: any }> = {
   low: { label: "Low Risk", color: colors.green, icon: CheckCircle2 },
   med: { label: "Medium Risk", color: colors.orange, icon: AlertTriangle },

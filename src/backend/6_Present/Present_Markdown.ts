@@ -1,15 +1,19 @@
-// Shared markdown line parser used by the chat bubble renderer and the
-// fullscreen reader. Keeps the regex, title-dedup, and truncation logic in
-// one place so all surfaces stay in lockstep.
-
 import type { ReactNode } from "react";
 
-export type MarkdownToken =
-  | { kind: "mainTitle"; text: string }
-  | { kind: "subTitle"; text: string }
-  | { kind: "bullet"; text: string }
-  | { kind: "paragraph"; text: string };
+/**
+ * Shared markdown line parser used by the chat bubble renderer and
+ * the fullscreen reader. Keeps the regex, title dedup, and
+ * truncation logic in one place so all surfaces stay in lockstep.
+ */
 
+// One parsed token in an AI reply.
+export type MarkdownToken =
+  | { kind: "mainTitle"; text: string }  // First **bold** title in the reply.
+  | { kind: "subTitle"; text: string }   // Any subsequent **bold** titles.
+  | { kind: "bullet"; text: string }     // "- " bullet line.
+  | { kind: "paragraph"; text: string }; // Plain text line.
+
+// Per-kind JSX renderers supplied by each consumer (chat bubble vs reader modal).
 export type TokenRenderers = {
   mainTitle: (token: { text: string }, i: number) => ReactNode;
   subTitle: (token: { text: string }, i: number) => ReactNode;
@@ -17,9 +21,11 @@ export type TokenRenderers = {
   paragraph: (token: { text: string }, i: number) => ReactNode;
 };
 
-// Pure dispatch: parse markdown then delegate each token to a per-kind
-// renderer. Keeps the switch in one place so consumers only define their
-// custom JSX, not the dispatch boilerplate.
+/**
+ * Pure dispatch. Parse markdown then delegate each token to a
+ * per-kind renderer. Keeps the switch in one place so consumers
+ * only define their custom JSX, not the dispatch boilerplate.
+ */
 export function renderMarkdownWith(
   text: string,
   renderers: TokenRenderers
@@ -34,14 +40,20 @@ export function renderMarkdownWith(
   });
 }
 
+// One run inside a paragraph or bullet line. Used for inline bold spans.
 export type InlineSegment = { kind: "text" | "bold"; text: string };
 
+// Whole-line patterns.
 const TITLE_RE = /^\*\*([^*]+)\*\*:?$/;
 const BULLET_RE = /^[-•*]\s+(.+)$/;
+// Inline pattern. Matches **bold** spans inside a paragraph.
 const INLINE_BOLD_RE = /\*\*([^*\n]+)\*\*/g;
 
-// Splits a single line of text into runs, marking any **bold** spans so
-// renderers can apply a bold style instead of leaking the asterisks.
+/**
+ * Splits a single line of text into runs, marking any **bold**
+ * spans so renderers can apply a bold style instead of leaking the
+ * asterisks.
+ */
 export function parseInline(text: string): InlineSegment[] {
   const out: InlineSegment[] = [];
   let i = 0;
@@ -54,6 +66,7 @@ export function parseInline(text: string): InlineSegment[] {
   return out;
 }
 
+// Walks the reply line by line and tags each one as a title, sub-title, bullet or paragraph.
 export function parseMarkdown(text: string): MarkdownToken[] {
   const tokens: MarkdownToken[] = [];
   let mainTitleSeen = false;
@@ -62,6 +75,7 @@ export function parseMarkdown(text: string): MarkdownToken[] {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
+    // First **title** becomes the main title; everything after that becomes a sub-title.
     const titleMatch = trimmed.match(TITLE_RE);
     if (titleMatch) {
       const rawTitle = titleMatch[1].replace(/^:+|:+$/g, "").trim();

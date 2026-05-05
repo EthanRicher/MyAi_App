@@ -10,10 +10,12 @@ import { companionMemoryBook } from "./Chat_MemoryBook";
 import { companionCreativeCorner } from "./Chat_CreativeCorner";
 import { AIScope } from "../../_AI/AI_Types";
 
-// Scope per Companion mode (matches the chat-config dispatch in
-// `src/config/Companion/index.ts`). The shared base task lives in
-// Scope_Common_Companion.ts; each Chat_*.ts only declares its mode-
-// specific behaviour on top of that.
+/**
+ * Scope per Companion mode (matches the chat-config dispatch in
+ * src/config/Companion/index.ts). The shared base task lives in
+ * Scope_Common_Companion.ts; each Chat_*.ts only declares its
+ * mode-specific behaviour on top of that.
+ */
 export const companionScopes = {
   "Brain Games": companionBrainGames,
   "Plan My Day": companionPlanMyDay,
@@ -28,6 +30,7 @@ export const companionScopes = {
 
 export type CompanionMode = keyof typeof companionScopes;
 
+// Pick the right scope for a Companion mode, falling back to the default chat.
 export function getCompanionScope(mode?: string): AIScope {
   if (mode && mode in companionScopes) {
     return companionScopes[mode as CompanionMode];

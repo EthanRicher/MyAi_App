@@ -4,16 +4,24 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
 import { colors } from "../theme";
 
+/**
+ * Top header bar used on most screens. Shows a red back button on
+ * the left, an optional centred title and an optional right-hand
+ * slot (e.g. the "Clear Chat" button on chat screens). Falls back
+ * to navigation.goBack() if no `to` route is provided.
+ */
+
 interface Props {
-  label?: string;
-  to?: string;
-  right?: React.ReactNode;
-  hideTitle?: boolean;
+  label?: string;            // Title text, also used in the accessibility label.
+  to?: string;               // Optional explicit route to jump to instead of goBack().
+  right?: React.ReactNode;   // Optional widget rendered on the right side.
+  hideTitle?: boolean;       // True to hide the centred title (chat screens use this).
 }
 
 export function BackButton({ label = "Back", to, right, hideTitle }: Props) {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  // Slightly different layout when there's a right-side widget (chat use case).
   const inChat = !!right;
 
   const handlePress = () => {
@@ -35,6 +43,7 @@ export function BackButton({ label = "Back", to, right, hideTitle }: Props) {
         <Text style={[styles.exitLabel, inChat ? styles.exitLabelChat : styles.exitLabelSmall]}>Back</Text>
       </TouchableOpacity>
 
+      {/* Centred title. Absolutely positioned so it doesn't push the back / right slots around. */}
       {!hideTitle && (
         <View style={styles.titleAbsolute} pointerEvents="none">
           <Text style={styles.title} numberOfLines={1}>{label}</Text>

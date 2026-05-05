@@ -1,6 +1,7 @@
 import { createScope } from "../_Common";
 import { COMPANION_BASE_TASK } from "./Scope_Common_Companion";
 
+// Companion "Share Stories" mode. Invites the user to recount memories with warm follow-ups.
 export const companionShareStories = createScope({
   id: "companionShareStories",
   topic: "hear and reflect on your stories",

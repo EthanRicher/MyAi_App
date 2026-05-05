@@ -10,6 +10,12 @@ import { colors } from "../../../theme";
 import { useMedications } from "../hooks/useMedication";
 import { Medication } from "../models/Medication";
 
+/**
+ * MedView landing screen. Shows today's progress (taken / total),
+ * the list of saved medications and an "Explain" mode that lets the
+ * user tap a medication to open the chat assistant for it.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "MedView">;
 
 export function MedViewLanding() {

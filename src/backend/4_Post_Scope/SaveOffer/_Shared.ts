@@ -1,15 +1,20 @@
-// Shared scaffolding for the per-doc-type save-offer judges.
-// Each category file under SaveOffer/ exports a SaveOfferTypeConfig describing
-// what counts as save-worthy for that category and example titles/offers.
-// The router (Post_SaveOffer.ts) injects these into a common prompt frame.
+/**
+ * Shared scaffolding for the per-doc-type save-offer judges. Each
+ * category file under SaveOffer/ exports a SaveOfferTypeConfig
+ * describing what counts as save-worthy for that category and
+ * example titles / offers. The router (Post_SaveOffer.ts) injects
+ * these into a common prompt frame.
+ */
 
+// What runSaveOfferPost returns for a single AI turn.
 export type SaveOfferResult = {
-  shouldOffer: boolean;
-  suggestedTitle?: string;
-  offerSentence?: string;
-  cleanContent?: string;
+  shouldOffer: boolean;     // True when the reply is worth saving.
+  suggestedTitle?: string;  // Pre-fill for the save modal.
+  offerSentence?: string;   // One-sentence offer shown in the chat ("Want me to save this, or...").
+  cleanContent?: string;    // The reply rewritten in the storage shape.
 };
 
+// Per-category config that customises the shared prompt frame.
 export type SaveOfferTypeConfig = {
   /** Short label used in the prompt to refer to this doc type ("a letter", "a plan"). */
   noun: string;
@@ -23,6 +28,7 @@ export type SaveOfferTypeConfig = {
   structureGuidance: string;
 };
 
+// Shared rules + JSON shape appended to every per-type prompt.
 const SHARED_TAIL = `
 DO NOT OFFER SAVE for:
 - Greetings, small talk, or generic chat
@@ -47,6 +53,7 @@ Return ONLY valid JSON in this exact shape. Empty strings if shouldOffer is fals
 }
 `.trim();
 
+// Stitch together the type-specific config with the shared tail and the actual conversation.
 export function buildSaveOfferPrompt(
   cfg: SaveOfferTypeConfig,
   userMessage: string,

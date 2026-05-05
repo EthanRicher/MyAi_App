@@ -2,9 +2,10 @@ import { RunAIResult } from "../_AI/AI_Types";
 import { debugLog } from "../_AI/AI_Debug";
 
 /**
- * Pulls a string out of a RunAI result, preferring `output` then `raw`, then
- * falling back to the caller-provided string. Same three-tier logic was
- * previously inlined in every chat wrapper.
+ * Pulls a string out of a RunAI result. Prefers `output` (the
+ * scope's mapOutput result), then `raw` (the model's untouched
+ * text), then the caller's fallback. The same three-tier logic
+ * used to be inlined in every chat wrapper.
  */
 export function extractAIText(result: RunAIResult, fallback: string): string {
   const out =

@@ -1,6 +1,7 @@
 import type { ChatConfig } from "../_Common/ChatConfig_Type";
 import { COMPANION_DEFAULTS } from "./_Companion_Config";
 
+// Companion "Plan My Day" chat config. Saveable category: stores the finished plan in Docs.
 export const companionPlanMyDay: ChatConfig = {
   ...COMPANION_DEFAULTS,
   title: "Plan My Day",

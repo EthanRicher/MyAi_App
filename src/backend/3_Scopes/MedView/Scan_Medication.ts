@@ -1,10 +1,18 @@
 import { AIScope } from "../../_AI/AI_Types";
 import { buildSharedPrompt } from "../_Common";
 
+/**
+ * MedView "Scan Medication" scope. Reads a prescription label or
+ * medication packet (photo or pasted text) and returns a structured
+ * medication record that the MedView add-screen can drop straight
+ * into the form.
+ */
+
 export const medviewMedicationScan: AIScope = {
   id: "medviewMedicationScan",
   responseFormat: "json",
 
+  // Photo path. Vision analysis is the source of truth.
   buildPhotoPrompt: (analysis: string) =>
     buildSharedPrompt(`
 You extract medication info from a photo of a prescription or medication label.
@@ -70,6 +78,7 @@ If invalid, return:
 }
 `),
 
+  // Text path. Same extraction rules, used when the user types or pastes the label text.
   buildPrompt: (text: string) =>
     buildSharedPrompt(`
 You extract medication info from prescriptions or medication labels.
@@ -134,6 +143,7 @@ Text:
 ${text}
 `),
 
+  // Normalise the parsed JSON into the shape MedView expects (single med, fallback fields).
   mapOutput: (parsed: any) => {
     const med = parsed?.medications?.[0] || {};
 
@@ -143,6 +153,7 @@ ${text}
           .filter(Boolean)
       : [];
 
+    // Backfill timesPerDay from the times array length when the model didn't send one.
     const timesPerDay =
       typeof med?.timesPerDay === "number" && med.timesPerDay > 0
         ? med.timesPerDay

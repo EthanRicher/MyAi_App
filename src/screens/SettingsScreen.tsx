@@ -8,6 +8,14 @@ import { useMedications } from "../features/Medview/hooks/useMedication";
 import { useUserProfile } from "../profile/hooks/useUserProfile";
 import { Carer } from "../profile/models/UserProfile";
 
+/**
+ * Settings screen. Collapsible sections for accessibility,
+ * security, profile, carers, emergency contact, AI settings and
+ * data clears. Almost everything writes through to the user
+ * profile context or to AsyncStorage directly.
+ */
+
+// Reusable on / off toggle. Pulled out at the top because it's used in several settings rows.
 function ToggleSwitch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
   return (
     <TouchableOpacity

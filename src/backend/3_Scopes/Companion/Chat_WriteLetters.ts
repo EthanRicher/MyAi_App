@@ -1,6 +1,7 @@
 import { createScope } from "../_Common";
 import { COMPANION_BASE_TASK } from "./Scope_Common_Companion";
 
+// Companion "Write Letters" mode. Co-writes a heartfelt letter or message with the user.
 export const companionWriteLetters = createScope({
   id: "companionWriteLetters",
   topic: "help you write a heartfelt letter",

@@ -12,6 +12,13 @@ import { formatExistingDocs } from "../../../backend/3_Scopes/Companion/Scope_Co
 import { getCompanionChatConfig } from "../../../config/Companion";
 import { useDocs } from "../../Docs/hooks/useDocs";
 
+/**
+ * Companion chat screen. Hosts ChatScreen with the per-mode config
+ * and scope. For Family Tree and Memory Book it also injects the
+ * user's existing saved family / memory entries into the prompt so
+ * the AI can recognise people and stories across turns.
+ */
+
 type Route = RouteProp<RootStackParamList, "CompanionChat">;
 
 export function CompanionChat() {

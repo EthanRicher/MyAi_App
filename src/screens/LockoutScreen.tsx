@@ -6,6 +6,12 @@ import { Lock, X } from "lucide-react-native";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { colors } from "../theme";
 
+/**
+ * Lockout screen. Shown after too many failed login attempts.
+ * Counts down a 5-minute cooldown and offers an emergency-access
+ * route so a carer can still get help in.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "Lockout">;
 
 export function LockoutScreen() {

@@ -1,6 +1,12 @@
 import { createScope } from "../_Common";
 import { COMPANION_BASE_TASK } from "./Scope_Common_Companion";
 
+/**
+ * Companion "Memory Book" mode. Like Family Tree but for memories
+ * rather than people. The save flow upserts each memory record in
+ * the background, so the scope's job is just to keep the
+ * conversation roaming across recollections.
+ */
 export const companionMemoryBook = createScope({
   id: "companionMemoryBook",
   topic: "chat through your memories",

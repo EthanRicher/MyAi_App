@@ -1,6 +1,7 @@
 import { createScope } from "../_Common";
 import { COMPANION_BASE_TASK } from "./Scope_Common_Companion";
 
+// Companion "Calm Down" mode. Slow guided breathing and gentle reassurance.
 export const companionCalmDown = createScope({
   id: "companionCalmDown",
   topic: "guide you through a calming exercise",

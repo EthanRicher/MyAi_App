@@ -1,5 +1,6 @@
 import { createScope, MEDICAL_WARNING } from "../_Common";
 
+// Clarity "Doctor Explained" scope. Translates jargon-heavy doctor talk into plain English.
 export const clarityDoctorExplained = createScope({
   id: "clarityDoctorExplained",
   topic: "explain what your doctor said in simple terms",

@@ -1,5 +1,6 @@
 import { SaveOfferTypeConfig } from "./_Shared";
 
+// Save-offer rules for the "family" category. Triggers on a consolidated record of one family member.
 export const familySaveOffer: SaveOfferTypeConfig = {
   noun: "a family member record",
   offerCriteria: `

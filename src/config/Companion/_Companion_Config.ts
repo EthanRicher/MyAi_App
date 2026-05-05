@@ -1,13 +1,17 @@
 import { MessageCircle, Brain, Calendar, Heart, HelpCircle, BookOpen, Users, Mail, Bookmark, Palette } from "lucide-react-native";
 import { colors } from "../../theme";
 
-// ─── Shared Defaults ──────────────────────────────────────────────────────────
-// Common copy/behaviour spread into every Companion mode config. Override only
-// the fields that differ in each Chat_*.ts file.
+/**
+ * Shared scaffolding for every Companion mode config plus the
+ * landing-page card definitions. Per-mode files spread
+ * COMPANION_DEFAULTS and override only what differs; the cards
+ * power the two tabs on the Companion landing page.
+ */
 
+// Defaults every mode inherits. Each Chat_*.ts file overrides only the fields it needs.
 export const COMPANION_DEFAULTS = {
   conversational: true,
-  warning: undefined, // no warning — companion is not informational
+  warning: undefined,             // Companion is not informational, so no AI warning banner.
   accentColor: colors.purple,
   aiLabel: "Companion AI",
   backTo: "Companion",
@@ -21,16 +25,15 @@ export const COMPANION_DEFAULTS = {
   speechErrorMessage: "I couldn't hear you. Could you say it again?",
 };
 
-// ─── Landing-page cards ───────────────────────────────────────────────────────
-// Two card sets shown on the Companion landing tabs.
-
+// One landing card. Tapping it opens the chat with the corresponding mode and seed message.
 export interface CompanionCard {
-  title: string;
-  desc: string;
-  icon: any;
-  msg: string;
+  title: string; // Card heading.
+  desc: string;  // One-line description.
+  icon: any;     // Lucide icon component.
+  msg: string;   // First AI message (auto-prompt seed).
 }
 
+// Cards for the "Conversation" tab on the Companion landing page.
 export const conversationCards: CompanionCard[] = [
   { title: "Chat", desc: "Friendly conversation", icon: MessageCircle, msg: "Hello! I'm so glad you're here. It's always nice to have someone to talk to. What's on your mind today?" },
   { title: "Brain Games", desc: "Trivia & teasers", icon: Brain, msg: "Let's give your mind a little workout! Would you like a fun fact, a gentle brain teaser, or to learn something new today?" },
@@ -39,6 +42,7 @@ export const conversationCards: CompanionCard[] = [
   { title: "Ask Anything", desc: "Tech, cooking, emails", icon: HelpCircle, msg: "I'm happy to help with anything! What would you like to know about? It could be technology, cooking, emails, or anything at all." },
 ];
 
+// Cards for the "Stories" tab. Geared towards memory keeping and creative play.
 export const storiesCards: CompanionCard[] = [
   { title: "Share Stories", desc: "Tell your stories", icon: BookOpen, msg: "I'd love to hear about your life! What's a favourite memory you'd like to share?" },
   { title: "Family Tree", desc: "Map your family", icon: Users, msg: "Let's build your family tree! Who would you like to start with? Tell me about your family members." },

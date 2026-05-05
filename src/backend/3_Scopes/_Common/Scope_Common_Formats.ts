@@ -1,5 +1,13 @@
 import { BASE_RULES, buildRelevanceRule, buildPhotoRelevanceRule } from "./Scope_Common_Rules";
 
+/**
+ * Shared response-format blocks slotted into every scope prompt.
+ * Three flavours: a structured "breakdown" with titles and bullets,
+ * a casual "conversational" reply, and "auto" which lets the model
+ * pick based on what kind of question it's getting.
+ */
+
+// Structured reply. Title + sub-titles + bullets. Used for explainers and how-tos.
 const BREAKDOWN_FORMAT = `
 RESPONSE FORMAT (always follow exactly):
 - First line: short main title in double asterisks — **Title Here** (max 30 characters, no colons)
@@ -11,6 +19,7 @@ RESPONSE FORMAT (always follow exactly):
 - Plain simple language easy for an elderly person to read
 `.trim();
 
+// Casual reply. Used for small talk, opinions, emotions.
 const CONVERSATIONAL_FORMAT = `
 RESPONSE FORMAT:
 - Reply naturally and conversationally in 1–3 short sentences
@@ -20,6 +29,7 @@ RESPONSE FORMAT:
 - Plain language easy for an elderly person to read
 `.trim();
 
+// Mixed reply. The model picks based on whether the question is informational or conversational.
 const AUTO_FORMAT = `
 RESPONSE FORMAT (you decide — pick ONE path):
 
@@ -41,11 +51,13 @@ Plain simple language easy for an elderly person to read.
 
 type Format = "breakdown" | "conversational" | "auto";
 
+// Resolve the right format block for a given format key.
 const pickFormatBlock = (format: Format): string =>
   format === "conversational" ? CONVERSATIONAL_FORMAT
   : format === "auto" ? AUTO_FORMAT
   : BREAKDOWN_FORMAT;
 
+// Build the full text-input prompt: rules + format + body.
 export const buildSharedPrompt = (
   body: string,
   format: Format = "breakdown",
@@ -55,6 +67,7 @@ export const buildSharedPrompt = (
   return `${rules}\n\n${pickFormatBlock(format)}\n\n${body}`;
 };
 
+// Same shape as the text prompt, but with the photo-friendly relevance rule.
 export const buildSharedPhotoPrompt = (
   body: string,
   format: Format = "breakdown",

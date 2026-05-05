@@ -18,6 +18,12 @@ import { useUserProfile } from "../profile/hooks/useUserProfile";
 import { useSpeechInput } from "../backend/1_Input/Speech/Input_SpeechHook";
 import { whisperTranscribe } from "../backend/1_Input/Speech/Input_Whisper";
 
+/**
+ * Main dashboard. The first screen after login. Shows the user's
+ * name, a big mic button for voice input that drops them into a
+ * relevant chat, and a few quick-access tiles for common features.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "Main">;
 
 const BTN_SIZE = 170;

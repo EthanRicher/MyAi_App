@@ -2,6 +2,13 @@ import React, { useState, useContext, createContext, useEffect, ReactNode } from
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Medication } from "../models/Medication";
 
+/**
+ * Medications context. Backs MedView: add / update / delete entries,
+ * tick off doses for the day, and persists everything in
+ * AsyncStorage. Includes a small migration on load so older entries
+ * still work after the schema gained per-dose taken state.
+ */
+
 type MedicationContextType = {
   medications: Medication[];
   addMed: (med: Omit<Medication, "id" | "taken">) => void;
@@ -27,6 +34,7 @@ const STORAGE_KEY = "MEDICATIONS";
 export function MedicationProvider({ children }: { children: ReactNode }) {
   const [medications, setMedications] = useState<Medication[]>([]);
 
+  // Load + light migration. Older saves missed `image` / `times` / `taken` so backfill defaults.
   useEffect(() => {
     const load = async () => {
       try {
@@ -48,6 +56,7 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
     load();
   }, []);
 
+  // Persist on every change.
   useEffect(() => {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(medications));
   }, [medications]);
@@ -76,6 +85,7 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
     setMedications([]);
   };
 
+  // Flip the taken state for one dose of one medication.
   const toggleTaken = (id: string, index: number) => {
     setMedications((prev) =>
       prev.map((m) =>

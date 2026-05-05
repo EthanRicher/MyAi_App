@@ -1,11 +1,13 @@
-// ─── Red-Flag Keyword Library ─────────────────────────────────────────────────
-// Words and phrases that should be surfaced visually inside user messages so a
-// carer can spot urgent phrasing at a glance. The scanner is case-insensitive
-// and whole-word; phrases with spaces are matched as exact runs. Add or remove
-// entries here — the regex is rebuilt automatically.
+/**
+ * Red-flag keyword library. Words and phrases that should be
+ * surfaced visually inside user messages so a carer can spot
+ * urgent phrasing at a glance. The scanner is case-insensitive and
+ * whole-word; phrases with spaces are matched as exact runs. Add
+ * or remove entries here — the regex is rebuilt automatically.
+ */
 
 export const RED_FLAG_KEYWORDS: string[] = [
-  // Acute / emergency
+  // Acute / emergency.
   "emergency",
   "chest pain",
   "trouble breathing",
@@ -22,7 +24,7 @@ export const RED_FLAG_KEYWORDS: string[] = [
   "anaphylaxis",
   "bleeding",
 
-  // Mental health
+  // Mental health.
   "suicidal",
   "suicide",
   "self harm",
@@ -31,13 +33,13 @@ export const RED_FLAG_KEYWORDS: string[] = [
   "end my life",
   "want to die",
 
-  // Medication safety
+  // Medication safety.
   "overdose",
   "took too much",
   "double dose",
   "dosage",
 
-  // Open-ended urgency
+  // Open-ended urgency.
   "what should I do",
   "i need help",
   "help me",

@@ -8,6 +8,12 @@ import { colors } from "../../../theme";
 import { useDocs } from "../hooks/useDocs";
 import { CATEGORY_LABELS, DocCategory } from "../models/Doc";
 
+/**
+ * Category-level Docs screen. Shows all saved docs in a single
+ * category with their title and last-updated date. Tapping a row
+ * opens DocsDetail for that doc.
+ */
+
 type Nav = NativeStackNavigationProp<RootStackParamList, "DocsCategory">;
 type Rt = RouteProp<RootStackParamList, "DocsCategory">;
 
@@ -31,6 +37,7 @@ const CATEGORY_COLORS: Record<DocCategory, string> = {
   appointment: "#0dd9f7",
 };
 
+// Locale-aware date string. Wrapped in try/catch because RN dates can be flaky on bad input.
 const formatDate = (iso: string) => {
   try {
     return new Date(iso).toLocaleDateString();

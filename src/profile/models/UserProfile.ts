@@ -1,34 +1,45 @@
+/**
+ * The user's profile shape and a default seed profile. The profile
+ * is shared across every feature that needs personal context
+ * (Companion greetings, alert recipients, MedView, etc.) and
+ * persists in AsyncStorage via UserProfileProvider.
+ */
+
+// The full user profile.
 export type UserProfile = {
-  name: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  address: string;
-  language: string;
+  name: string;          // Full name; first word is used as the chat label.
+  email: string;         // Primary email.
+  phone: string;         // Primary phone number.
+  dateOfBirth: string;   // Stored as a display string (DD/MM/YYYY).
+  address: string;       // Postal address.
+  language: string;      // Preferred language for AI replies.
 
-  carers: Carer[];
+  carers: Carer[];       // People who get alerts for this user.
 
-  emergencyContact: EmergencyContact;
+  emergencyContact: EmergencyContact; // Single primary emergency contact.
 
-  preferences: string;
-  interests: string;
-  notes: string;
+  preferences: string;   // Free-text accessibility / style notes.
+  interests: string;     // Free-text hobbies, used by Companion.
+  notes: string;         // Free-text extra notes for context.
 };
 
+// A single carer entry. Multiple carers can be attached to a user.
 export type Carer = {
-  id: string;
-  name: string;
-  relationship: string;
-  phone: string;
-  email: string;
+  id: string;            // Stable identifier for list keys.
+  name: string;          // Carer's full name.
+  relationship: string;  // E.g. "Daughter", "Son", "Friend".
+  phone: string;         // Contact phone.
+  email: string;         // Contact email.
 };
 
+// Emergency contact details. Kept separate from carers because there's only one.
 export type EmergencyContact = {
   name: string;
   relationship: string;
   phone: string;
 };
 
+// Seed profile used on first launch (and whenever the user clears their data).
 export const DEFAULT_PROFILE: UserProfile = {
   name: "Margaret Thompson",
   email: "margaret.thompson@email.com",

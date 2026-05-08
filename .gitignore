@@ -14,3 +14,4 @@ web-build/
 Thumbs.db
 .env
 .claude
+backend_flow.txt

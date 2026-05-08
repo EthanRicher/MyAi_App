@@ -39,10 +39,12 @@ DO NOT OFFER SAVE for:
 If you decide to offer save, write a warm one-sentence offer that frames TWO
 options (save now OR keep going) — never imply saving is the only path.
 
-If shouldOffer is true, ALSO produce a "cleanContent" — the AI reply rewritten
-into the storage shape described in the per-type instructions above. This is
-what the user will see when they open the saved doc, so it must be tidy on
-its own (no chat preamble, no trailing follow-up question, no save offer).
+If shouldOffer is true, ALSO produce a "cleanContent" — the storage record
+built per the structureGuidance above. Some doc types want the AI reply
+rewritten; others (family, memory) want a record built from the user's
+messages. Follow the per-type guidance. This is what the user will see when
+they open the saved doc, so it must be tidy on its own (no chat preamble,
+no trailing follow-up question, no save offer).
 
 Return ONLY valid JSON in this exact shape. Empty strings if shouldOffer is false.
 {

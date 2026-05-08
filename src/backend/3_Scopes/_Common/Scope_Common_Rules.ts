@@ -16,10 +16,13 @@ GENERAL RULES:
 `.trim();
 
 // Off-topic guard for text input. Uses the scope's topic when one is provided.
+// IMPORTANT: judges relevance in CONTEXT — a short answer to a question YOU just asked
+// is always on-topic, even if the answer alone (e.g. "the Crown and Anchor", "yes",
+// "Bristol") looks unrelated to the topic when read in isolation.
 export const buildRelevanceRule = (topic?: string) =>
   topic
-    ? `- If the message is off-topic or not related to your purpose, respond with exactly: "Sorry, I think that's off-topic. I'm here to ${topic}."`
-    : `- If the user asks something completely unrelated to your task, politely say so and briefly remind them what you are here to help with`;
+    ? `- Only deflect when the user CLEARLY changes the subject to something with no connection to ${topic}. Read the conversation history first: if the user is answering a question you just asked, or expanding on something you raised, that is ON-TOPIC even when the message alone (a place, a name, a "yes", a hobby) sounds unrelated. When in doubt, stay engaged. If you do deflect, respond with exactly: "Sorry, I think that's off-topic. I'm here to ${topic}."`
+    : `- If the user asks something completely unrelated to your task, politely say so and briefly remind them what you are here to help with. Don't deflect on a short answer to your own question.`;
 
 // Off-photo guard. Looser than the text rule because photos are more ambiguous.
 export const buildPhotoRelevanceRule = (topic?: string) =>

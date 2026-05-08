@@ -15,6 +15,7 @@ type DocsContextType = {
   updateDoc: (doc: Doc) => void;
   deleteDoc: (id: string) => void;
   getDoc: (id: string) => Doc | undefined;
+  clearDocs: () => void;
 };
 
 const DocsContext = createContext<DocsContextType>({
@@ -24,6 +25,7 @@ const DocsContext = createContext<DocsContextType>({
   updateDoc: () => {},
   deleteDoc: () => {},
   getDoc: () => undefined,
+  clearDocs: () => {},
 });
 
 const STORAGE_KEY = "DOCS";
@@ -97,8 +99,10 @@ export function DocsProvider({ children }: { children: ReactNode }) {
 
   const getDoc = (id: string) => docs.find((d) => d.id === id);
 
+  const clearDocs = () => setDocs([]);
+
   return (
-    <DocsContext.Provider value={{ docs, addDoc, upsertDocByTitle, updateDoc, deleteDoc, getDoc }}>
+    <DocsContext.Provider value={{ docs, addDoc, upsertDocByTitle, updateDoc, deleteDoc, getDoc, clearDocs }}>
       {children}
     </DocsContext.Provider>
   );

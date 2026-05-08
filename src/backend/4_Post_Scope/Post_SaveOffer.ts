@@ -83,8 +83,14 @@ export async function runSaveOfferPost({
       ? parsed.cleanContent.trim()
       : undefined;
 
-  // Title and offer sentence are both required for an offer; otherwise drop it silently.
-  if (!suggestedTitle || !offerSentence) {
+  /**
+   * Title is required. offerSentence is only needed for the active
+   * (offer-card) flow — passive categories like family / memory save
+   * silently and don't display one, so a missing offerSentence
+   * shouldn't drop the save. AI_RunChatTurn enforces offerSentence
+   * separately for the active flow.
+   */
+  if (!suggestedTitle) {
     debugLog("Post_SaveOffer", "Result", "Skipped - not save-worthy", { category });
     return { shouldOffer: false };
   }

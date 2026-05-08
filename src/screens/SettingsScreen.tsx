@@ -6,6 +6,8 @@ import { BackButton } from "../components/BackButton";
 import { colors } from "../theme";
 import { useMedications } from "../features/Medview/hooks/useMedication";
 import { useUserProfile } from "../profile/hooks/useUserProfile";
+import { useDocs } from "../features/Docs/hooks/useDocs";
+import { useAlerts } from "../features/Docs/hooks/useAlerts";
 import { Carer } from "../profile/models/UserProfile";
 
 /**
@@ -34,6 +36,8 @@ export function SettingsScreen() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ Accessibility: true, "Emergency Access": true });
   const { clearMeds } = useMedications();
   const { profile, updateProfile, clearProfile } = useUserProfile();
+  const { clearDocs } = useDocs();
+  const { clearAlerts } = useAlerts();
   const [fontSize, setFontSize] = useState<"Normal" | "Large" | "Extra Large">("Normal");
   const [highContrast, setHighContrast] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -51,6 +55,8 @@ export function SettingsScreen() {
         await AsyncStorage.clear();
         clearMeds();
         clearProfile();
+        clearDocs();
+        clearAlerts();
       } else if (deleteMode === "chats") {
         const allKeys = await AsyncStorage.getAllKeys();
         const chatKeys = allKeys.filter((k) => k.startsWith("chat:"));
@@ -275,7 +281,7 @@ export function SettingsScreen() {
             <Text style={styles.confirmDesc}>
               {deleteMode === "chats"
                 ? "This will permanently remove all saved chat conversations. Your medications will not be affected."
-                : "This will permanently remove all your data from this device, including medications and chats. This cannot be undone."}
+                : "This will permanently remove all your data from this device, including your profile, medications, chats, saved docs (family records, memories, letters, plans) and alerts. This cannot be undone."}
             </Text>
             <View style={styles.confirmBtns}>
               <TouchableOpacity onPress={() => setDeleteMode(null)} style={styles.cancelBtn}>

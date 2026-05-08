@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Image,
   Modal,
   Keyboard as RNKeyboard,
 } from "react-native";
@@ -44,7 +43,6 @@ export function SafeHarbour() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ScamCheckOutput | null>(null);
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [showInputModal, setShowInputModal] = useState(false);
 
   const handleTranscript = (text: string) => {
@@ -72,7 +70,6 @@ export function SafeHarbour() {
   const runTextCheck = async (text: string) => {
     setError("");
     setResult(null);
-    setPhotoUri(null);
     setProcessing(true);
     try {
       const r = await runAI({ text, scope: safeHarbourScamCheck });
@@ -118,12 +115,11 @@ export function SafeHarbour() {
     setResult(null);
     setProcessing(true);
     try {
-      const cam = await openCameraAndScan(PhotoMode.VisionWithFallback, (uri) => setPhotoUri(uri));
+      const cam = await openCameraAndScan(PhotoMode.VisionWithFallback);
       if (!cam) {
         setProcessing(false);
         return;
       }
-      setPhotoUri(cam.imageUri);
       const r = await runAIOnPhoto(cam.imageUri, safeHarbourScamCheck, PhotoMode.VisionWithFallback);
       if (r.error) {
         setError("Couldn't check that photo. Please try again.");
@@ -153,7 +149,6 @@ export function SafeHarbour() {
 
   const clearResult = () => {
     setResult(null);
-    setPhotoUri(null);
     setError("");
   };
 
@@ -200,10 +195,6 @@ export function SafeHarbour() {
               </View>
 
               <Text style={[styles.verdict, { color: meta.color }]}>{result.verdict}</Text>
-
-              {photoUri && (
-                <Image source={{ uri: photoUri }} style={styles.thumb} resizeMode="cover" />
-              )}
 
               {result.redFlags.length > 0 && (
                 <View style={styles.flagsWrap}>
@@ -524,7 +515,6 @@ const styles = StyleSheet.create({
   levelPillText: { color: colors.background, fontSize: 14, fontWeight: "800" },
   closeBtn: { paddingHorizontal: 6, paddingVertical: 4 },
   verdict: { fontSize: 22, fontWeight: "700" },
-  thumb: { width: "100%", height: 160, borderRadius: 10 },
   flagsWrap: { gap: 8 },
   flagsHeading: { color: colors.textMuted, fontSize: 14, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
   flagRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },

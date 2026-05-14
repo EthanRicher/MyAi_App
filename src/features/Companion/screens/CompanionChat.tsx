@@ -57,7 +57,12 @@ export function CompanionChat() {
     }
 
     const text = contextPrefix + buildChatText(cfg, history, message);
-    return runChatTurn(cfg, scope, text);
+    // Photo turns: skip the hardcoded distress guard on OCR'd content
+    // (not the user's voice). Companion doesn't ship photo input today
+    // but mirror the convention with the other chat handlers in case
+    // it's added later.
+    const currentMessage = payload.imageUri ? "" : message;
+    return runChatTurn(cfg, scope, text, currentMessage);
   };
 
   return (

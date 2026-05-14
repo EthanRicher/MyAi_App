@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Audio } from "expo-av";
 import { debugLog, debugTurn } from "../../_AI/AI_Debug";
+import type { WhisperResult } from "./Input_Whisper";
 
 /**
  * Reusable speech-input hook. Wraps the platform mic permissions,
@@ -8,11 +9,23 @@ import { debugLog, debugTurn } from "../../_AI/AI_Debug";
  * transcribe function (Whisper by default) and onTranscript handler,
  * and gets back a tiny start / stop API plus a recording flag for
  * the UI.
+ *
+ * onTranscript receives the language detected by the transcriber as
+ * a second argument so callers can flag a voice bubble as
+ * "Translated to English" when the speaker wasn't using English.
+ * Screens that don't care can ignore it.
  */
 
 type UseSpeechInputArgs = {
-  transcribe: (uri: string) => Promise<string>;             // How to turn audio into text.
-  onTranscript: (text: string) => void | Promise<void>;     // What to do with the resulting text.
+  transcribe: (uri: string) => Promise<WhisperResult>;                       // How to turn audio into text + detected source language.
+  // What to do with the resulting text. `sourceText` is provided when
+  // the source language wasn't English so the caller can render both
+  // an original-language bubble and an English-translation bubble.
+  onTranscript: (
+    text: string,
+    language?: string,
+    sourceText?: string,
+  ) => void | Promise<void>;
 };
 
 export function useSpeechInput({
@@ -84,7 +97,8 @@ export function useSpeechInput({
         return;
       }
 
-      const text = await transcribe(uri);
+      const result = await transcribe(uri);
+      const text = result?.text || "";
 
       if (!text || text.startsWith("Error")) {
         setSpeechError(text || "Could not transcribe audio");
@@ -92,7 +106,7 @@ export function useSpeechInput({
         return;
       }
 
-      await onTranscript(text);
+      await onTranscript(text, result.language, result.sourceText);
     } catch {
       setSpeechError("Could not stop recording");
       setRecording(null);

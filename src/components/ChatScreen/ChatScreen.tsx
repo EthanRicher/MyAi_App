@@ -16,7 +16,7 @@ import { useSaveFlow } from "../../hooks/useSaveFlow";
 import { useAlerts } from "../../features/Docs/hooks/useAlerts";
 import { useAISettings } from "../../hooks/useAISettings";
 import { useSpeechInput } from "../../backend/1_Input/Speech/Input_SpeechHook";
-import { whisperTranscribe } from "../../backend/1_Input/Speech/Input_Whisper";
+import { whisperTranscribe, isEnglishLanguage } from "../../backend/1_Input/Speech/Input_Whisper";
 import { runChecks } from "../../backend/2_Checks";
 import { debugLog, debugTurn, debugTurnEnd } from "../../backend/_AI/AI_Debug";
 
@@ -24,12 +24,13 @@ import { BackButton } from "../BackButton";
 import { MessageReaderModal, ReaderMessage } from "../MessageReaderModal";
 
 import type { ChatMessage, ChatScreenProps, ChatSendPayload } from "./types";
-import { isBreakdown, now, resolveWarning } from "./helpers";
+import { isBreakdown, now, resolveWarning, stampDistressOnLastUserMessage } from "./helpers";
 import { styles } from "./styles";
 import { AiBubble } from "./bubbles/AiBubble";
 import { UserBubble } from "./bubbles/UserBubble";
 import { SaveOfferBubble } from "./bubbles/SaveOfferBubble";
 import { TypingBubble } from "./bubbles/TypingBubble";
+import { ScanningBubble } from "./bubbles/ScanningBubble";
 import { StarterPrompts } from "./StarterPrompts";
 import { BottomControls } from "./BottomControls";
 import { SaveModal } from "./SaveModal";
@@ -90,6 +91,9 @@ export function ChatScreen({
   // Transcript and UI state. messagesRef mirrors messages so async callbacks always read the latest.
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
+  // Separate from `typing` so photo turns can render a pulsing
+  // ScanningBubble while the vision / OCR + AI call is in flight.
+  const [scanning, setScanning] = useState(false);
   const [input, setInput] = useState("");
   const [showTextInput, setShowTextInput] = useState(false);
   const [pendingAutoSend, setPendingAutoSend] = useState(false);
@@ -232,6 +236,10 @@ export function ChatScreen({
         warningText: result.isError ? undefined : resolveWarning(result.aiText, messageWarning),
         timestamp: now(),
       };
+      // Auto-prompts are system-generated, not the user's voice.
+      // Never stamp a distress flag on them, even if the AI emits a
+      // tier tag based on the seeded content — the chip belongs to
+      // things the user actually said.
       const next = [...base, aiMessage];
       setMessages(next);
       if (settings.saveChatHistory) {
@@ -257,11 +265,38 @@ export function ChatScreen({
    * checks, calls the AI, then appends the reply (and a save-offer
    * bubble when applicable).
    */
-  const sendPayload = async (payload: ChatSendPayload) => {
+  const sendPayload = async (
+    payload: ChatSendPayload,
+    sourceLanguage?: string,
+    sourceText?: string,
+  ) => {
     const cleanText = payload.text?.trim() || "";
     const hasImage = !!payload.imageUri;
+    // Voice input from a non-English speaker arrives already translated
+    // to English. When the speech hook provides the source-language
+    // transcript via sourceText (dual-call mode) we render two bubbles
+    // (original + English with the Translated chip). When sourceText
+    // isn't provided (single-call mode), we render one bubble with
+    // the Translated chip directly on it.
+    const trimmedSource = sourceText?.trim() || "";
+    const isVoiceTranslation =
+      !!trimmedSource &&
+      !!sourceLanguage &&
+      !isEnglishLanguage(sourceLanguage) &&
+      trimmedSource !== cleanText;
+    const wasTranslatedFromSpeech =
+      !!sourceLanguage && !isEnglishLanguage(sourceLanguage);
 
     if (!cleanText && !hasImage) return;
+
+    // Show the scanning indicator IMMEDIATELY for photo turns — set
+    // state synchronously so React batches it with the user-bubble
+    // render. Otherwise the AsyncStorage write inside persistMessages
+    // delays the spinner by 100-500ms and the user perceives a gap
+    // between snapping the photo and the AI showing it's working.
+    if (hasImage) {
+      setScanning(true);
+    }
 
     debugTurn();
     debugLog("ChatScreen", "Action", "User submitted", {
@@ -291,14 +326,41 @@ export function ChatScreen({
       pendingOfferRef.current = null;
     }
 
+    // First user bubble:
+    // - voice non-English: original-language transcript (no chip yet)
+    // - everything else: the cleaned text (or empty for photo / hidden)
+    const firstBubbleText = isVoiceTranslation
+      ? trimmedSource
+      : payload.hiddenText || payload.imageUri ? "" : cleanText;
+
     const userMessage: ChatMessage = {
       role: "user",
       imageUri: payload.imageUri,
-      text: payload.hiddenText || payload.imageUri ? "" : cleanText,
+      text: firstBubbleText,
       timestamp: now(),
+      // Single-bubble voice translation (no sourceText available):
+      // stamp the chip on this bubble directly. Two-bubble path
+      // stamps it on the second bubble instead.
+      isTranslation:
+        !isVoiceTranslation && wasTranslatedFromSpeech ? true : undefined,
     };
 
     let nextWithUser = [...messages, userMessage];
+
+    // For voice non-English: immediately append the English translation
+    // bubble with the Translated chip. Mirrors the typed-foreign two-
+    // bubble pattern, no extra API call needed (Whisper already gave
+    // us both).
+    if (isVoiceTranslation && !hasImage) {
+      const translatedMessage: ChatMessage = {
+        role: "user",
+        text: cleanText,
+        timestamp: now(),
+        isTranslation: true,
+      };
+      nextWithUser = [...nextWithUser, translatedMessage];
+    }
+
     await persistMessages(nextWithUser);
 
     setInput("");
@@ -320,28 +382,25 @@ export function ChatScreen({
       return;
     }
 
-    setTyping(true);
+    // Text-only turns show the static TypingBubble here. Photo turns
+    // already flipped scanning at the top of this function so the
+    // ScanningBubble appears with no perceptible delay.
+    if (!hasImage) {
+      setTyping(true);
+    }
 
-    // Safety and translation, then the AI call.
+    // Safety and translation, then the AI call. Photo turns skip
+    // this entirely — OCR'd document content isn't the user's voice,
+    // so we don't run the keyword scanner, the AI second-pass flag,
+    // alert routing, or the translation banner on it. The OCR text
+    // still flows through to the AI via textForAI.
     let textForAI = cleanText;
-    if (cleanText) {
+    let flaggedWords: string[] = [];
+    let flaggedReason: string | undefined;
+    if (cleanText && !hasImage) {
       const checks = await runChecks({ text: cleanText });
-
-      /**
-       * Two-layer flag detection. The keyword scan is deterministic
-       * and covers original plus translated text, the AI second-pass
-       * catches paraphrased urgency the keyword list misses. Either
-       * layer firing logs an alert; carers see both signals when
-       * both matched.
-       */
-      if (checks.flaggedWords.length > 0 || checks.flaggedReason) {
-        addAlert({
-          message: cleanText,
-          keywords: checks.flaggedWords,
-          reason: checks.flaggedReason,
-          storageKey,
-        });
-      }
+      flaggedWords = checks.flaggedWords;
+      flaggedReason = checks.flaggedReason;
 
       // AI-only flag. Paint the user bubble with the soft orange treatment.
       const aiOnlyFlag = !!checks.flaggedReason && checks.flaggedWords.length === 0;
@@ -372,16 +431,32 @@ export function ChatScreen({
       text: textForAI,
     }, settings.useHistory ? messages : []);
 
+    // Alert routing. Wait until the AI call returns so the alert
+    // severity reflects the FINAL distress tier (RED -> high), not
+    // just the pre-call keyword/AI-second-pass signals. Keeps the
+    // Alerts log in sync with the chat-bubble chip.
+    if (!hasImage && (flaggedWords.length > 0 || flaggedReason || result.distressTier)) {
+      addAlert({
+        message: cleanText,
+        keywords: flaggedWords,
+        reason: flaggedReason,
+        storageKey,
+        distressTier: result.distressTier,
+      });
+    }
+
     /**
      * Save-offer routing. Passive categories (Family, Memory) get
      * upserted silently; active ones get a save-offer bubble
      * appended after the AI reply.
      */
     let offerForChat: NonNullable<ChatMessage["saveOffer"]> | null = null;
+    let savedIndicator: ChatMessage["savedIndicator"];
     if (saveable && result.saveOffer && !result.isError) {
       const so = result.saveOffer;
       if (so.autoSave && saveCategory) {
-        passiveUpsert(so.suggestedTitle, so.cleanContent);
+        const outcome = passiveUpsert(so.suggestedTitle, so.cleanContent);
+        if (outcome) savedIndicator = outcome;
         pendingOfferRef.current = null;
       } else if (so.offerSentence) {
         // Set the pending ref so a later "yes save" still works, and queue the offer card.
@@ -400,9 +475,19 @@ export function ChatScreen({
       isError: result.isError,
       warningText: result.isError ? undefined : resolveWarning(result.aiText, messageWarning),
       timestamp: now(),
+      savedIndicator,
     };
 
-    let nextWithAi = [...nextWithUser, aiMessage];
+    // Stamp the distress tier on the LAST user bubble that prompted
+    // this turn, not on the AI reply — the flag belongs to what the
+    // user said. Photo turns are exempt: OCR'd document content
+    // isn't a user voice and shouldn't get flagged.
+    const nextWithUserFlagged =
+      result.distressTier && !hasImage
+        ? stampDistressOnLastUserMessage(nextWithUser, result.distressTier)
+        : nextWithUser;
+
+    let nextWithAi = [...nextWithUserFlagged, aiMessage];
     if (offerForChat) {
       nextWithAi = [
         ...nextWithAi,
@@ -411,6 +496,7 @@ export function ChatScreen({
     }
     await persistMessages(nextWithAi);
     setTyping(false);
+    setScanning(false);
     debugLog("ChatScreen", "Result", "Reply persisted");
     debugTurnEnd();
 
@@ -432,8 +518,8 @@ export function ChatScreen({
       (async () => {
         return "Error: Speech transcription not enabled";
       }),
-    onTranscript: async (text) => {
-      await sendPayload({ text });
+    onTranscript: async (text, language, sourceText) => {
+      await sendPayload({ text }, language, sourceText);
     },
   });
 
@@ -593,7 +679,10 @@ export function ChatScreen({
             );
           })}
 
-          {typing && (
+          {scanning && (
+            <ScanningBubble accentColor={accentColor} aiLabel={aiLabel} />
+          )}
+          {typing && !scanning && (
             <TypingBubble accentColor={accentColor} aiLabel={aiLabel} typingLabel={typingLabel} />
           )}
         </ScrollView>

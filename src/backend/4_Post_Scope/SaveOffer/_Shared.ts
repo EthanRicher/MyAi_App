@@ -30,11 +30,18 @@ export type SaveOfferTypeConfig = {
 
 // Shared rules + JSON shape appended to every per-type prompt.
 const SHARED_TAIL = `
+DEFAULT TO OFFERING SAVE when in doubt. The user can always decline or keep
+editing — a missed offer is worse than an extra one. Offer as soon as the AI
+reply contains an artefact that would be useful to re-read later, even if it
+isn't "finished" yet. Save now does NOT lock anything in: the user can keep
+chatting after saving, and later versions can be saved on top via title
+match.
+
 DO NOT OFFER SAVE for:
-- Greetings, small talk, or generic chat
-- Mid-draft brainstorms, clarifying questions, partial answers
-- Single-sentence replies, expressions of feeling without an artefact
-- Lists of options where the user has not yet picked one
+- Greetings, small talk, or generic chat with no artefact at all
+- Pure clarifying questions back to the user with no draft content yet
+- A reply that is only an option-list still waiting on the user to choose
+- Single-sentence emotional support replies with no artefact attached
 
 If you decide to offer save, write a warm one-sentence offer that frames TWO
 options (save now OR keep going) — never imply saving is the only path.

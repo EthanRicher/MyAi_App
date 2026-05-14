@@ -1,5 +1,5 @@
 import { AIScope } from "../../_AI/AI_Types";
-import { buildSharedPrompt } from "../_Common";
+import { buildScanPrompt } from "../_Common";
 
 /**
  * SenseGuard symptom log scope. Takes a free-form description of how
@@ -9,8 +9,6 @@ import { buildSharedPrompt } from "../_Common";
  * a symptom in the first place — pure activity ("I went for a walk")
  * doesn't.
  */
-
-const TOPIC = "log a symptom";
 
 export type SymptomLogOutput = {
   title: string;       // Short label for the log entry.
@@ -24,7 +22,7 @@ export const senseguardSymptomLog: AIScope = {
   responseFormat: "json",
 
   buildPrompt: (text: string) =>
-    buildSharedPrompt(
+    buildScanPrompt(
       `
 You are logging a symptom on the speaker's behalf. The speaker IS the patient — they are describing how THEY feel. Read their freeform description below and produce a clean, structured log entry, written in FIRST PERSON ("I"), as if the speaker is writing it themselves.
 
@@ -111,9 +109,57 @@ SEVERITY rules (best estimate from the words used):
 - 5 = severe
 - 6 = very severe / urgent (chest pain, breathing difficulty, sudden weakness, severe bleeding)
 - If the speaker uses urgent language ("can't breathe", "severe", "really bad", "emergency", "passing out"), lean high.
-`.trim(),
-      "auto",
-      TOPIC
+
+EXAMPLES — match these patterns exactly.
+
+WHAT THEY SAID: "I have a sharp pain in my chest when I breathe in."
+{
+  "isSymptom": true,
+  "title": "Sharp chest pain on breathing",
+  "summary": "- I have a sharp pain in my chest\n- It hurts when I breathe in",
+  "severity": 5
+}
+
+WHAT THEY SAID: "Felt really dizzy when I stood up this morning, had to sit back down."
+{
+  "isSymptom": true,
+  "title": "Dizzy when standing up",
+  "summary": "- I felt really dizzy when I stood up this morning\n- I had to sit back down",
+  "severity": 3
+}
+
+WHAT THEY SAID: "Mild headache behind my eyes since lunch, won't shift."
+{
+  "isSymptom": true,
+  "title": "Headache behind my eyes",
+  "summary": "- I have a mild headache behind my eyes\n- It started after lunch\n- It won't shift",
+  "severity": 2
+}
+
+WHAT THEY SAID: "I went for a walk to the shops this morning."
+{
+  "isSymptom": false,
+  "title": "",
+  "summary": "",
+  "severity": 0
+}
+
+WHAT THEY SAID: "Had toast and a cup of tea for breakfast."
+{
+  "isSymptom": false,
+  "title": "",
+  "summary": "",
+  "severity": 0
+}
+
+WHAT THEY SAID: "Hi there!"
+{
+  "isSymptom": false,
+  "title": "",
+  "summary": "",
+  "severity": 0
+}
+`.trim()
     ),
 
   // Normalise the parsed JSON. Severity gets clamped to 0-6 and rounded.

@@ -99,8 +99,8 @@ export function MedViewLanding() {
               ]}
             />
             <View style={styles.medInfo}>
-              <Text style={styles.medName}>{m.name}</Text>
-              <Text style={styles.medSub}>{m.dose} · {m.dosesPerDay} times daily</Text>
+              <Text style={styles.medName} numberOfLines={1} ellipsizeMode="tail">{m.name}</Text>
+              <Text style={styles.medSub} numberOfLines={1} ellipsizeMode="tail">{m.dose} · {m.dosesPerDay} times daily</Text>
             </View>
             {explainMode && (
               <View style={styles.explainBubble}>

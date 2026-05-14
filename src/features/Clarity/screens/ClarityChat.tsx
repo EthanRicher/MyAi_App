@@ -25,8 +25,15 @@ export function ClarityChat() {
   const scope = clarityScopes[scopeId];
   const cfg = clarityChatConfigs[scopeId];
 
-  const handleProcessMessage = (payload: ChatSendPayload, history: ChatMessage[]) =>
-    runChatTurn(cfg, scope, buildChatText(cfg, history, payload.text?.trim() || ""));
+  const handleProcessMessage = (payload: ChatSendPayload, history: ChatMessage[]) => {
+    const message = payload.text?.trim() || "";
+    // Photo turns: OCR'd document content isn't the user's voice, so
+    // we don't want the hardcoded distress guard scanning it. Pass an
+    // empty string as currentMessage to skip the check; the wrapped
+    // text (with the OCR) still flows to the AI.
+    const currentMessage = payload.imageUri ? "" : message;
+    return runChatTurn(cfg, scope, buildChatText(cfg, history, message), currentMessage);
+  };
 
   return (
     <ChatScreen

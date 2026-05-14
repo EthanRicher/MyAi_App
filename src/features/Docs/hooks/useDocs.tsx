@@ -8,20 +8,24 @@ import { Doc, DocCategory } from "../models/Doc";
  * flows where the AI re-emits the full updated record each time.
  */
 
+type UpsertResult = { doc: Doc; created: boolean };
+
 type DocsContextType = {
   docs: Doc[];
   addDoc: (d: { title: string; category: DocCategory; content: string }) => Doc;
-  upsertDocByTitle: (d: { title: string; category: DocCategory; content: string }) => Doc;
+  upsertDocByTitle: (d: { title: string; category: DocCategory; content: string }) => UpsertResult;
   updateDoc: (doc: Doc) => void;
   deleteDoc: (id: string) => void;
   getDoc: (id: string) => Doc | undefined;
   clearDocs: () => void;
 };
 
+const EMPTY_DOC: Doc = { id: "", title: "", category: "letter", content: "", createdAt: "", updatedAt: "" };
+
 const DocsContext = createContext<DocsContextType>({
   docs: [],
-  addDoc: () => ({ id: "", title: "", category: "letter", content: "", createdAt: "", updatedAt: "" }),
-  upsertDocByTitle: () => ({ id: "", title: "", category: "letter", content: "", createdAt: "", updatedAt: "" }),
+  addDoc: () => EMPTY_DOC,
+  upsertDocByTitle: () => ({ doc: EMPTY_DOC, created: false }),
   updateDoc: () => {},
   deleteDoc: () => {},
   getDoc: () => undefined,
@@ -81,9 +85,9 @@ export function DocsProvider({ children }: { children: ReactNode }) {
     if (existing) {
       const updated: Doc = { ...existing, title: normalised || existing.title, content, updatedAt: now };
       setDocs((prev) => prev.map((d) => (d.id === existing.id ? updated : d)));
-      return updated;
+      return { doc: updated, created: false };
     }
-    return addDoc({ title: normalised, category, content });
+    return { doc: addDoc({ title: normalised, category, content }), created: true };
   };
 
   // Patch an existing doc and bump its updatedAt.

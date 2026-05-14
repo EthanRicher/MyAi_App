@@ -1,5 +1,5 @@
 import { AIScope } from "../../_AI/AI_Types";
-import { buildSharedPrompt, buildSharedPhotoPrompt } from "../_Common";
+import { buildScanPrompt } from "../_Common";
 
 /**
  * SafeHarbour scam check scope. Reads a message, email, or photo of
@@ -17,8 +17,6 @@ export type ScamCheckOutput = {
   redFlags: string[];      // Up to 3 short bullets calling out specific cues.
   explanation: string;     // One-sentence plain-English explanation.
 };
-
-const TOPIC = "check whether something looks like a scam";
 
 // Shared prompt body. The text-vs-photo wrappers slot a different "subject" block in.
 const PROMPT_BODY = (subject: string) => `
@@ -69,15 +67,13 @@ export const safeHarbourScamCheck: AIScope = {
   responseFormat: "json",
 
   buildPrompt: (text: string) =>
-    buildSharedPrompt(PROMPT_BODY(`MESSAGE / SITUATION:\n${text}`), "auto", TOPIC),
+    buildScanPrompt(PROMPT_BODY(`MESSAGE / SITUATION:\n${text}`)),
 
   buildPhotoPrompt: (analysis: string) =>
-    buildSharedPhotoPrompt(
+    buildScanPrompt(
       PROMPT_BODY(
         `PHOTO ANALYSIS (the user has taken a photo of something they want checked — a screenshot of a message, an email, a letter, a website, a phone call screen, etc.):\n${analysis}`
-      ),
-      "auto",
-      TOPIC
+      )
     ),
 
   // Normalise the JSON shape the model returns into ScamCheckOutput, defaulting bad data to "unsure".

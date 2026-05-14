@@ -1,18 +1,18 @@
 import { SaveOfferTypeConfig } from "./_Shared";
 
-// Save-offer rules for the "appointment" category. Triggers on a finished prep checklist.
+// Save-offer rules for the "appointment" category. Bias toward offering early — partial checklists are still useful prep.
 export const appointmentSaveOffer: SaveOfferTypeConfig = {
   noun: "an appointment prep checklist",
   offerCriteria: `
-- A complete prep list for an upcoming appointment: questions to ask, things to bring, symptoms or history to mention, medications to list.
-- A structured checklist with clear groups (e.g. "Questions", "Bring with you", "Symptoms to mention").`,
+- ANY appointment prep checklist with at least one filled section (questions to ask, things to bring, symptoms / history to mention, medications to list).
+- A partial list (just "Questions to ask" with 2+ bullets, for example) — it's still useful prep, and the user can refine and re-save later.
+- A revised checklist after the user added more (offer again so they can save the latest version).`,
   doNotOffer: `
-- A clarifying question back to the user ("What's the appointment for?").
-- A vague suggestion that hasn't been turned into a list ("Make sure you ask about the results").
-- A single tip without surrounding context.`,
+- Pure clarifying questions back to the user with no checklist items on the page yet ("What's the appointment for?").
+- A single passing tip with no surrounding structure.`,
   examples: `
-- Title: "GP appointment — knee pain prep" — Offer: "Would you like to save this checklist, or add anything else first?"
-- Title: "Cardiologist visit — questions and history" — Offer: "Should I save this prep list, or do you want to keep going?"`,
+- Title: "GP appointment — knee pain prep" — Offer: "Want me to save this checklist now, or shall we add more first?"
+- Title: "Cardiologist visit — questions and history" — Offer: "Happy to save this prep list, or keep adding?"`,
   structureGuidance: `
 - First line: a short heading naming the appointment (e.g. "GP appointment — knee pain prep" or "Cardiologist visit").
 - Then a blank line.

@@ -1,5 +1,5 @@
 import { AIScope } from "../../_AI/AI_Types";
-import { buildSharedPrompt } from "../_Common";
+import { buildScanPrompt } from "../_Common";
 
 /**
  * MedView "Scan Medication" scope. Reads a prescription label or
@@ -14,7 +14,7 @@ export const medviewMedicationScan: AIScope = {
 
   // Photo path. Vision analysis is the source of truth.
   buildPhotoPrompt: (analysis: string) =>
-    buildSharedPrompt(`
+    buildScanPrompt(`
 You extract medication info from a photo of a prescription or medication label.
 The following is a visual analysis of the photo — use it as your source.
 
@@ -28,21 +28,49 @@ RULES:
 - If missing, leave fields empty
 - If not medication, mark invalid
 
-DOSE:
-- Extract the actual dose the patient should TAKE, not just the tablet strength
-- If the prescription states a quantity AND a tablet strength, multiply them to get the real dose
-  - Example: "take 1.5 tablets of 50mg" → dose is "75mg"
-  - Example: "take 2 tablets of 100mg" → dose is "200mg"
-  - Example: "take 1 tablet of 10mg" → dose is "10mg"
-- If only a tablet strength is written with no quantity, extract it as-is
-- If the dose cannot be determined, leave "dose" empty
+NAME — the medication name ONLY.
+- Extract just the drug name (brand or generic), nothing else.
+- Do NOT include the dose, strength, formulation, or quantity in this
+  field — those belong in DOSE / DESCRIPTION below.
+  - WRONG: "Atorvastatin 20mg"  ❌
+  - WRONG: "Lipitor 20mg tablets"  ❌
+  - WRONG: "Panadol Extra 500mg"  ❌
+  - RIGHT: "Atorvastatin"  ✓
+  - RIGHT: "Lipitor"  ✓
+  - RIGHT: "Panadol Extra"  ✓
+- If both a brand and a generic are printed, prefer the more
+  prominent one on the label.
+- Use sentence/title case — not ALL CAPS.
 
-TIMES:
+DOSE — the amount the patient takes IN ONE GO (per serving / per
+administration). NEVER a daily total.
+- If the user takes one tablet at a time, the dose is that tablet's
+  strength — regardless of how often they take it.
+  - "5mg tablet, twice a day" → dose: "5mg" (twice a day is FREQUENCY,
+    not a multiplier — it goes in timesPerDay/times, not in dose)
+  - "Atorvastatin 20mg, one tablet daily" → dose: "20mg"
+  - "Panadol 500mg, one tablet three times a day" → dose: "500mg"
+- ONLY multiply tablet-count × strength when the user takes MORE THAN ONE
+  TABLET in a single sitting.
+  - "take 2 tablets of 100mg in the morning" → dose: "200mg"
+  - "take 1.5 tablets of 50mg at night" → dose: "75mg"
+  - "1 tablet of 10mg in the morning" → dose: "10mg"
+- Words that signal FREQUENCY (do NOT multiply by these): "once a day",
+  "twice a day", "three times a day", "every 8 hours", "every morning",
+  "bid", "tid", "qid", "daily", "nightly", "at bedtime", "with each meal".
+- Words that signal QUANTITY PER DOSE (these DO multiply): "take 2",
+  "take 1.5", "1 tablet", "two capsules", "half a tablet".
+- If only a tablet strength is written with no per-dose quantity, extract
+  the strength as-is.
+- If the dose cannot be determined, leave "dose" empty.
+
+TIMES — pick realistic waking-hour defaults for an elderly user. Don't
+schedule doses for the middle of the night.
 - If frequency is stated but exact times are not written:
   - once daily = ["08:00"]
-  - twice daily = ["06:00", "18:00"]
-  - three times daily = ["06:00", "14:00", "22:00"]
-  - four times daily = ["06:00", "12:00", "18:00", "22:00"]
+  - twice daily = ["08:00", "20:00"]
+  - three times daily = ["08:00", "14:00", "20:00"]
+  - four times daily = ["08:00", "13:00", "18:00", "22:00"]
 
 DESCRIPTION:
 - Rewrite the printed instructions in clean, plain English suitable for an elderly reader
@@ -80,7 +108,7 @@ If invalid, return:
 
   // Text path. Same extraction rules, used when the user types or pastes the label text.
   buildPrompt: (text: string) =>
-    buildSharedPrompt(`
+    buildScanPrompt(`
 You extract medication info from prescriptions or medication labels.
 
 RULES:
@@ -88,23 +116,50 @@ RULES:
 - Only extract what is clearly written
 - If missing, leave fields empty
 - If not medication, mark invalid
-- Animal medication is valid for debugging
 
-DOSE:
-- Extract the actual dose the patient should TAKE, not just the tablet strength
-- If the prescription states a quantity AND a tablet strength, multiply them to get the real dose
-  - Example: "take 1.5 tablets of 50mg" → dose is "75mg"
-  - Example: "take 2 tablets of 100mg" → dose is "200mg"
-  - Example: "take 1 tablet of 10mg" → dose is "10mg"
-- If only a tablet strength is written with no quantity, extract it as-is
-- If the dose cannot be determined, leave "dose" empty
+NAME — the medication name ONLY.
+- Extract just the drug name (brand or generic), nothing else.
+- Do NOT include the dose, strength, formulation, or quantity in this
+  field — those belong in DOSE / DESCRIPTION below.
+  - WRONG: "Atorvastatin 20mg"  ❌
+  - WRONG: "Lipitor 20mg tablets"  ❌
+  - WRONG: "Panadol Extra 500mg"  ❌
+  - RIGHT: "Atorvastatin"  ✓
+  - RIGHT: "Lipitor"  ✓
+  - RIGHT: "Panadol Extra"  ✓
+- If both a brand and a generic are printed, prefer the more
+  prominent one on the label.
+- Use sentence/title case — not ALL CAPS.
 
-TIMES:
+DOSE — the amount the patient takes IN ONE GO (per serving / per
+administration). NEVER a daily total.
+- If the user takes one tablet at a time, the dose is that tablet's
+  strength — regardless of how often they take it.
+  - "5mg tablet, twice a day" → dose: "5mg" (twice a day is FREQUENCY,
+    not a multiplier — it goes in timesPerDay/times, not in dose)
+  - "Atorvastatin 20mg, one tablet daily" → dose: "20mg"
+  - "Panadol 500mg, one tablet three times a day" → dose: "500mg"
+- ONLY multiply tablet-count × strength when the user takes MORE THAN ONE
+  TABLET in a single sitting.
+  - "take 2 tablets of 100mg in the morning" → dose: "200mg"
+  - "take 1.5 tablets of 50mg at night" → dose: "75mg"
+  - "1 tablet of 10mg in the morning" → dose: "10mg"
+- Words that signal FREQUENCY (do NOT multiply by these): "once a day",
+  "twice a day", "three times a day", "every 8 hours", "every morning",
+  "bid", "tid", "qid", "daily", "nightly", "at bedtime", "with each meal".
+- Words that signal QUANTITY PER DOSE (these DO multiply): "take 2",
+  "take 1.5", "1 tablet", "two capsules", "half a tablet".
+- If only a tablet strength is written with no per-dose quantity, extract
+  the strength as-is.
+- If the dose cannot be determined, leave "dose" empty.
+
+TIMES — pick realistic waking-hour defaults for an elderly user. Don't
+schedule doses for the middle of the night.
 - If frequency is stated but exact times are not written:
   - once daily = ["08:00"]
-  - twice daily = ["06:00", "18:00"]
-  - three times daily = ["06:00", "14:00", "22:00"]
-  - four times daily = ["06:00", "12:00", "18:00", "22:00"]
+  - twice daily = ["08:00", "20:00"]
+  - three times daily = ["08:00", "14:00", "20:00"]
+  - four times daily = ["08:00", "13:00", "18:00", "22:00"]
 
 DESCRIPTION:
 - Rewrite the printed instructions in clean, plain English suitable for an elderly reader

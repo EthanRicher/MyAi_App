@@ -1,4 +1,5 @@
 import { runAI } from "./AI_Run";
+import { debugLog } from "./AI_Debug";
 import { extractAIText } from "../5_Output/Output_ExtractText";
 import { runSaveOfferPost } from "../4_Post_Scope/Post_SaveOffer";
 import { AIScope } from "./AI_Types";
@@ -6,6 +7,7 @@ import { buildConversationContext } from "../3_Scopes/_Common/Scope_Common_Conve
 import { ChatConfig } from "../../config/_Common/ChatConfig_Type";
 import { ChatMessage, ProcessResult } from "../../components/ChatScreen";
 import { DocCategory } from "../../features/Docs/models/Doc";
+import { checkDistress, RED_RESPONSE, AMBER_INSTRUCTION, parseTierTag } from "./AI_DistressGuard";
 
 /**
  * One-shot helper that runs a single AI turn for a chat. Talks to
@@ -64,14 +66,61 @@ export function buildChatText(
 export async function runChatTurn(
   cfg: ChatConfig,
   scope: AIScope,
-  text: string
+  text: string,
+  /**
+   * The current user turn ON ITS OWN — without any conversation
+   * history prepended. The distress guard scans only this so a
+   * past "kill myself" still living in the transcript doesn't keep
+   * re-firing RED on every later message. When omitted, falls back
+   * to the wrapped `text` for backward-compat with callers that
+   * haven't been updated.
+   */
+  currentMessage?: string
 ): Promise<ProcessResult> {
+  // Hardcoded distress guard runs first so a user in crisis never
+  // depends on the model classifying their message correctly. RED
+  // short-circuits the AI call entirely; AMBER forces the AI onto the
+  // AMBER template via a prepended instruction.
+  const distress = checkDistress(currentMessage ?? text);
+  if (distress.tier === "red") {
+    return { aiText: RED_RESPONSE, distressTier: "red" };
+  }
+
+  const guardedText =
+    distress.tier === "amber" ? `${AMBER_INSTRUCTION}\n\n${text}` : text;
+
   // Main AI call.
-  const result = await runAI({ text, scope, breakdownLength: cfg.breakdownLength });
+  const result = await runAI({ text: guardedText, scope, breakdownLength: cfg.breakdownLength });
   if (result.error) return { aiText: cfg.errorMessage, isError: true };
 
-  const aiText = extractAIText(result, cfg.fallbackMessage);
-  if (!cfg.saveable) return { aiText };
+  // Parse the model's own tier tag and strip it from the displayed
+  // text. The tier rides back on ProcessResult; ChatScreen stamps it
+  // onto the USER bubble that prompted this turn (the flag belongs
+  // to what the user said, not the AI's reply).
+  const rawAiText = extractAIText(result, cfg.fallbackMessage);
+  const { tier: aiJudgedTier, cleanText: aiText } = parseTierTag(rawAiText);
+
+  // Log the FINAL tier the AI applied this turn. This overrides any
+  // earlier "DistressGuard AMBER/RED Triggered" log from the hardcoded
+  // backstop — e.g. if the backstop matched AMBER but the AI escalated
+  // to the RED template, the authoritative tier is RED. Makes it easy
+  // to grep transcripts for what actually happened on a given turn.
+  if (aiJudgedTier) {
+    debugLog(
+      "DistressGuard",
+      aiJudgedTier.toUpperCase(),
+      "AI tier (final, overrides hardcoded match)",
+      { tier: aiJudgedTier },
+    );
+  }
+
+  // Skip the save-offer flow entirely when the chat is non-saveable
+  // OR when the AI judged this turn distress — a distressed user
+  // shouldn't get a "Tap to Save" prompt competing with the support
+  // nudge.
+  if (!cfg.saveable || aiJudgedTier) {
+    return aiJudgedTier ? { aiText, distressTier: aiJudgedTier } : { aiText };
+  }
 
   // Save-offer post-scope. Decides whether and how to offer a save.
   const offer = await runSaveOfferPost({

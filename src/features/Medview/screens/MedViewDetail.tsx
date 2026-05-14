@@ -47,9 +47,9 @@ export function MedViewDetail() {
             <View style={styles.pillIcon}>
               <Pill size={28} color={colors.green} />
             </View>
-            <View>
-              <Text style={styles.medName}>{med.name}</Text>
-              <Text style={styles.medSub}>Tablet · {med.dose}</Text>
+            <View style={styles.headerText}>
+              <Text style={styles.medName} numberOfLines={1} ellipsizeMode="tail">{med.name}</Text>
+              <Text style={styles.medSub} numberOfLines={1} ellipsizeMode="tail">Tablet · {med.dose}</Text>
             </View>
           </View>
 
@@ -141,6 +141,10 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 12,
   },
+  // Lets the name/sub block take the remaining width and shrink, so
+  // numberOfLines truncates long names cleanly instead of letting them
+  // run past the card edge.
+  headerText: { flex: 1, minWidth: 0 },
 
   pillIcon: {
     width: 56,

@@ -1,11 +1,24 @@
-import { BASE_RULES, buildRelevanceRule, buildPhotoRelevanceRule } from "./Scope_Common_Rules";
+import { BASE_RULES, SCAN_BASE_RULES, buildRelevanceRule, buildPhotoRelevanceRule } from "./Scope_Common_Rules";
 
 /**
  * Shared response-format blocks slotted into every scope prompt.
  * Three flavours: a structured "breakdown" with titles and bullets,
  * a casual "conversational" reply, and "auto" which lets the model
  * pick based on what kind of question it's getting.
+ *
+ * Prompts that go through buildSharedPrompt are split between the
+ * model's system and user roles. The boundary is marked with
+ * SYSTEM_USER_BOUNDARY so the runner (AI_Run) can split a single
+ * string back into a two-message conversation. Everything before the
+ * boundary goes in the system role (stable scaffolding — rules,
+ * format, refusal patterns); everything after goes in the user role
+ * (the per-turn task and input). Models adhere to format and safety
+ * rules much more reliably when they live in the system role.
+ *
+ * If a scope's buildPrompt returns a string with no boundary, the
+ * runner sends the whole thing as a user message (legacy / opt-out).
  */
+export const SYSTEM_USER_BOUNDARY = "===SYSTEM_USER_BOUNDARY===";
 
 // Structured reply. Title + sub-titles + bullets. Used for explainers and how-tos.
 const BREAKDOWN_FORMAT = `
@@ -57,14 +70,14 @@ const pickFormatBlock = (format: Format): string =>
   : format === "auto" ? AUTO_FORMAT
   : BREAKDOWN_FORMAT;
 
-// Build the full text-input prompt: rules + format + body.
+// Build the full text-input prompt: rules + format (system) | body (user).
 export const buildSharedPrompt = (
   body: string,
   format: Format = "breakdown",
   topic?: string
 ) => {
   const rules = `${BASE_RULES}\n- ${buildRelevanceRule(topic)}`;
-  return `${rules}\n\n${pickFormatBlock(format)}\n\n${body}`;
+  return `${rules}\n\n${pickFormatBlock(format)}\n\n${SYSTEM_USER_BOUNDARY}\n\n${body}`;
 };
 
 // Same shape as the text prompt, but with the photo-friendly relevance rule.
@@ -74,5 +87,17 @@ export const buildSharedPhotoPrompt = (
   topic?: string
 ) => {
   const rules = `${BASE_RULES}\n- ${buildPhotoRelevanceRule(topic)}`;
-  return `${rules}\n\n${pickFormatBlock(format)}\n\n${body}`;
+  return `${rules}\n\n${pickFormatBlock(format)}\n\n${SYSTEM_USER_BOUNDARY}\n\n${body}`;
+};
+
+/**
+ * Prompt builder for one-shot scan / extraction scopes (MedView
+ * medication scan, SafeHarbour scam check, SenseGuard symptom log).
+ * Uses the minimal SCAN_BASE_RULES — no distress escalation, no tier
+ * tag, no GP nudge, no relevance deflection, no format block. The
+ * scope's own task body owns the output schema and the
+ * invalid/unsure status semantics.
+ */
+export const buildScanPrompt = (body: string) => {
+  return `${SCAN_BASE_RULES}\n\n${SYSTEM_USER_BOUNDARY}\n\n${body}`;
 };

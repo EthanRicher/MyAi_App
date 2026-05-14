@@ -1,18 +1,19 @@
 import { SaveOfferTypeConfig } from "./_Shared";
 
-// Save-offer rules for the "plan" category. Triggers on a finished daily plan with concrete time slots.
+// Save-offer rules for the "plan" category. Bias toward offering early — even short plans are worth keeping.
 export const planSaveOffer: SaveOfferTypeConfig = {
   noun: "a daily plan",
   offerCriteria: `
-- A finished plan with concrete time slots or ordered steps the user could follow.
-- A schedule for a day or part of a day with at least 3 actionable items.`,
+- ANY plan with 2 or more concrete steps or time slots the user has agreed to.
+- A partial day-plan (morning only, afternoon only) that still has 2+ ordered items.
+- A revised plan after the user tweaked an earlier draft (offer again so they can save the latest version).`,
   doNotOffer: `
-- A vague intent ("I'll go for a walk later") without structure.
-- One-off reminders that are not part of a broader plan.
-- Suggestions still being narrowed down (e.g. "or maybe...").`,
+- Only one vague intent on its own ("I'll go for a walk later") with no surrounding plan.
+- The AI is still presenting options and the user hasn't picked any yet.
+- Pure clarifying questions back to the user with no plan items on the page.`,
   examples: `
-- Title: "Tuesday plan with Sarah's visit" — Offer: "Want me to save this plan, or do you want to adjust it first?"
-- Title: "Morning routine" — Offer: "Should I save this plan, or keep tweaking it?"`,
+- Title: "Tuesday plan with Sarah's visit" — Offer: "Want me to save this plan now, or shall we adjust it first?"
+- Title: "Morning routine" — Offer: "Happy to save this plan, or keep adding to it?"`,
   structureGuidance: `
 - First line: a short heading naming the plan, e.g. "Plan for today" or "Tuesday plan".
 - Then a blank line.

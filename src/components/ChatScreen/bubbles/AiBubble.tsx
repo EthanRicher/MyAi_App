@@ -1,7 +1,20 @@
 import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Plus } from "lucide-react-native";
 import type { ChatMessage } from "../types";
 import { renderMessageContent } from "../helpers";
 import { styles } from "../styles";
+import { colors } from "../../../theme";
+
+/**
+ * Mapping from passive-save outcome → indicator colour + tooltip.
+ * "created" lights up green (a new doc landed in the Docs library
+ * this turn). "updated" lights up orange (an existing doc was
+ * appended to). Rendered as a small Plus icon next to the AI label.
+ */
+const SAVED_INDICATOR_META: Record<NonNullable<ChatMessage["savedIndicator"]>, { color: string; label: string }> = {
+  created: { color: colors.green, label: "Saved a new record" },
+  updated: { color: colors.orange, label: "Updated an existing record" },
+};
 
 /**
  * One AI message bubble. Can hold an image, plain or markdown text,
@@ -29,9 +42,19 @@ export function AiBubble({ message, accentColor, aiLabel, onOpenReader }: Props)
         style={styles.aiBubble}
         accessibilityHint={tappable ? "Tap to read in full screen" : undefined}
       >
-        {/* Header. Name plus timestamp. */}
+        {/* Header. Name plus optional saved-indicator plus timestamp. */}
         <View style={styles.bubbleLabelRow}>
-          <Text style={[styles.aiLabel, { color: accentColor }]}>{aiLabel}</Text>
+          <View style={styles.aiLabelGroup}>
+            <Text style={[styles.aiLabel, { color: accentColor }]}>{aiLabel}</Text>
+            {message.savedIndicator && (
+              <View
+                style={[styles.savedIndicator, { backgroundColor: SAVED_INDICATOR_META[message.savedIndicator].color }]}
+                accessibilityLabel={SAVED_INDICATOR_META[message.savedIndicator].label}
+              >
+                <Plus size={10} color={colors.background} strokeWidth={3} />
+              </View>
+            )}
+          </View>
           {!!message.timestamp && <Text style={styles.timestamp}>{message.timestamp}</Text>}
         </View>
 

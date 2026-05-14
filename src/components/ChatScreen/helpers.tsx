@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 import { renderMarkdownWith, parseInline } from "../../backend/6_Present/Present_Markdown";
-import { AI_WARNING } from "../../backend/3_Scopes/_Common/Scope_Common_Warnings";
+import { AI_WARNING } from "../../backend/3_Scopes/_Common";
 import { styles } from "./styles";
 
 /**
@@ -86,3 +86,24 @@ export const now = () => {
 // Does this reply look like a structured breakdown (bold headings or bullets).
 export const isBreakdown = (t: string | undefined) =>
   !!t && (/\*\*[^*]+\*\*/.test(t) || /^[-•*]\s+/m.test(t));
+
+/**
+ * Stamp a distress tier on the most recent user message in a list.
+ * The chat surfaces flag the message the user SENT, not the AI's
+ * reply — so when runChatTurn returns a tier, we apply it to the
+ * last user bubble (the prompt that triggered it) rather than the AI
+ * bubble that follows. Returns a new array without mutating input.
+ */
+export function stampDistressOnLastUserMessage(
+  messages: import("./types").ChatMessage[],
+  tier: NonNullable<import("./types").ChatMessage["distressTier"]>
+): import("./types").ChatMessage[] {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") {
+      const next = messages.slice();
+      next[i] = { ...next[i], distressTier: tier };
+      return next;
+    }
+  }
+  return messages;
+}

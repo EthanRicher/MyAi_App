@@ -2,6 +2,7 @@ import { OPENAI_API_KEY } from "@env";
 import { debugLog, debugPayload, formatTime } from "./AI_Debug";
 import { RunAIArgs, RunAIResult } from "./AI_Types";
 import { BREAKDOWN_CHAR_LIMITS, DEFAULT_BREAKDOWN_LENGTH } from "../../config/Config_General";
+import { SYSTEM_USER_BOUNDARY } from "../3_Scopes/_Common";
 
 /**
  * Main AI runner. Takes a scope (prompt builder, response format,
@@ -83,12 +84,30 @@ const parseLegacyStructuredResponse = (raw: string) => {
 };
 
 // Length cap appended to every prompt so replies stay scannable.
+// Format-agnostic — applies the same way to breakdowns, conversational
+// replies, and JSON outputs.
 const buildLengthRule = (maxChars: number) => `
 
-LENGTH LIMIT (critical):
-- Keep the breakdown under ${maxChars} characters total (including titles and bullets).
+RESPONSE LIMIT (critical):
+- Keep your full response under ${maxChars} characters total, counting every character of any title, bullet, sentence, or JSON field.
 - Prefer short sentences. Cut anything non-essential.
 - If the topic is too big, cover only the most important points.`;
+
+// Split a built prompt into the system + user halves at the boundary
+// marker. Scopes that go through buildSharedPrompt always emit one;
+// scopes that don't (legacy / fully custom) fall back to user-only.
+const splitPromptOnBoundary = (prompt: string) => {
+  const idx = prompt.indexOf(SYSTEM_USER_BOUNDARY);
+
+  if (idx < 0) {
+    return { system: "", user: prompt };
+  }
+
+  return {
+    system: prompt.slice(0, idx).trim(),
+    user: prompt.slice(idx + SYSTEM_USER_BOUNDARY.length).trim(),
+  };
+};
 
 export const runAI = async ({
   text,
@@ -96,22 +115,28 @@ export const runAI = async ({
   breakdownLength,
 }: RunAIArgs): Promise<RunAIResult> => {
   // Build the prompt. Scope-specific text plus the shared length rule.
+  // The length rule lives at the end of the user turn so the model sees
+  // it close to its response, not buried in the system scaffolding.
   const safeText = sanitiseText(text);
   const basePrompt = scope.buildPrompt(safeText);
   const maxChars = BREAKDOWN_CHAR_LIMITS[breakdownLength ?? DEFAULT_BREAKDOWN_LENGTH];
   const prompt = sanitiseText(basePrompt + buildLengthRule(maxChars));
 
+  // Split into system (stable rules / format / refusals) and user (task
+  // and per-turn input). Models adhere to scaffolding more reliably when
+  // it lives in the system role.
+  const { system, user } = splitPromptOnBoundary(prompt);
+
   debugLog("AI_Run", "Request", "Sending", { scope: scope.id, model: "gpt-4o-mini" });
   debugPayload("AI_Run", "prompt", prompt);
 
+  const messages: Array<{ role: "system" | "user"; content: string }> = [];
+  if (system) messages.push({ role: "system", content: system });
+  messages.push({ role: "user", content: user });
+
   const requestBody: any = {
     model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
+    messages,
     temperature: 0,
   };
 

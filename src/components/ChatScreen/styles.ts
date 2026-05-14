@@ -73,6 +73,12 @@ export const styles = StyleSheet.create({
 
   // Soft orange treatment for AI-only flags.
   userBubbleAiFlagged: { borderLeftWidth: 4, borderLeftColor: colors.orange },
+  // User bubble flag strips. A 4px coloured edge on the left of the
+  // bubble whose colour matches the distress tier the user's message
+  // tripped. The flag belongs to what the user said, not the AI's
+  // reply, so it sits on the user bubble.
+  userBubbleAmberFlag: { borderLeftWidth: 4, borderLeftColor: colors.orange },
+  userBubbleRedFlag: { borderLeftWidth: 4, borderLeftColor: colors.destructive },
   aiFlagPill: {
     backgroundColor: colors.orange,
     borderRadius: 999,
@@ -89,14 +95,63 @@ export const styles = StyleSheet.create({
 
   errorBubbleText: { color: colors.destructive, fontSize: 16, fontWeight: "700" },
 
-  // Label row. Name on the left, timestamp on the right.
+  // Label row. Name (+ optional saved-indicator) on the left, timestamp on the right.
   aiLabel: { fontWeight: "700", marginBottom: 4 },
   userLabel: { fontWeight: "700", color: colors.textMuted },
+  // Light "· Translated to English" suffix on the user label.
+  // Deliberately thinner and dimmer than the name so the bubble's
+  // English text isn't mistaken for the user's exact words.
+  // Layout group for the user bubble label row — name + any chips
+  // sit together on the left; timestamp sits on the right.
+  userLabelGroup: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 },
+  // Small grey "Translated" chip stamped next to the user name when
+  // their voice input came from a non-English source.
+  translatedChip: {
+    backgroundColor: colors.textCaption,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  translatedChipText: {
+    color: colors.background,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+  },
   bubbleLabelRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 4,
+  },
+  aiLabelGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  // Small circular badge with a + icon, sits next to the AI name after a passive save.
+  savedIndicator: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  // Small "AI flag" pill stamped onto the user bubble next to their
+  // name when their message tripped a distress tier. Background colour
+  // is set inline (orange for AMBER, red for RED).
+  distressTierChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  distressTierChipText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
 
   // Little hint chip telling the user they can tap the bubble for fullscreen.

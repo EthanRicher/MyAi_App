@@ -35,7 +35,10 @@ export function MedViewChat() {
     const isInitial = history.length === 0;
 
     if (isInitial && med && scope.buildInitialPrompt) {
-      return runChatTurn(cfg, scope, scope.buildInitialPrompt(med));
+      // System-generated initial prompt — pass empty currentMessage so
+      // the hardcoded distress guard doesn't scan the medication record
+      // and mis-fire on terms in the description.
+      return runChatTurn(cfg, scope, scope.buildInitialPrompt(med), "");
     }
 
     // Send the full medication context on every turn so the AI can answer
@@ -53,7 +56,10 @@ export function MedViewChat() {
           .filter(Boolean)
           .join("\n")
       : "";
-    return runChatTurn(cfg, scope, medHeader + buildChatText(cfg, history, message));
+    // Photo turns: skip the hardcoded distress guard on OCR'd
+    // content — a scanned label isn't the user's voice.
+    const currentMessage = payload.imageUri ? "" : message;
+    return runChatTurn(cfg, scope, medHeader + buildChatText(cfg, history, message), currentMessage);
   };
 
   return (

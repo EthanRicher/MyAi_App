@@ -1,5 +1,6 @@
 import React, { useState, useContext, createContext, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { DistressTier } from "../../../backend/_AI/AI_DistressGuard";
 
 /**
  * Alerts context. Every time a chat message trips the keyword
@@ -24,7 +25,13 @@ export type AlertEntry = {
 
 type AlertsContextType = {
   alerts: AlertEntry[];
-  addAlert: (a: { message: string; keywords: string[]; reason?: string; storageKey: string }) => void;
+  addAlert: (a: {
+    message: string;
+    keywords: string[];
+    reason?: string;
+    storageKey: string;
+    distressTier?: DistressTier;
+  }) => void;
   clearAlerts: () => void;
 };
 
@@ -65,13 +72,18 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   }, [alerts, loaded]);
 
   /**
-   * Hardcoded keyword match → "high" (red). AI-only phrasing flag
-   * → "medium" (orange). The keyword list is unambiguous; the AI
-   * pass catches paraphrase / context the word list misses, a
-   * softer signal that still warrants carer review.
+   * Severity is the highest tier any signal raised this turn:
+   * - "high" (red) when a hardcoded keyword matched OR the AI's
+   *   final distress tier was RED.
+   * - "medium" (orange) when only the AI second-pass flagged the
+   *   phrasing OR the AI's final tier was AMBER.
+   * Keeps the Alerts log consistent with the chat-bubble chip — if
+   * the user saw a red chip on screen, the carer sees a red entry
+   * in the log.
    */
-  const addAlert: AlertsContextType["addAlert"] = ({ message, keywords, reason, storageKey }) => {
-    const severity: AlertSeverity = keywords.length > 0 ? "high" : "medium";
+  const addAlert: AlertsContextType["addAlert"] = ({ message, keywords, reason, storageKey, distressTier }) => {
+    const severity: AlertSeverity =
+      keywords.length > 0 || distressTier === "red" ? "high" : "medium";
     const entry: AlertEntry = {
       id: Date.now().toString() + ":" + Math.random().toString(36).slice(2, 6),
       message,

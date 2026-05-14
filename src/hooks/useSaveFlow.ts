@@ -70,11 +70,15 @@ export function useSaveFlow(saveCategory: DocCategory | undefined) {
   /**
    * Passive save path used by Family Tree and Memory Book where the
    * system upserts on every save-worthy turn without showing a modal.
+   * Returns "created" when a new doc was added, "updated" when an
+   * existing same-title doc was replaced — used by the chat bubble
+   * to render a small saved-indicator next to the AI label.
    */
-  const passiveUpsert = (title: string, content: string) => {
-    if (!saveCategory) return;
-    upsertDocByTitle({ title, category: saveCategory, content });
-    debugLog("ChatScreen", "Result", "Doc auto-saved", { category: saveCategory, title });
+  const passiveUpsert = (title: string, content: string): "created" | "updated" | null => {
+    if (!saveCategory) return null;
+    const { created } = upsertDocByTitle({ title, category: saveCategory, content });
+    debugLog("ChatScreen", "Result", "Doc auto-saved", { category: saveCategory, title, created });
+    return created ? "created" : "updated";
   };
 
   /**

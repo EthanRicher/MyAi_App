@@ -1,18 +1,18 @@
 import { SaveOfferTypeConfig } from "./_Shared";
 
-// Save-offer rules for the "doctor" category. Triggers on a finished plain-English explanation of a doctor visit.
+// Save-offer rules for the "doctor" category. Bias toward offering early — even a partial breakdown is useful to keep.
 export const doctorSaveOffer: SaveOfferTypeConfig = {
   noun: "a plain-English explanation of what the doctor said",
   offerCriteria: `
-- A complete plain-English explanation of a medical conversation the user described or recorded.
-- A structured rewrite covering: what the doctor said, what it means for the user, and any next steps mentioned.`,
+- ANY plain-English breakdown of a medical conversation the user described, even if only one section has real content (just "what the doctor said", or just "next steps").
+- A partial answer that explains a piece of what the doctor said clearly — they can refine and re-save later.
+- A revised explanation after the user added more detail about the visit (offer again so they can save the latest version).`,
   doNotOffer: `
-- A clarifying question back to the user (e.g. "Do you remember what they said about the dose?").
-- A partial answer that only covers one piece of the conversation.
-- General health chat with no specific doctor visit referenced.`,
+- Pure clarifying questions back to the user with no explanation content on the page yet.
+- General health chat with no specific doctor visit referenced at all.`,
   examples: `
-- Title: "GP visit — knee pain explained" — Offer: "Would you like to save this explanation, or ask anything else first?"
-- Title: "Specialist appointment — what they said" — Offer: "Should I save this for later, or do you want to keep going?"`,
+- Title: "GP visit — knee pain explained" — Offer: "Want me to save this for later, or shall we add more detail first?"
+- Title: "Specialist appointment — what they said" — Offer: "Happy to save this now, or keep going?"`,
   structureGuidance: `
 - First line: a short heading naming the visit (e.g. "GP appointment — knee pain").
 - Then a blank line.

@@ -4,7 +4,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { debugLog, debugTurn } from "../../_AI/AI_Debug";
 import { runOCR } from "./Input_OCR";
 import { runVision } from "./Input_Vision";
-import { CameraInputResult } from "../../../components/ChatScreen";
+import { CameraInputResult } from "./Camera_Types";
 
 /**
  * Camera entry point. Asks for permission, opens the system camera,
@@ -48,7 +48,7 @@ export async function openCameraAndScan(
 
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
-      quality: 1,
+      quality: 0.7,
       allowsEditing: false,
     });
 
@@ -72,24 +72,26 @@ export async function openCameraAndScan(
     // Show image in chat immediately before AI processing starts.
     onImageReady?.(imageUri);
 
+    // User-facing fallback message when neither reader returns
+    // anything we can hand to the AI. Routed through `error` on the
+    // result so the chat surfaces it as a bubble rather than sending
+    // it to the model as prompt content.
+    const UNREADABLE = "I couldn't read that photo. Please try again with a clearer image.";
+
     // OCR-only path. Plain text extraction from the photo.
     if (mode === PhotoMode.OCR) {
-      const ocrText = await runOCR(imageUri);
-      return {
-        imageUri,
-        text: ocrText?.trim()
-          ? ocrText.trim()
-          : "The photo was hard to read. Ask the user to retake it more clearly.",
-      };
+      const ocrText = (await runOCR(imageUri))?.trim() || "";
+      return ocrText
+        ? { imageUri, text: ocrText }
+        : { imageUri, text: "", error: UNREADABLE };
     }
 
     // Vision-only path. Use the Vision model directly without OCR fallback.
     if (mode === PhotoMode.Vision) {
       const visionText = await runVision(imageUri);
-      return {
-        imageUri,
-        text: visionText || "The photo could not be analysed. Please try again.",
-      };
+      return visionText
+        ? { imageUri, text: visionText }
+        : { imageUri, text: "", error: UNREADABLE };
     }
 
     // Vision-with-fallback. Try Vision first; if it returns nothing, fall back to OCR.
@@ -99,13 +101,10 @@ export async function openCameraAndScan(
     }
 
     debugLog("Input_Camera", "Action", "Vision empty - falling back to OCR");
-    const ocrText = await runOCR(imageUri);
-    return {
-      imageUri,
-      text: ocrText?.trim()
-        ? ocrText.trim()
-        : "The photo was hard to read. Ask the user to retake it more clearly.",
-    };
+    const ocrText = (await runOCR(imageUri))?.trim() || "";
+    return ocrText
+      ? { imageUri, text: ocrText }
+      : { imageUri, text: "", error: UNREADABLE };
   } catch (err: any) {
     debugLog("Input_Camera", "Error", "Camera failed", { message: err?.message || "Camera failed" });
     Alert.alert("Camera Error", err?.message || "Could not open camera. Please check your permissions in Settings.");

@@ -42,7 +42,6 @@ export type DistressTier = "red" | "amber";
 
 export type DistressCheck = {
   tier: DistressTier | null;
-  matchedPhrase: string | null;
 };
 
 // Active-crisis phrases. A match returns the canned RED response and
@@ -167,25 +166,25 @@ export function parseTierTag(aiText: string): ParsedAiTier {
 // Run the guard. RED takes precedence over AMBER when both match.
 export const checkDistress = (rawText: string): DistressCheck => {
   if (!rawText) {
-    return { tier: null, matchedPhrase: null };
+    return { tier: null };
   }
 
   const text = normalise(rawText);
   if (!text) {
-    return { tier: null, matchedPhrase: null };
+    return { tier: null };
   }
 
   const red = findMatch(text, RED_PHRASES);
   if (red) {
     debugLog("DistressGuard", "RED", "Triggered", { phrase: red });
-    return { tier: "red", matchedPhrase: red };
+    return { tier: "red" };
   }
 
   const amber = findMatch(text, AMBER_PHRASES);
   if (amber) {
     debugLog("DistressGuard", "AMBER", "Triggered", { phrase: amber });
-    return { tier: "amber", matchedPhrase: amber };
+    return { tier: "amber" };
   }
 
-  return { tier: null, matchedPhrase: null };
+  return { tier: null };
 };

@@ -1,5 +1,5 @@
 import { createScope } from "../_Common";
-import { COMPANION_BASE_TASK } from "./Scope_Common_Companion";
+import { COMPANION_BASE_TASK } from "./Chat_CompanionBase";
 
 // Companion "Plan My Day" mode. Builds up a balanced daily plan across a few turns.
 export const companionPlanMyDay = createScope({

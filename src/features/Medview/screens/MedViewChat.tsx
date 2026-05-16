@@ -57,9 +57,11 @@ export function MedViewChat() {
           .join("\n")
       : "";
     // Photo turns: skip the hardcoded distress guard on OCR'd
-    // content — a scanned label isn't the user's voice.
-    const currentMessage = payload.imageUri ? "" : message;
-    return runChatTurn(cfg, scope, medHeader + buildChatText(cfg, history, message), currentMessage);
+    // content — a scanned label isn't the user's voice. `isPhoto`
+    // routes the scope through buildPhotoPrompt when it has one.
+    const isPhoto = !!payload.imageUri;
+    const currentMessage = isPhoto ? "" : message;
+    return runChatTurn(cfg, scope, medHeader + buildChatText(cfg, history, message), currentMessage, isPhoto);
   };
 
   return (

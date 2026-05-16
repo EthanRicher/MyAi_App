@@ -34,6 +34,22 @@ const DocsContext = createContext<DocsContextType>({
 
 const STORAGE_KEY = "DOCS";
 
+/**
+ * Build a match key for upsert-by-title. The same conceptual title
+ * can come back from the AI with cosmetic variations across turns
+ * (em-dash vs hyphen, smart quotes, extra spaces, different unicode
+ * composition); we collapse all of those so they hit the same entry.
+ */
+const normaliseTitleKey = (title: string): string =>
+  title
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[‐-―−]/g, "-")    // various dash codepoints → ASCII hyphen
+    .replace(/[‘’‚‛]/g, "'") // smart single quotes → '
+    .replace(/[“”„‟]/g, '"') // smart double quotes → "
+    .replace(/\s+/g, " ")
+    .trim();
+
 export function DocsProvider({ children }: { children: ReactNode }) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -71,16 +87,21 @@ export function DocsProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Replaces the doc when a same-title (case-insensitive) doc
-   * already exists in the same category. Used for family-tree saves
-   * where the AI re-emits the full updated person record each time.
+   * Replaces the doc when a same-title doc already exists in the
+   * same category. Used for family-tree / memory-book saves where
+   * the AI re-emits the full updated record each turn.
+   *
+   * Title matching is normalised so cosmetic drift between two emits
+   * of "the same" title (em-dash vs hyphen, smart vs straight quotes,
+   * collapsing internal whitespace, NFKC unicode composition, case)
+   * still hits the existing entry instead of creating a duplicate.
    */
   const upsertDocByTitle: DocsContextType["upsertDocByTitle"] = ({ title, category, content }) => {
     const normalised = title.trim();
-    const key = normalised.toLowerCase();
+    const key = normaliseTitleKey(normalised);
     const now = new Date().toISOString();
     const existing = docs.find(
-      (d) => d.category === category && d.title.trim().toLowerCase() === key
+      (d) => d.category === category && normaliseTitleKey(d.title) === key
     );
     if (existing) {
       const updated: Doc = { ...existing, title: normalised || existing.title, content, updatedAt: now };

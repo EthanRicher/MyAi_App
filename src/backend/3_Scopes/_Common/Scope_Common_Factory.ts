@@ -10,20 +10,11 @@ import { buildSharedPrompt, buildSharedPhotoPrompt } from "./Scope_Common_Format
 type ScopeConfig = {
   id: string;                                              // Stable identifier used in debug logs.
   topic: string;                                           // Short on-topic blurb, used for off-topic / off-photo replies.
-  warning?: string;                                        // Optional scope-specific warning copy.
   format?: "breakdown" | "conversational" | "auto";        // Shape of the reply (defaults to breakdown).
   task: string;                                            // Task description injected into the prompt.
   photoTask?: string;                                      // Same as task but for photo input; enables buildPhotoPrompt.
   mapOutput?: (parsed: any) => any;                        // Optional post-processing on the parsed AI output.
   responseFormat?: "text" | "json";                        // "json" tells the model to return strict JSON.
-};
-
-// Pick the shape of the response. Falls back to breakdown when nothing's set.
-const resolveFormat = (
-  config: ScopeConfig,
-): "breakdown" | "conversational" | "auto" => {
-  if (config.format) return config.format;
-  return "breakdown";
 };
 
 export const createScope = (config: ScopeConfig): AIScope => ({
@@ -35,7 +26,7 @@ export const createScope = (config: ScopeConfig): AIScope => ({
   buildPrompt: (input: string) =>
     buildSharedPrompt(
       `${config.task}\n\nINPUT:\n${input}`,
-      resolveFormat(config),
+      config.format ?? "breakdown",
       config.topic
     ),
 

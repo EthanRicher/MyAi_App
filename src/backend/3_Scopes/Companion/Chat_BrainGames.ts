@@ -1,5 +1,5 @@
 import { createScope } from "../_Common";
-import { COMPANION_BASE_TASK } from "./Scope_Common_Companion";
+import { COMPANION_BASE_TASK } from "./Chat_CompanionBase";
 
 // Companion "Brain Games" mode. Gentle trivia, word puzzles and friendly mental warm-ups.
 export const companionBrainGames = createScope({

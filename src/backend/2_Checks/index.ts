@@ -4,17 +4,13 @@ import { flagWithAI } from "./Text/C_Check_AIFlag";
 import { debugLog } from "../_AI/AI_Debug";
 
 /**
- * 2_Checks. Sub-pipeline that runs BEFORE the main AI scope. Photo
- * input goes through Image checks then becomes text and goes through
- * Text checks; pure text input goes straight into Text checks.
- *
- * Today only the text branch is live; the image branch is reserved
- * for future image-side checks (e.g. classification, gating).
+ * 2_Checks. Sub-pipeline that runs BEFORE the main AI scope. Text
+ * input flows through translate + keyword scan + AI second-pass flag,
+ * in parallel where possible.
  */
 
 export type ChecksInput = {
   text?: string;
-  // image?: { ocrText: string; vision?: string };  // reserved for image checks
 };
 
 export type ChecksResult = {
@@ -31,9 +27,6 @@ const collectFlagWords = (text: string): string[] =>
 
 export async function runChecks(input: ChecksInput): Promise<ChecksResult> {
   const sourceText = (input.text ?? "").trim();
-
-  // Image checks would run here when input.image is set, then feed their
-  // extracted text into the text-check stage below.
 
   /**
    * Translate and AI flag run in parallel. Both are network calls
@@ -57,7 +50,7 @@ export async function runChecks(input: ChecksInput): Promise<ChecksResult> {
     new Set([...collectFlagWords(sourceText), ...collectFlagWords(resolvedText)])
   );
 
-  debugLog("Check_Keywords", "Result", "Scanned", {
+  debugLog("Checks", "Result", "Keywords scanned", {
     matches: flaggedWords.length,
     words: flaggedWords,
   });

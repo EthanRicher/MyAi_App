@@ -30,9 +30,11 @@ export function ClarityChat() {
     // Photo turns: OCR'd document content isn't the user's voice, so
     // we don't want the hardcoded distress guard scanning it. Pass an
     // empty string as currentMessage to skip the check; the wrapped
-    // text (with the OCR) still flows to the AI.
-    const currentMessage = payload.imageUri ? "" : message;
-    return runChatTurn(cfg, scope, buildChatText(cfg, history, message), currentMessage);
+    // text (with the OCR) still flows to the AI. `isPhoto` routes
+    // the scope through buildPhotoPrompt when it has one.
+    const isPhoto = !!payload.imageUri;
+    const currentMessage = isPhoto ? "" : message;
+    return runChatTurn(cfg, scope, buildChatText(cfg, history, message), currentMessage, isPhoto);
   };
 
   return (

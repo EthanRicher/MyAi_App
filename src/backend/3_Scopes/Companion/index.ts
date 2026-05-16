@@ -9,11 +9,13 @@ import { companionWriteLetters } from "./Chat_WriteLetters";
 import { companionMemoryBook } from "./Chat_MemoryBook";
 import { companionCreativeCorner } from "./Chat_CreativeCorner";
 import { AIScope } from "../../_AI/AI_Types";
+import { DocCategory } from "../../../features/Docs/models/Doc";
+import { FAMILY_CONTEXT_HEADING, MEMORY_CONTEXT_HEADING } from "./Chat_CompanionBase";
 
 /**
  * Scope per Companion mode (matches the chat-config dispatch in
  * src/config/Companion/index.ts). The shared base task lives in
- * Scope_Common_Companion.ts; each Chat_*.ts only declares its
+ * Chat_CompanionBase.ts; each Chat_*.ts only declares its
  * mode-specific behaviour on top of that.
  */
 export const companionScopes = {
@@ -36,6 +38,36 @@ export function getCompanionScope(mode?: string): AIScope {
     return companionScopes[mode as CompanionMode];
   }
   return companionDefault;
+}
+
+/**
+ * Modes that want existing saved docs injected as context on every
+ * turn (so the scope can recognise people / memories across turns).
+ * Keys are the same mode names used in `companionScopes`. When a
+ * mode is renamed or added, update this table — the screen now
+ * looks up its context wiring through `getCompanionModeContext`
+ * instead of duplicating the dispatch.
+ */
+const COMPANION_MODE_CONTEXT: Partial<
+  Record<CompanionMode, { heading: string; docCategory: DocCategory }>
+> = {
+  "Family Tree": {
+    heading: `${FAMILY_CONTEXT_HEADING} (use these to recognise people across turns):`,
+    docCategory: "family",
+  },
+  "Memory Book": {
+    heading: `${MEMORY_CONTEXT_HEADING} (use these to recognise the memory across turns):`,
+    docCategory: "memory",
+  },
+};
+
+// Returns the context-injection wiring for a mode, or undefined if
+// the mode doesn't pull in any existing docs.
+export function getCompanionModeContext(mode?: string) {
+  if (mode && mode in COMPANION_MODE_CONTEXT) {
+    return COMPANION_MODE_CONTEXT[mode as CompanionMode];
+  }
+  return undefined;
 }
 
 export {

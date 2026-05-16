@@ -38,14 +38,10 @@ export async function runAIOnPhoto(
     };
   }
 
-  // Use the scope's photo prompt builder if it has one, otherwise reuse the normal text prompt.
-  const promptFn = scope.buildPhotoPrompt ?? scope.buildPrompt;
-  const scopeWithPhotoPrompt: AIScope = {
-    ...scope,
-    buildPrompt: promptFn,
-  };
-
-  const result = await runAI({ text: analysis, scope: scopeWithPhotoPrompt });
+  // isPhoto routes runAI through scope.buildPhotoPrompt when the
+  // scope has one (falls back to buildPrompt otherwise) — no need to
+  // synthesize a one-off scope clone here.
+  const result = await runAI({ text: analysis, scope, isPhoto: true });
 
   return { ...result, analysis };
 }

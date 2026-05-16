@@ -7,20 +7,14 @@ import { debugLog, debugPayload } from "../../_AI/AI_Debug";
  * language. The chat surface uses the language field to decide
  * whether to stamp a grey "Translated" chip on the user bubble.
  *
- * Uses the /audio/translations endpoint exclusively:
- * - Always outputs English, which is what the downstream chat
- *   pipeline (distress guard, keyword scanner, etc.) expects.
- * - One API call per recording — fast enough for a demo.
- * - With verbose_json we also get the detected source language for
- *   the Translated chip.
- *
- * Known limitation: on very short / accented clips Whisper sometimes
- * mislabels the source language as "english" when it was actually
- * Spanish / etc., which silently kills the Translated chip on those
- * clips. Acceptable trade-off for the demo where English is the
- * primary use case; a dual-call transcribe+translate variant lives
- * in git history if reliable cross-language detection becomes more
- * important than latency.
+ * Dual-call flow so foreign speech can render the same two-bubble
+ * pattern as typed-foreign input (original-language bubble, then
+ * English-translation bubble with a "Translated" chip):
+ * - /audio/transcriptions first → original-language text + detected
+ *   language. If the language is English we're done.
+ * - /audio/translations second when non-English → English text. The
+ *   chat surface gets both via `sourceText` (original) and `text`
+ *   (English).
  *
  * On any failure path returns an "Error: ..." string so the caller
  * (the speech hook) can surface a friendly chat error.
@@ -157,20 +151,23 @@ export const whisperTranscribe = async (
 
     debugLog("Input_Whisper", "Request", "Sending audio");
 
-    const result = await callWhisper("translations", uri, options);
-    if (!result) {
+    // First call: transcribe in the source language so we get both
+    // the original-language text and the detected language code.
+    const transcription = await callWhisper("transcriptions", uri, options);
+    if (!transcription) {
       return { text: "Error: Whisper API failed" };
     }
 
-    const { text, language } = result;
+    const sourceText = transcription.text;
+    const language = transcription.language;
 
     debugLog("Input_Whisper", "Response", "Transcribed", {
-      chars: text.length,
+      chars: sourceText.length,
       language: language ?? "unknown",
     });
-    debugPayload("Input_Whisper", "transcript", text);
+    debugPayload("Input_Whisper", "transcript", sourceText);
 
-    if (!text) {
+    if (!sourceText) {
       return { text: "Error: No speech detected" };
     }
 
@@ -178,12 +175,29 @@ export const whisperTranscribe = async (
     // PHANTOM_TRANSCRIPTS above. Without this, holding the mic and
     // releasing without speaking produces a phantom "you" / "thanks"
     // bubble every time.
-    if (isPhantomTranscript(text)) {
-      debugLog("Input_Whisper", "Filtered", "Phantom transcript", { text });
+    if (isPhantomTranscript(sourceText)) {
+      debugLog("Input_Whisper", "Filtered", "Phantom transcript", { text: sourceText });
       return { text: "Error: No speech detected" };
     }
 
-    return { text, language };
+    // English speech: the transcription IS the English text, so we
+    // skip the second call. No sourceText — the chat renders one
+    // bubble with no Translated chip.
+    if (isEnglishLanguage(language)) {
+      return { text: sourceText, language };
+    }
+
+    // Non-English speech: second call to translate to English so the
+    // chat can render the original-language bubble followed by the
+    // English bubble with the Translated chip.
+    const translation = await callWhisper("translations", uri, options);
+    if (!translation || !translation.text || isPhantomTranscript(translation.text)) {
+      // Fallback: surface the source-language transcript so the user
+      // still sees their words rather than losing the bubble entirely.
+      return { text: sourceText, language };
+    }
+
+    return { text: translation.text, language, sourceText };
   } catch (err: any) {
     debugLog("Input_Whisper", "Error", "Whisper crashed", { message: err?.message || "Whisper crashed" });
     return { text: "Error: Whisper crashed" };

@@ -7,9 +7,8 @@ import { SYSTEM_USER_BOUNDARY } from "../3_Scopes/_Common";
 /**
  * Main AI runner. Takes a scope (prompt builder, response format,
  * etc.) and the user text, talks to OpenAI, then runs the result
- * through the scope's mapOutput. Handles JSON parsing, length
- * limits, and a legacy structured-text fallback for old prompts
- * that didn't return strict JSON.
+ * through the scope's mapOutput. Handles JSON parsing and length
+ * limits.
  */
 
 // Strip null and control characters so weird input doesn't crash JSON parsing.
@@ -58,31 +57,6 @@ const parseJsonSafely = (raw: string) => {
   return null;
 };
 
-// Legacy fallback. Some scopes used to return EXPLANATION / STATUS / MEDICATIONS plain text.
-const parseLegacyStructuredResponse = (raw: string) => {
-  const explanationMatch = raw.match(/EXPLANATION:\s*([\s\S]*?)(?:\n\s*STATUS:|$)/i);
-  const statusMatch = raw.match(/STATUS:\s*(Valid|Invalid)/i);
-  const medsMatch = raw.match(/MEDICATIONS:\s*([\s\S]*)$/i);
-
-  let medications: any[] = [];
-
-  try {
-    const medsSection = medsMatch?.[1] || "";
-    const start = medsSection.indexOf("[");
-    const end = medsSection.lastIndexOf("]") + 1;
-
-    if (start >= 0 && end > start) {
-      medications = JSON.parse(medsSection.substring(start, end));
-    }
-  } catch {}
-
-  return {
-    explanation: explanationMatch?.[1]?.trim() || "",
-    status: statusMatch?.[1] || "",
-    medications,
-  };
-};
-
 // Length cap appended to every prompt so replies stay scannable.
 // Format-agnostic — applies the same way to breakdowns, conversational
 // replies, and JSON outputs.
@@ -113,12 +87,15 @@ export const runAI = async ({
   text,
   scope,
   breakdownLength,
+  isPhoto,
 }: RunAIArgs): Promise<RunAIResult> => {
   // Build the prompt. Scope-specific text plus the shared length rule.
   // The length rule lives at the end of the user turn so the model sees
   // it close to its response, not buried in the system scaffolding.
+  // Photo turns prefer the scope's buildPhotoPrompt when available.
   const safeText = sanitiseText(text);
-  const basePrompt = scope.buildPrompt(safeText);
+  const buildPrompt = isPhoto && scope.buildPhotoPrompt ? scope.buildPhotoPrompt : scope.buildPrompt;
+  const basePrompt = buildPrompt(safeText);
   const maxChars = BREAKDOWN_CHAR_LIMITS[breakdownLength ?? DEFAULT_BREAKDOWN_LENGTH];
   const prompt = sanitiseText(basePrompt + buildLengthRule(maxChars));
 
@@ -185,20 +162,23 @@ export const runAI = async ({
   debugLog("AI_Run", "Response", "Received", { chars: raw.length, took: formatTime(elapsed) });
   debugPayload("AI_Run", "raw_response", raw);
 
-  // Parse depending on the requested format. JSON scopes try strict JSON first, then the legacy fallback.
+  // Parse depending on the requested format. JSON scopes try strict
+  // JSON parsing; a parse failure is a real error (don't silently
+  // hand an empty {} to mapOutput, that surfaces as "empty record
+  // with defaults" in the UI). Non-JSON scopes read the reply
+  // directly off `raw`, so there's nothing to parse.
   let parsed: any = {};
 
   if (scope.responseFormat === "json") {
     const jsonParsed = parseJsonSafely(raw);
-
-    if (jsonParsed !== null) {
-      parsed = jsonParsed;
-    } else {
-      parsed = parseLegacyStructuredResponse(raw);
+    if (jsonParsed === null) {
       debugLog("AI_Run", "Error", "Failed to parse JSON response");
+      return {
+        raw,
+        error: "The AI returned a response we couldn't read. Please try again.",
+      };
     }
-  } else {
-    parsed = parseLegacyStructuredResponse(raw);
+    parsed = jsonParsed;
   }
 
   const output = scope.mapOutput ? scope.mapOutput(parsed) : parsed;

@@ -1,10 +1,9 @@
-import { createScope, AI_WARNING } from "../_Common";
+import { createScope } from "../_Common";
 
 // Clarity "Explain Everyday" scope. Plain-English help with bills, letters and confusing documents.
 export const clarityExplainEveryday = createScope({
   id: "clarityExplainEveryday",
   topic: "explain everyday paperwork like bills, letters, and forms",
-  warning: AI_WARNING,
   format: "auto",
   photoTask: `
 You are looking at a photo of everyday paperwork — a bill, statement,

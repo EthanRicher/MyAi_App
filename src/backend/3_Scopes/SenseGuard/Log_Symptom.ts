@@ -162,10 +162,14 @@ WHAT THEY SAID: "Hi there!"
 `.trim()
     ),
 
-  // Normalise the parsed JSON. Severity gets clamped to 0-6 and rounded.
+  // Normalise the parsed JSON. Title gets capped to the 40 chars the
+  // prompt promises; severity gets clamped to 0-6 and rounded.
   mapOutput: (parsed: any): SymptomLogOutput => ({
     isSymptom: !!parsed?.isSymptom,
-    title: typeof parsed?.title === "string" ? parsed.title.trim() : "",
+    title:
+      typeof parsed?.title === "string"
+        ? parsed.title.trim().slice(0, 40)
+        : "",
     summary: typeof parsed?.summary === "string" ? parsed.summary.trim() : "",
     severity:
       typeof parsed?.severity === "number"

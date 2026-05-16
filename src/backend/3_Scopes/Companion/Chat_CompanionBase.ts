@@ -152,6 +152,14 @@ GENERAL TONE:
 - Never make the user feel dismissed, judged, or alone
 `.trim();
 
+// Headings used both in the Companion prompt context block (Family
+// Tree / Memory Book inject one of these into the user input) and in
+// the SaveOffer judge prompts (Family / Memory reference the same
+// section by name). Promoted to constants so the scope, the chat
+// screen, and the save judge can't drift apart.
+export const FAMILY_CONTEXT_HEADING = "EXISTING FAMILY MEMBERS YOU'VE LEARNED ABOUT";
+export const MEMORY_CONTEXT_HEADING = "EXISTING MEMORIES YOU'VE LEARNED ABOUT";
+
 // Single saved doc passed in as Companion context (a family member, a memory, etc.).
 export type CompanionDocEntry = { title: string; content: string };
 

@@ -18,7 +18,7 @@ import { useAISettings } from "../../hooks/useAISettings";
 import { useSpeechInput } from "../../backend/1_Input/Speech/Input_SpeechHook";
 import { whisperTranscribe, isEnglishLanguage } from "../../backend/1_Input/Speech/Input_Whisper";
 import { runChecks } from "../../backend/2_Checks";
-import { debugLog, debugTurn, debugTurnEnd } from "../../backend/_AI/AI_Debug";
+import { debugLog, debugTurn } from "../../backend/_AI/AI_Debug";
 
 import { BackButton } from "../BackButton";
 import { MessageReaderModal, ReaderMessage } from "../MessageReaderModal";
@@ -166,9 +166,11 @@ export function ChatScreen({
         const saved = await AsyncStorage.getItem(storageKey);
 
         if (saved) {
+          // Restoring a saved transcript — don't re-fire the
+          // auto-prompt or the seed turn would print again on every
+          // reopen and the saved transcript would grow unbounded.
           const parsed: ChatMessage[] = JSON.parse(saved);
           setMessages(parsed);
-          if (autoPrompt) setPendingAutoSend(true);
           return;
         }
 
@@ -247,7 +249,6 @@ export function ChatScreen({
       }
       setTyping(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-      debugTurnEnd();
     })();
   }, [pendingAutoSend]);
 
@@ -375,7 +376,6 @@ export function ChatScreen({
       const nextWithAi = [...nextWithUser, aiMessage];
       await persistMessages(nextWithAi);
       debugLog("ChatScreen", "Result", "Save-intent reply persisted");
-      debugTurnEnd();
       setTimeout(() => {
         scrollRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -498,7 +498,6 @@ export function ChatScreen({
     setTyping(false);
     setScanning(false);
     debugLog("ChatScreen", "Result", "Reply persisted");
-    debugTurnEnd();
 
     setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
@@ -587,6 +586,21 @@ export function ChatScreen({
       if (!result) return;
 
       setShowTextInput(false);
+
+      // The camera couldn't read anything usable. Surface the message
+      // as an AI-error bubble — don't send the fallback text to the
+      // model as if it were prompt content.
+      if (result.error) {
+        const errorBubble: ChatMessage = {
+          role: "ai",
+          text: result.error,
+          isError: true,
+          timestamp: now(),
+        };
+        setMessages((prev) => [...prev, errorBubble]);
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+        return;
+      }
 
       await sendPayload({
         text: result.text,

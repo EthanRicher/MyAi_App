@@ -34,6 +34,7 @@ export type RunAIArgs = {
   text: string;                       // The user input (already cleaned).
   scope: AIScope;                     // The scope to run.
   breakdownLength?: BreakdownLength;  // Length cap for the reply.
+  isPhoto?: boolean;                  // Use the scope's buildPhotoPrompt (if any) instead of buildPrompt.
 };
 
 // What runAI returns.

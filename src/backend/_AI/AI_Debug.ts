@@ -14,14 +14,6 @@ export function debugTurn(): void {
   console.log("─── Turn ───");
 }
 
-/**
- * End-of-turn marker. No-op for now. Kept so call sites (ChatScreen,
- * Input_Camera, Input_SpeechHook) have a stable hook for future
- * additions like total-turn timing without having to re-thread
- * imports everywhere.
- */
-export function debugTurnEnd(): void {}
-
 // Short, single-line pipeline event. Prints when DEBUG is on.
 export function debugLog(
   module: string,                  // Source module label.

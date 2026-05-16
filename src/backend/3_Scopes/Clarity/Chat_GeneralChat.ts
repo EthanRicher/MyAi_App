@@ -1,10 +1,9 @@
-import { createScope, MEDICAL_WARNING } from "../_Common";
+import { createScope } from "../_Common";
 
 // Clarity "General Chat" scope. Catch-all friendly assistant for health-adjacent questions.
 export const clarityGeneralChat = createScope({
   id: "clarityGeneralChat",
   topic: "help you understand health and medical topics",
-  warning: MEDICAL_WARNING,
   format: "auto",
   task: `
 You are a friendly assistant for any health or medical question the user

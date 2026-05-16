@@ -1,10 +1,9 @@
-import { createScope, MEDICAL_WARNING } from "../_Common";
+import { createScope } from "../_Common";
 
 // Clarity "Doctor Explained" scope. Translates jargon-heavy doctor talk into plain English.
 export const clarityDoctorExplained = createScope({
   id: "clarityDoctorExplained",
   topic: "explain medical terms, diagnoses, and what your doctor said",
-  warning: MEDICAL_WARNING,
   format: "auto",
   photoTask: `
 You are looking at a photo from a doctor's appointment or medical

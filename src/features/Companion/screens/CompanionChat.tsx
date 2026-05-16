@@ -7,8 +7,8 @@ import {
   buildChatText,
   chatScreenPropsFromConfig,
 } from "../../../backend/_AI/AI_RunChatTurn";
-import { getCompanionScope } from "../../../backend/3_Scopes/Companion";
-import { formatExistingDocs } from "../../../backend/3_Scopes/Companion/Scope_Common_Companion";
+import { getCompanionScope, getCompanionModeContext } from "../../../backend/3_Scopes/Companion";
+import { formatExistingDocs } from "../../../backend/3_Scopes/Companion/Chat_CompanionBase";
 import { getCompanionChatConfig } from "../../../config/Companion";
 import { useDocs } from "../../Docs/hooks/useDocs";
 
@@ -26,16 +26,18 @@ export function CompanionChat() {
   const { title } = route.params || {};
   const cfg = getCompanionChatConfig(title);
   const scope = useMemo(() => getCompanionScope(title), [title]);
+  const modeContext = useMemo(() => getCompanionModeContext(title), [title]);
   const { docs } = useDocs();
 
-  const familyEntries = useMemo(
-    () => docs.filter((d) => d.category === "family").map((d) => ({ title: d.title, content: d.content })),
-    [docs]
-  );
-  const memoryEntries = useMemo(
-    () => docs.filter((d) => d.category === "memory").map((d) => ({ title: d.title, content: d.content })),
-    [docs]
-  );
+  // Pull the doc subset this mode wants injected as context (if any).
+  // The mode → docCategory mapping lives in the scope module so a
+  // renamed or new context-aware mode only needs touching there.
+  const contextEntries = useMemo(() => {
+    if (!modeContext) return undefined;
+    return docs
+      .filter((d) => d.category === modeContext.docCategory)
+      .map((d) => ({ title: d.title, content: d.content }));
+  }, [docs, modeContext]);
 
   const handleProcessMessage = (payload: ChatSendPayload, history: ChatMessage[]) => {
     const message = payload.text?.trim() || "";
@@ -43,18 +45,9 @@ export function CompanionChat() {
     // Family Tree / Memory Book scopes need the user's existing records
     // as context. Inject them into the input text so the scope can reason
     // over them (the scope itself stays a pure (input) => prompt builder).
-    let contextPrefix = "";
-    if (title === "Family Tree") {
-      contextPrefix = formatExistingDocs(
-        "EXISTING FAMILY MEMBERS YOU'VE LEARNED ABOUT (use these to recognise people across turns):",
-        familyEntries
-      );
-    } else if (title === "Memory Book") {
-      contextPrefix = formatExistingDocs(
-        "EXISTING MEMORIES YOU'VE LEARNED ABOUT (use these to recognise the memory across turns):",
-        memoryEntries
-      );
-    }
+    const contextPrefix = modeContext
+      ? formatExistingDocs(modeContext.heading, contextEntries)
+      : "";
 
     const text = contextPrefix + buildChatText(cfg, history, message);
     // Photo turns: skip the hardcoded distress guard on OCR'd content

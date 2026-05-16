@@ -31,6 +31,22 @@ export const runOCR = async (imageUri: string) => {
 
     const data = await res.json();
 
+    // ocr.space returns 200 OK even on processing failures (quota /
+    // bad API key / unsupported image) — the real signal is
+    // `IsErroredOnProcessing` + `ErrorMessage`. Log the cause so
+    // transcripts can tell "the photo is hard to read" apart from
+    // "the OCR service rejected the request".
+    if (data?.IsErroredOnProcessing) {
+      const errMsg = Array.isArray(data?.ErrorMessage)
+        ? data.ErrorMessage.join("; ")
+        : data?.ErrorMessage || "OCR API reported an error";
+      debugLog("Input_OCR", "Error", "OCR API rejected request", {
+        message: errMsg,
+        status: data?.OCRExitCode,
+      });
+      return "";
+    }
+
     const text = data?.ParsedResults?.[0]?.ParsedText?.trim() || "";
 
     debugLog("Input_OCR", "Result", "Text extracted", { chars: text.length });

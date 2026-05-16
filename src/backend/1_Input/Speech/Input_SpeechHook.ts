@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Audio } from "expo-av";
 import { debugLog, debugTurn } from "../../_AI/AI_Debug";
 import type { WhisperResult } from "./Input_Whisper";
@@ -35,6 +35,11 @@ export function useSpeechInput({
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [speechError, setSpeechError] = useState("");
+  // Ref (not state) so a double-tap on the stop button can't race
+  // past the `if (!recording) return` check before React commits the
+  // state update — both calls would otherwise reach
+  // stopAndUnloadAsync on the same recording and the second throws.
+  const stoppingRef = useRef(false);
 
   const clearSpeechError = () => {
     setSpeechError("");
@@ -79,9 +84,10 @@ export function useSpeechInput({
    * transcription failures.
    */
   const stopRecording = async () => {
-    if (!recording) {
+    if (!recording || stoppingRef.current) {
       return;
     }
+    stoppingRef.current = true;
 
     try {
       await recording.stopAndUnloadAsync();
@@ -112,6 +118,8 @@ export function useSpeechInput({
       setRecording(null);
       setIsRecording(false);
       debugLog("Input_SpeechHook", "Error", "Could not stop recording");
+    } finally {
+      stoppingRef.current = false;
     }
   };
 

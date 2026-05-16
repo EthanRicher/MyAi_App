@@ -77,12 +77,29 @@ export const safeHarbourScamCheck: AIScope = {
     ),
 
   // Normalise the JSON shape the model returns into ScamCheckOutput, defaulting bad data to "unsure".
-  mapOutput: (parsed: any): ScamCheckOutput => ({
-    level: ["low", "med", "high", "unsure"].includes(parsed?.level) ? parsed.level : "unsure",
-    verdict: typeof parsed?.verdict === "string" ? parsed.verdict.trim() : "",
-    redFlags: Array.isArray(parsed?.redFlags)
-      ? parsed.redFlags.filter((s: any) => typeof s === "string").map((s: string) => s.trim()).filter(Boolean)
-      : [],
-    explanation: typeof parsed?.explanation === "string" ? parsed.explanation.trim() : "",
-  }),
+  mapOutput: (parsed: any): ScamCheckOutput => {
+    // Lowercase the level before validating — the model sometimes
+    // emits "High" / "MEDIUM" instead of the canonical lowercase
+    // values. Also fold common synonyms ("medium" → "med") so
+    // genuine medium-risk verdicts aren't silently relabelled as
+    // "unsure".
+    const rawLevel = typeof parsed?.level === "string" ? parsed.level.trim().toLowerCase() : "";
+    const LEVEL_SYNONYMS: Record<string, ScamLevel> = {
+      medium: "med",
+      mid: "med",
+      moderate: "med",
+    };
+    const canonical = LEVEL_SYNONYMS[rawLevel] ?? rawLevel;
+    const level: ScamLevel = (["low", "med", "high", "unsure"] as const).includes(canonical as ScamLevel)
+      ? (canonical as ScamLevel)
+      : "unsure";
+    return {
+      level,
+      verdict: typeof parsed?.verdict === "string" ? parsed.verdict.trim() : "",
+      redFlags: Array.isArray(parsed?.redFlags)
+        ? parsed.redFlags.filter((s: any) => typeof s === "string").map((s: string) => s.trim()).filter(Boolean)
+        : [],
+      explanation: typeof parsed?.explanation === "string" ? parsed.explanation.trim() : "",
+    };
+  },
 };

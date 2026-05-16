@@ -1,5 +1,5 @@
 import { createScope } from "../_Common";
-import { COMPANION_BASE_TASK } from "./Scope_Common_Companion";
+import { COMPANION_BASE_TASK } from "./Chat_CompanionBase";
 
 // Companion "Ask Anything" mode. General everyday Q&A with a friendly tone.
 export const companionAskAnything = createScope({

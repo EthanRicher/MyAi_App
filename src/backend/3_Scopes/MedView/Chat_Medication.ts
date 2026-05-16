@@ -1,11 +1,16 @@
 import { AIScope } from "../../_AI/AI_Types";
-import { buildSharedPrompt, buildSharedPhotoPrompt } from "../_Common";
+import { buildSharedPrompt, createScope } from "../_Common";
 
 /**
  * MedView "Medication chat" scope. Sits inside MedViewChat. Handles
  * three entry points: a normal text message, the initial open-the-
  * screen prompt seeded with a specific medication record, and a
  * photo (label or prescription) the user has snapped.
+ *
+ * The text + photo turns go through the shared createScope factory
+ * like every other chat scope. The initial-prompt builder is bespoke
+ * because it takes a Med object rather than a free-text input, so
+ * it's tacked on alongside the factory's output.
  */
 
 const TOPIC = "explain your medications";
@@ -13,12 +18,11 @@ const TOPIC = "explain your medications";
 type Med = { name: string; dose: string; description: string };
 
 export const medviewMedicationChat: AIScope = {
-  id: "medviewMedicationChat",
-
-  // Normal turn. Stays focused on the medication that was used to seed the chat.
-  buildPrompt: (text: string) =>
-    buildSharedPrompt(
-      `
+  ...createScope({
+    id: "medviewMedicationChat",
+    topic: TOPIC,
+    format: "auto",
+    task: `
 You are a medication assistant for an elderly person. The user has chosen
 ONE specific medication to talk about — its name, dose, and description
 (if any) appear above as "Medication context". Stay focused on THAT
@@ -49,12 +53,16 @@ ANSWER STYLE:
 - Plain English, short paragraphs or bullets, no jargon.
 - It's OK to use general medical knowledge about the named medication
   even if it isn't in the description above.
-
-${text}
 `.trim(),
-      "auto",
-      TOPIC
-    ),
+    photoTask: `
+You are a medication assistant. The user has sent a photo.
+
+Based on what is visible in the photo:
+- If it shows a medication, explain what it is, how it is taken, and any key warnings
+- If it shows a prescription or label, summarise the instructions simply
+- If it is something else, describe what you can see and offer relevant help
+`.trim(),
+  }),
 
   // Auto-prompt fired when the screen opens. Seeded with the chosen medication record.
   buildInitialPrompt: (med: Med) =>
@@ -65,24 +73,6 @@ Dose: ${med.dose}
 Description: ${med.description}
 
 Explain this medication. Cover what it is for, how it is taken, and key things to know.
-`.trim(),
-      "breakdown",
-      TOPIC
-    ),
-
-  // Photo turn. Used when the user snaps a label or document mid-conversation.
-  buildPhotoPrompt: (analysis: string) =>
-    buildSharedPhotoPrompt(
-      `
-You are a medication assistant. The user has sent a photo.
-The following is a visual analysis of that photo:
-
-${analysis}
-
-Based on what is visible in the photo:
-- If it shows a medication, explain what it is, how it is taken, and any key warnings
-- If it shows a prescription or label, summarise the instructions simply
-- If it is something else, describe what you can see and offer relevant help
 `.trim(),
       "breakdown",
       TOPIC

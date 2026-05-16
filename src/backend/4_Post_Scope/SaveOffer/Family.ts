@@ -1,4 +1,5 @@
 import { SaveOfferTypeConfig } from "./_Shared";
+import { FAMILY_CONTEXT_HEADING } from "../../3_Scopes/Companion/Chat_CompanionBase";
 
 /**
  * Save-offer rules for the "family" category. PASSIVE save: the
@@ -15,7 +16,7 @@ export const familySaveOffer: SaveOfferTypeConfig = {
 - The user's recent message(s) say ANYTHING at all about an identifiable family member (or close-family figure: in-law, godparent, neighbour treated like family).
 - "Identifiable" means: a name, OR a relation that is unambiguous in context (e.g. "Mum", "my brother") given the conversation and the EXISTING FAMILY MEMBERS section, OR an existing entry the user is clearly continuing to talk about.
 - ANY snippet counts: a fact (name, age, where they live, hobby, work), an anecdote ("we had coffee on Sunday"), a feeling about them, a small detail ("she always wears blue") — they ALL go in the record as bullets. Family Tree saves SILENTLY in the background and accumulates snippets over time. NEVER hold out for a "complete" or "consolidated" write-up.
-- The USER'S LAST MESSAGE block may include an "EXISTING FAMILY MEMBERS YOU'VE LEARNED ABOUT" section listing previously saved people. Match the current message against those entries by FIRST NAME (case-insensitive) or by unambiguous relation. If matched, treat the new snippet as an UPDATE and reuse the existing title verbatim so the doc upserts in place.`,
+- The USER'S LAST MESSAGE block may include an "${FAMILY_CONTEXT_HEADING}" section listing previously saved people. Match the current message against those entries by FIRST NAME (case-insensitive) or by unambiguous relation. If matched, treat the new snippet as an UPDATE and reuse the existing title verbatim so the doc upserts in place.`,
   doNotOffer: `
 - The latest user turn doesn't reference any specific person at all (pure small talk, weather, a generic question).
 - The user only asked the AI a question without sharing anything of their own this turn.

@@ -1,4 +1,4 @@
-import { createScope, MEDICAL_WARNING } from "../_Common";
+import { createScope } from "../_Common";
 
 /**
  * Clarity "Appointment Prep" scope. Builds up a checklist (questions
@@ -8,7 +8,6 @@ import { createScope, MEDICAL_WARNING } from "../_Common";
 export const clarityAppointmentPrep = createScope({
   id: "clarityAppointmentPrep",
   topic: "help you prepare for your medical appointment",
-  warning: MEDICAL_WARNING,
   format: "auto",
   task: `
 You help the user PREPARE for an upcoming medical appointment by ACTIVELY

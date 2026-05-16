@@ -1,10 +1,9 @@
-import { createScope, AI_WARNING } from "../_Common";
+import { createScope } from "../_Common";
 
 // Clarity "Summarise Document" scope. Turns a long medical document into a simple breakdown.
 export const claritySummariseDocument = createScope({
   id: "claritySummariseDocument",
   topic: "simplify medical documents and reports",
-  warning: AI_WARNING,
   format: "breakdown",
   photoTask: `
 You are looking at a photo of a medical document — a discharge summary,

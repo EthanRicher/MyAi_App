@@ -63,8 +63,12 @@ export const styles = StyleSheet.create({
     columnGap: 4,
     rowGap: 4,
   },
+  // Hardcoded keyword/trigger pills — blue to stay visually distinct
+  // from the red distress alerts the AI / phrase guard raises. The
+  // keyword scanner is a deterministic highlight ("this word might be
+  // a trigger to notice"), not an escalation.
   flagPill: {
-    backgroundColor: colors.destructive,
+    backgroundColor: colors.blue,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 2,

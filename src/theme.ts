@@ -16,6 +16,7 @@ export const colors = {
   destructive: "#E53935", // Errors and destructive actions.
   green: "#4CAF50",       // Success / positive cues.
   orange: "#FF9800",      // Soft warnings and AI-only flags.
+  blue: "#2196F3",        // Hardcoded keyword/trigger pills — visually distinct from AI red alerts.
   purple: "#BB86FC",      // Accent for special features.
 } as const;
 

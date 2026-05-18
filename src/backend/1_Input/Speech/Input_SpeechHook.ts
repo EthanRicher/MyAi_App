@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Audio } from "expo-av";
 import { debugLog, debugTurn } from "../../_AI/AI_Debug";
 import type { WhisperResult } from "./Input_Whisper";
@@ -40,6 +40,29 @@ export function useSpeechInput({
   // state update — both calls would otherwise reach
   // stopAndUnloadAsync on the same recording and the second throws.
   const stoppingRef = useRef(false);
+  // Mirror of the `recording` state so the unmount cleanup below can
+  // read the latest value (a closure over state would capture the
+  // initial null, which would defeat the cleanup).
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  useEffect(() => {
+    recordingRef.current = recording;
+  }, [recording]);
+
+  // Release any in-flight recording when the screen tears down.
+  // Without this, navigating away mid-recording leaves the native
+  // audio session held — the next mount then fails to
+  // prepareToRecordAsync because the mic is still locked, and the
+  // user just sees "I couldn't hear you" on every press until they
+  // restart the app.
+  useEffect(() => {
+    return () => {
+      const r = recordingRef.current;
+      if (r) {
+        r.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
+      }
+    };
+  }, []);
 
   const clearSpeechError = () => {
     setSpeechError("");
@@ -58,6 +81,16 @@ export function useSpeechInput({
         return;
       }
 
+      // If a prior recording from THIS hook is still tracked, release
+      // it before opening a new one. Belt-and-braces — the unmount
+      // cleanup usually handles this, but if a stop attempt threw
+      // mid-flight the state can still hold a stale instance.
+      if (recordingRef.current) {
+        await recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
+        setRecording(null);
+      }
+
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -71,9 +104,11 @@ export function useSpeechInput({
       setIsRecording(true);
 
       debugLog("Input_SpeechHook", "Action", "Recording started");
-    } catch {
+    } catch (err: any) {
       setSpeechError("Could not start recording");
-      debugLog("Input_SpeechHook", "Error", "Could not start recording");
+      debugLog("Input_SpeechHook", "Error", "Could not start recording", {
+        message: err?.message || "unknown",
+      });
     }
   };
 

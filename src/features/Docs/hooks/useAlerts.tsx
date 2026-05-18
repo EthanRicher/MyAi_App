@@ -18,7 +18,8 @@ export type AlertEntry = {
   message: string;          // The user's full message that tripped the alert.
   keywords: string[];       // Matched red-flag keywords (hardcoded list).
   reason?: string;          // AI second-pass reason when no hard match exists, or alongside it.
-  severity: AlertSeverity;  // "high" when a keyword matched, "medium" when only AI flagged.
+  severity: AlertSeverity;  // "high" when a keyword matched or the AI tier was red; "medium" when only AI phrase-level flagged it.
+  distressTier?: DistressTier; // Stored so the alerts log can colour distress signals red separately from blue trigger-keyword entries.
   storageKey: string;       // Which chat the alert came from.
   timestamp: string;        // ISO timestamp.
 };
@@ -47,17 +48,25 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
   const [alerts, setAlerts] = useState<AlertEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  // Load + migrate. Older entries didn't have a severity field; backfill from the keyword count.
+  // Load + migrate. Older entries pre-date both the severity field
+  // and the distressTier field; backfill both from the data we have.
   useEffect(() => {
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw) as any[];
-          const migrated: AlertEntry[] = parsed.map((a) => ({
-            ...a,
-            severity: a.severity ?? (Array.isArray(a.keywords) && a.keywords.length > 0 ? "high" : "medium"),
-          }));
+          const migrated: AlertEntry[] = parsed.map((a) => {
+            const hasKeywords = Array.isArray(a.keywords) && a.keywords.length > 0;
+            const severity: AlertSeverity = a.severity ?? (hasKeywords ? "high" : "medium");
+            // Best-effort tier inference: a "high"-severity entry with
+            // NO keywords must have been a hardcoded distress RED, so
+            // mark it as such. Entries with keywords stay
+            // distressTier-less and render as blue trigger alerts.
+            const distressTier: DistressTier | undefined =
+              a.distressTier ?? (severity === "high" && !hasKeywords ? "red" : undefined);
+            return { ...a, severity, distressTier };
+          });
           setAlerts(migrated);
         }
       } catch {}
@@ -90,6 +99,7 @@ export function AlertsProvider({ children }: { children: ReactNode }) {
       keywords,
       reason,
       severity,
+      distressTier,
       storageKey,
       timestamp: new Date().toISOString(),
     };

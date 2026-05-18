@@ -52,8 +52,9 @@ export function AlertsLog() {
           <Text style={styles.headerTitle}>Flagged Messages</Text>
         </View>
         <Text style={styles.headerSub}>
-          Messages tagged <Text style={{ color: colors.destructive, fontWeight: "700" }}>RED</Text> matched a hard keyword.{" "}
-          Messages tagged <Text style={{ color: colors.orange, fontWeight: "700" }}>ORANGE</Text> were caught by the AI's phrase-level review.
+          <Text style={{ color: colors.destructive, fontWeight: "700" }}>RED</Text> = the distress guard fired.{" "}
+          <Text style={{ color: colors.blue, fontWeight: "700" }}>TRIGGER</Text> = a hardcoded keyword matched.{" "}
+          <Text style={{ color: colors.orange, fontWeight: "700" }}>ORANGE</Text> = the AI's phrase-level review flagged it.
         </Text>
 
         {alerts.length === 0 && (
@@ -63,7 +64,14 @@ export function AlertsLog() {
         )}
 
         {alerts.map((a) => {
-          const tone = a.severity === "high" ? colors.destructive : colors.orange;
+          // Tier resolution mirrors the chat bubble. Distress RED wins
+          // when both fire (it's the more severe signal). Keyword-only
+          // hits render blue so the carer can tell "the AI escalated
+          // this" apart from "a watchword appeared in passing".
+          const isRed = a.distressTier === "red";
+          const isTrigger = !isRed && a.keywords.length > 0;
+          const tone = isRed ? colors.destructive : isTrigger ? colors.blue : colors.orange;
+          const label = isRed ? "RED" : isTrigger ? "TRIGGER" : "ORANGE";
           return (
             <View
               key={a.id}
@@ -71,9 +79,7 @@ export function AlertsLog() {
             >
               <View style={styles.alertHeader}>
                 <View style={[styles.severityPill, { backgroundColor: tone }]}>
-                  <Text style={styles.severityPillText}>
-                    {a.severity === "high" ? "RED" : "ORANGE"}
-                  </Text>
+                  <Text style={styles.severityPillText}>{label}</Text>
                 </View>
                 <Text style={styles.alertWhen}>{formatWhen(a.timestamp)}</Text>
               </View>
@@ -81,7 +87,11 @@ export function AlertsLog() {
               {a.keywords.length > 0 && (
                 <View style={styles.keywordRow}>
                   {a.keywords.map((k, i) => (
-                    <View key={i} style={[styles.keywordPill, { backgroundColor: tone }]}>
+                    // Keyword pills always stay blue regardless of the
+                    // card's overall tone — they specifically represent
+                    // the hardcoded watchword match, not the
+                    // turn-level severity.
+                    <View key={i} style={[styles.keywordPill, { backgroundColor: colors.blue }]}>
                       <Text style={styles.keywordText}>{k}</Text>
                     </View>
                   ))}
